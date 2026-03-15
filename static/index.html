@@ -375,6 +375,11 @@ async function loadMese() {
   renderCalendario();
 }
 
+function minToHHMM(m) {
+  m = ((m % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+}
+
 function renderCalendario() {
   const giorni = daysInMonth(anno, mese);
   const oggi = new Date().toISOString().slice(0,10);
@@ -423,6 +428,15 @@ function renderCalendario() {
       ? `<span class="badge" style="background:${cfg.colore || '#555'}">${t}</span>`
       : `<span style="color:var(--border)">—</span>`;
 
+    // Orari da mostrare: effettivi se inseriti, altrimenti standard del turno
+    const stdIni = cfg.std_ini != null ? minToHHMM(cfg.std_ini) : null;
+    const stdFin = cfg.std_fin != null ? minToHHMM(cfg.std_fin) : null;
+    const showIni = row.ora_inizio || stdIni || '—';
+    const showFin = row.ora_fine   || stdFin || '—';
+    // Evidenzia in giallo se l'orario è modificato rispetto allo standard
+    const iniStyle = row.ora_inizio && row.ora_inizio !== stdIni ? 'color:#F59E0B;font-weight:700' : 'color:var(--muted)';
+    const finStyle = row.ora_fine   && row.ora_fine   !== stdFin ? 'color:#EF4444;font-weight:700' : 'color:var(--muted)';
+
     const repIcon = rep ? { feriale:'🔵', semifestiva:'🟡', festiva:'🔴' }[rep] || '●' : '';
     const straoColor = isFestStrao ? '#EC4899' : '#F59E0B';
 
@@ -430,8 +444,8 @@ function renderCalendario() {
       <td class="cell-data">${g} ${MESI_IT[mese-1].slice(0,3)}</td>
       <td class="cell-giorno">${GIORNI_IT[dow]}</td>
       <td class="cell-turno">${badgeHtml}</td>
-      <td class="cell-ore" style="font-size:0.78rem;color:var(--muted)">${row.ora_inizio || '—'}</td>
-      <td class="cell-ore" style="font-size:0.78rem;color:var(--muted)">${row.ora_fine || '—'}</td>
+      <td class="cell-ore" style="font-size:0.8rem;${iniStyle}">${showIni}</td>
+      <td class="cell-ore" style="font-size:0.8rem;${finStyle}">${showFin}</td>
       <td class="cell-ore">${oreTot ? fmtH(oreTot) : '—'}</td>
       <td class="cell-ore">${oreDiurne ? fmtH(oreDiurne) : '—'}</td>
       <td class="cell-ore">${oreNott ? fmtH(oreNott) : '—'}</td>
