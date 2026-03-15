@@ -196,60 +196,87 @@
   }
   .time-edit-input.visible { display: block; }
 
+  /* ── BOTTOM NAV MOBILE ── */
+  .bottom-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    background: var(--card); border-top: 1px solid var(--border);
+    padding: 8px 0 env(safe-area-inset-bottom, 8px);
+  }
+  .bottom-nav-inner { display: flex; justify-content: space-around; }
+  .bottom-nav a {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--muted); text-decoration: none; font-size: 0.65rem;
+    font-weight: 600; padding: 4px 12px; border-radius: 8px;
+  }
+  .bottom-nav a.active { color: var(--accent); }
+  .bottom-nav a span.icon { font-size: 1.3rem; line-height: 1; }
+
   /* ── MOBILE RESPONSIVE ── */
   @media (max-width: 768px) {
-    header { padding: 10px 14px; gap: 8px; }
+    /* Header */
+    header { padding: 10px 12px; gap: 8px; }
     header h1 { font-size: 1rem; }
-    nav { display: none; }
-    .nav-controls { gap: 6px; }
-    .nav-controls select, .nav-controls button { padding: 5px 10px; font-size: 0.8rem; }
-    .header-right { gap: 6px; }
+    header nav { display: none; }
+    .nav-controls select, .nav-controls button { padding: 5px 10px; font-size: 0.82rem; }
     .user-label { display: none; }
-    .btn-logout { padding: 5px 10px; font-size: 0.78rem; }
-    .month-tabs { padding: 8px 10px; gap: 3px; }
-    .month-tab { padding: 5px 10px; font-size: 0.75rem; }
-    .main { flex-direction: column; height: auto; }
-    .cal-wrap { padding: 10px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    table { min-width: 520px; }
-    th { padding: 8px 5px; font-size: 0.62rem; }
-    td { padding: 7px 5px; font-size: 0.76rem; }
-    td.cell-data   { width: 54px; font-size: 0.73rem; }
-    td.cell-giorno { width: 28px; font-size: 0.68rem; }
-    td.cell-turno  { width: 54px; }
-    td.cell-ore    { width: 44px; font-size: 0.7rem; }
-    .badge { padding: 2px 5px; font-size: 0.68rem; }
-    /* Nascondi colonne meno critiche */
-    th:nth-child(7), td:nth-child(7),
-    th:nth-child(8), td:nth-child(8),
-    th:nth-child(12), td:nth-child(12) { display: none; }
-    /* Sidebar orizzontale */
+    [onclick="logout()"] { padding: 5px 10px; font-size: 0.78rem; }
+
+    /* Tab mesi */
+    .month-tabs { padding: 8px 8px; gap: 3px; }
+    .month-tab { padding: 5px 9px; font-size: 0.74rem; }
+
+    /* Layout */
+    .main { flex-direction: column; height: auto; padding-bottom: 70px; }
+
+    /* Calendario scroll orizzontale */
+    .cal-wrap { padding: 8px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+    /* Tabella semplificata: mostra solo le colonne essenziali */
+    table { min-width: 0; width: 100%; table-layout: fixed; }
+    th, td { padding: 8px 4px; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    td.cell-data   { width: 52px; font-size: 0.72rem; }
+    td.cell-giorno { width: 26px; font-size: 0.68rem; }
+    td.cell-turno  { width: 52px; }
+    td.cell-ore    { width: 40px; text-align: center; }
+    .badge { padding: 2px 5px; font-size: 0.66rem; }
+
+    /* Nascondi colonne secondarie su mobile */
+    th:nth-child(5),  td:nth-child(5),   /* Fine */
+    th:nth-child(7),  td:nth-child(7),   /* Diurne */
+    th:nth-child(8),  td:nth-child(8),   /* Notturne */
+    th:nth-child(12), td:nth-child(12)   /* Note */
+    { display: none; }
+
+    /* Sidebar orizzontale scorrevole */
     .sidebar {
       width: 100%; border-left: none; border-top: 1px solid var(--border);
       flex-direction: row; overflow-x: auto; overflow-y: hidden;
-      padding: 12px 10px; gap: 10px; flex-wrap: nowrap;
+      padding: 10px 8px; gap: 8px; flex-wrap: nowrap;
     }
-    .stat-card { min-width: 170px; flex-shrink: 0; }
-    /* Modal full-screen dal basso */
-    .overlay { align-items: flex-end; }
+    .stat-card { min-width: 160px; flex-shrink: 0; padding: 10px 12px; }
+    .sidebar h3 { white-space: nowrap; }
+
+    /* Modal dal basso full width */
+    .overlay { align-items: flex-end; padding: 0; }
     .modal {
-      width: 100%; max-width: 100%; border-radius: 16px 16px 0 0;
-      padding: 20px 14px; max-height: 90vh; overflow-y: auto;
+      width: 100%; max-width: 100%;
+      border-radius: 20px 20px 0 0;
+      padding: 20px 16px 30px;
+      max-height: 88vh; overflow-y: auto;
     }
-    .modal h2 { font-size: 0.95rem; }
     .turno-grid { grid-template-columns: repeat(5, 1fr); gap: 4px; }
-    .turno-btn { padding: 5px 2px; font-size: 0.7rem; }
-    .time-row { gap: 6px; }
-    .time-display { font-size: 1.5rem; }
+    .turno-btn { padding: 6px 2px; font-size: 0.7rem; }
+    .time-row { gap: 8px; }
+    .time-display { font-size: 1.6rem; }
     .time-btns { gap: 3px; }
-    .time-adj { padding: 4px 2px; font-size: 0.65rem; }
-    .form-grid { grid-template-columns: 1fr; }
-    .modal-actions { gap: 6px; }
-    .btn { padding: 9px; font-size: 0.85rem; }
-    /* Nav mobile sotto header */
-    .mobile-nav { display: flex !important; flex-wrap: wrap; gap: 5px; padding: 8px 14px; background: var(--card); border-bottom: 1px solid var(--border); }
-    .mobile-nav a { color: var(--muted); text-decoration: none; font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; background: var(--card2); }
+    .time-adj { padding: 5px 2px; font-size: 0.66rem; }
+    .form-grid { grid-template-columns: 1fr; gap: 10px; }
+    .modal-actions { gap: 8px; margin-top: 16px; }
+
+    /* Mostra bottom nav */
+    .bottom-nav { display: block; }
   }
-  .mobile-nav { display: none; }
 
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -275,11 +302,6 @@
 </header>
 
 <div class="month-tabs" id="monthTabs"></div>
-<div class="mobile-nav">
-  <a href="/riepilogo.html">📊 Riepilogo</a>
-  <a href="/bustapaga.html">💶 Busta Paga</a>
-  <a href="/impostazioni.html">⚙️ Impostazioni</a>
-</div>
 
 <div class="main">
   <div class="cal-wrap">
@@ -961,5 +983,27 @@ window.fetch = function(url, opts={}) {
 })();
 
 </script>
+<!-- BOTTOM NAV MOBILE -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a href="/" class="active">
+      <span class="icon">🗓</span>
+      <span>Turni</span>
+    </a>
+    <a href="/riepilogo.html">
+      <span class="icon">📊</span>
+      <span>Riepilogo</span>
+    </a>
+    <a href="/bustapaga.html">
+      <span class="icon">💶</span>
+      <span>Busta Paga</span>
+    </a>
+    <a href="/impostazioni.html">
+      <span class="icon">⚙️</span>
+      <span>Impostazioni</span>
+    </a>
+  </div>
+</nav>
+
 </body>
 </html>

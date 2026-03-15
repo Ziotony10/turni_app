@@ -58,6 +58,25 @@
     .riepilogo-table { font-size: 0.7rem; }
     .card { padding: 24px 18px; }
   }
+
+  .bottom-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    background: var(--card); border-top: 1px solid var(--border);
+    padding: 8px 0 env(safe-area-inset-bottom, 8px);
+  }
+  .bottom-nav-inner { display: flex; justify-content: space-around; }
+  .bottom-nav a {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--muted); text-decoration: none; font-size: 0.65rem;
+    font-weight: 600; padding: 4px 12px; border-radius: 8px;
+  }
+  .bottom-nav a.active { color: var(--accent); }
+  .bottom-nav a span.icon { font-size: 1.3rem; line-height: 1; }
+  @media (max-width: 768px) {
+    .bottom-nav { display: block; }
+    body { padding-bottom: 70px; }
+  }
 </style>
 </head>
 <body>
@@ -197,5 +216,11 @@ async function salva() {
   } catch(e) { logout(); }
 })();
 </script>
+<nav class="bottom-nav"><div class="bottom-nav-inner">
+    <a href="/"><span class="icon">🗓</span><span>Turni</span></a>
+    <a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a>
+    <a href="/bustapaga.html"><span class="icon">💶</span><span>Busta Paga</span></a>
+    <a href="/impostazioni.html" class="active"><span class="icon">⚙️</span><span>Impostazioni</span></a>
+</div></nav>
 </body>
 </html>
