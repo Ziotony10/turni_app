@@ -196,6 +196,7 @@ def init_db():
             username TEXT UNIQUE NOT NULL,
             nome TEXT,
             password_hash TEXT NOT NULL,
+            is_admin INTEGER DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
         ex(conn, """CREATE TABLE IF NOT EXISTS turni (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -212,8 +213,22 @@ def init_db():
             chiave TEXT NOT NULL,
             valore TEXT,
             PRIMARY KEY (user_id, chiave))""")
+        ex(conn, """CREATE TABLE IF NOT EXISTS tabelle_turni (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            tipo TEXT NOT NULL,
+            num_settimane INTEGER NOT NULL,
+            turni_json TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
 
         if not USE_PG:
+            # Migrazione utenti: aggiungi is_admin se manca
+            u_cols = [r[1] for r in conn.execute("PRAGMA table_info(utenti)").fetchall()]
+            if "is_admin" not in u_cols:
+                conn.execute("ALTER TABLE utenti ADD COLUMN is_admin INTEGER DEFAULT 0")
+            # Imposta antonino.adragna come admin
+            conn.execute("UPDATE utenti SET is_admin=1 WHERE username='antonino.adragna'")
+
             cols = [r[1] for r in conn.execute("PRAGMA table_info(turni)").fetchall()]
             if "user_id" not in cols:
                 conn.execute("ALTER TABLE turni ADD COLUMN user_id INTEGER NOT NULL DEFAULT 1")
@@ -229,6 +244,14 @@ def init_db():
                     PRIMARY KEY (user_id, chiave))""")
                 conn.execute("INSERT INTO impostazioni SELECT 1, chiave, valore FROM impostazioni_old")
                 conn.execute("DROP TABLE impostazioni_old")
+        else:
+            # PostgreSQL: aggiungi colonna is_admin se manca
+            try:
+                ex(conn, "ALTER TABLE utenti ADD COLUMN IF NOT EXISTS is_admin INTEGER DEFAULT 0")
+            except: conn.rollback()
+            # Imposta antonino.adragna come admin
+            ex(conn, "UPDATE utenti SET is_admin=1 WHERE username='antonino.adragna'")
+
         conn.commit()
     finally:
         conn.close()
@@ -239,18 +262,23 @@ init_db()
 def hash_password(pwd):    return pwd_context.hash(pwd)
 def verify_password(p, h): return pwd_context.verify(p, h)
 
-def create_token(user_id, username):
+def create_token(user_id, username, is_admin=False):
     exp = datetime.utcnow() + timedelta(minutes=TOKEN_EXPIRE)
-    return jwt.encode({"sub": str(user_id), "username": username, "exp": exp}, SECRET_KEY, algorithm=ALGORITHM)
+    return jwt.encode({"sub": str(user_id), "username": username, "is_admin": is_admin, "exp": exp}, SECRET_KEY, algorithm=ALGORITHM)
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         uid = int(payload.get("sub"))
         if not uid: raise HTTPException(401, "Token non valido")
-        return {"id": uid, "username": payload.get("username")}
+        return {"id": uid, "username": payload.get("username"), "is_admin": payload.get("is_admin", False)}
     except JWTError:
         raise HTTPException(401, "Token non valido o scaduto")
+
+def require_admin(user=Depends(get_current_user)):
+    if not user.get("is_admin"):
+        raise HTTPException(403, "Accesso riservato agli amministratori")
+    return user
 
 def get_user_settings(user_id, conn):
     rows = fetchall(conn, "SELECT chiave, valore FROM impostazioni WHERE user_id=?", (user_id,))
@@ -284,9 +312,14 @@ def register(payload: RegisterInput):
         ex(conn, "INSERT INTO utenti (username, nome, password_hash) VALUES (?,?,?)",
            (payload.username.strip().lower(), payload.nome or payload.username, hash_password(payload.password)))
         conn.commit()
-        user = fetchone(conn, "SELECT id FROM utenti WHERE username=?", (payload.username.strip().lower(),))
-        token = create_token(user["id"], payload.username.strip().lower())
-        return {"access_token": token, "token_type": "bearer", "username": payload.username}
+        user = fetchone(conn, "SELECT id, is_admin FROM utenti WHERE username=?", (payload.username.strip().lower(),))
+        # Imposta admin se è antonino.adragna
+        if payload.username.strip().lower() == "antonino.adragna":
+            ex(conn, "UPDATE utenti SET is_admin=1 WHERE username=?", (payload.username.strip().lower(),))
+            conn.commit()
+            user["is_admin"] = 1
+        token = create_token(user["id"], payload.username.strip().lower(), bool(user.get("is_admin")))
+        return {"access_token": token, "token_type": "bearer", "username": payload.username, "is_admin": bool(user.get("is_admin"))}
     except (psycopg2.errors.UniqueViolation if USE_PG else sqlite3.IntegrityError):
         conn.rollback()
         raise HTTPException(400, "Username già esistente")
@@ -300,12 +333,182 @@ def login(form: OAuth2PasswordRequestForm = Depends()):
     conn.close()
     if not user or not verify_password(form.password, user["password_hash"]):
         raise HTTPException(401, "Credenziali non corrette")
-    token = create_token(user["id"], user["username"])
-    return {"access_token": token, "token_type": "bearer", "username": user["username"], "nome": user["nome"]}
+    token = create_token(user["id"], user["username"], bool(user.get("is_admin")))
+    return {"access_token": token, "token_type": "bearer", "username": user["username"], "nome": user["nome"], "is_admin": bool(user.get("is_admin"))}
 
 @app.get("/api/auth/me")
 def me(current_user=Depends(get_current_user)):
     return current_user
+
+# ─── Admin: gestione utenti ───────────────────────────────────────────────────
+@app.get("/api/admin/utenti")
+def get_utenti(admin=Depends(require_admin)):
+    conn = get_db()
+    rows = fetchall(conn, "SELECT id, username, nome, is_admin, created_at FROM utenti ORDER BY created_at")
+    conn.close()
+    return rows
+
+@app.post("/api/admin/utenti/{user_id}/admin")
+def toggle_admin(user_id: int, admin=Depends(require_admin)):
+    conn = get_db()
+    user = fetchone(conn, "SELECT is_admin, username FROM utenti WHERE id=?", (user_id,))
+    if not user: raise HTTPException(404, "Utente non trovato")
+    # Non puoi rimuovere i tuoi stessi privilegi
+    if user["username"] == "antonino.adragna":
+        raise HTTPException(400, "Non puoi modificare l'admin principale")
+    new_val = 0 if user["is_admin"] else 1
+    ex(conn, "UPDATE utenti SET is_admin=? WHERE id=?", (new_val, user_id))
+    conn.commit(); conn.close()
+    return {"ok": True, "is_admin": bool(new_val)}
+
+@app.delete("/api/admin/utenti/{user_id}")
+def delete_user(user_id: int, admin=Depends(require_admin)):
+    conn = get_db()
+    user = fetchone(conn, "SELECT username FROM utenti WHERE id=?", (user_id,))
+    if not user: raise HTTPException(404, "Utente non trovato")
+    if user["username"] == "antonino.adragna":
+        raise HTTPException(400, "Non puoi eliminare l'admin principale")
+    ex(conn, "DELETE FROM turni WHERE user_id=?", (user_id,))
+    ex(conn, "DELETE FROM impostazioni WHERE user_id=?", (user_id,))
+    ex(conn, "DELETE FROM utenti WHERE id=?", (user_id,))
+    conn.commit(); conn.close()
+    return {"ok": True}
+
+# ─── Admin: tabelle turni ─────────────────────────────────────────────────────
+@app.get("/api/admin/tabelle")
+def get_tabelle(user=Depends(get_current_user)):
+    conn = get_db()
+    rows = fetchall(conn, "SELECT id, nome, tipo, num_settimane, created_at FROM tabelle_turni ORDER BY tipo, nome")
+    conn.close()
+    return rows
+
+@app.get("/api/admin/tabelle/{tab_id}")
+def get_tabella(tab_id: int, user=Depends(get_current_user)):
+    conn = get_db()
+    row = fetchone(conn, "SELECT * FROM tabelle_turni WHERE id=?", (tab_id,))
+    conn.close()
+    if not row: raise HTTPException(404, "Tabella non trovata")
+    import json
+    row["turni_json"] = json.loads(row["turni_json"])
+    return row
+
+class TabellaTurniInput(BaseModel):
+    nome: str
+    tipo: str  # "telefonisti" | "capisala"
+    num_settimane: int
+    turni: list  # lista di liste: [[lun,mar,...,dom], [lun,...], ...]
+
+@app.post("/api/admin/tabelle")
+def create_tabella(payload: TabellaTurniInput, admin=Depends(require_admin)):
+    import json
+    conn = get_db()
+    ex(conn, "INSERT INTO tabelle_turni (nome, tipo, num_settimane, turni_json) VALUES (?,?,?,?)",
+       (payload.nome, payload.tipo, payload.num_settimane, json.dumps(payload.turni)))
+    conn.commit(); conn.close()
+    return {"ok": True}
+
+@app.put("/api/admin/tabelle/{tab_id}")
+def update_tabella(tab_id: int, payload: TabellaTurniInput, admin=Depends(require_admin)):
+    import json
+    conn = get_db()
+    ex(conn, "UPDATE tabelle_turni SET nome=?, tipo=?, num_settimane=?, turni_json=? WHERE id=?",
+       (payload.nome, payload.tipo, payload.num_settimane, json.dumps(payload.turni), tab_id))
+    conn.commit(); conn.close()
+    return {"ok": True}
+
+@app.delete("/api/admin/tabelle/{tab_id}")
+def delete_tabella(tab_id: int, admin=Depends(require_admin)):
+    conn = get_db()
+    ex(conn, "DELETE FROM tabelle_turni WHERE id=?", (tab_id,))
+    conn.commit(); conn.close()
+    return {"ok": True}
+
+# ─── Applica tabella turni ────────────────────────────────────────────────────
+class ApplicaTabella(BaseModel):
+    tab_id: int
+    data_inizio: str       # "YYYY-MM-DD"
+    settimana_inizio: int  # quale settimana della tabella inizia (1-based)
+    giorno_inizio: int     # quale giorno della settimana inizia (0=lun, 6=dom)
+    anno_fine: int         # fino a fine di quest'anno
+
+@app.post("/api/tabella/applica")
+def applica_tabella(payload: ApplicaTabella, user=Depends(get_current_user)):
+    import json
+    from datetime import timedelta
+    conn = get_db()
+    tab = fetchone(conn, "SELECT * FROM tabelle_turni WHERE id=?", (payload.tab_id,))
+    if not tab: conn.close(); raise HTTPException(404, "Tabella non trovata")
+
+    settimane = json.loads(tab["turni_json"])  # lista di settimane, ogni sett. è lista di 7 turni
+    num_sett = len(settimane)
+
+    data_inizio = date.fromisoformat(payload.data_inizio)
+    data_fine   = date(payload.anno_fine, 12, 31)
+
+    # Calcola posizione iniziale nella tabella
+    sett_idx = (payload.settimana_inizio - 1) % num_sett  # 0-based
+    giorno_idx = payload.giorno_inizio                     # 0=lun, 6=dom
+
+    # Itera dal giorno di inizio fino al 31 dicembre
+    data_cur = data_inizio
+    cur_sett = sett_idx
+    cur_giorno = giorno_idx
+
+    inseriti = 0
+    while data_cur <= data_fine:
+        turno_raw = settimane[cur_sett][cur_giorno] if cur_sett < len(settimane) else ""
+        turno = turno_raw.strip().split()[0] if turno_raw.strip() else ""
+
+        # Normalizza turno
+        TURNI_VALIDI = set(TURNI_CONFIG.keys())
+        if turno not in TURNI_VALIDI:
+            turno = None
+
+        if turno:
+            data_str = data_cur.isoformat()
+            ore = calcola_ore(turno, None, None, data_str)
+            tipo_rep = ""
+            if USE_PG:
+                ex(conn, """INSERT INTO turni
+                      (user_id,data,turno,ore_diurne,ore_notturne,strao_diurno,strao_notturno,
+                       strao_fest_diurno,strao_fest_notturno,reperibilita,note)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                   ON CONFLICT(user_id,data) DO UPDATE SET
+                      turno=EXCLUDED.turno, ore_diurne=EXCLUDED.ore_diurne,
+                      ore_notturne=EXCLUDED.ore_notturne, strao_diurno=EXCLUDED.strao_diurno,
+                      strao_notturno=EXCLUDED.strao_notturno,
+                      strao_fest_diurno=EXCLUDED.strao_fest_diurno,
+                      strao_fest_notturno=EXCLUDED.strao_fest_notturno,
+                      reperibilita=EXCLUDED.reperibilita""",
+                   (user["id"],data_str,turno,ore["ore_diurne"],ore["ore_notturne"],
+                    ore["strao_diurno"],ore["strao_notturno"],ore["strao_fest_diurno"],
+                    ore["strao_fest_notturno"],tipo_rep or None,None))
+            else:
+                conn.execute("""INSERT INTO turni
+                      (user_id,data,turno,ore_diurne,ore_notturne,strao_diurno,strao_notturno,
+                       strao_fest_diurno,strao_fest_notturno,reperibilita,note)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                   ON CONFLICT(user_id,data) DO UPDATE SET
+                      turno=excluded.turno, ore_diurne=excluded.ore_diurne,
+                      ore_notturne=excluded.ore_notturne, strao_diurno=excluded.strao_diurno,
+                      strao_notturno=excluded.strao_notturno,
+                      strao_fest_diurno=excluded.strao_fest_diurno,
+                      strao_fest_notturno=excluded.strao_fest_notturno,
+                      reperibilita=excluded.reperibilita""",
+                   (user["id"],data_str,turno,ore["ore_diurne"],ore["ore_notturne"],
+                    ore["strao_diurno"],ore["strao_notturno"],ore["strao_fest_diurno"],
+                    ore["strao_fest_notturno"],tipo_rep or None,None))
+            inseriti += 1
+
+        # Avanza al giorno successivo
+        cur_giorno += 1
+        if cur_giorno >= 7:
+            cur_giorno = 0
+            cur_sett = (cur_sett + 1) % num_sett
+        data_cur += timedelta(days=1)
+
+    conn.commit(); conn.close()
+    return {"ok": True, "inseriti": inseriti}
 
 # ─── API ──────────────────────────────────────────────────────────────────────
 @app.get("/api/config")
