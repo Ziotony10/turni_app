@@ -145,6 +145,7 @@
     <h2>📋 Voci fisse e trattenute</h2>
     <div class="fields-grid">
       <div class="field"><label>Indennità turno X (€/mese)</label><div class="field-row"><input type="number" id="indennita_turno" step="0.01"><span>€</span></div></div>
+      <div class="field"><label>Festività in giorno di riposo (€/giorno)</label><div class="field-row"><input type="number" id="tariffa_fest_riposo" step="0.00001"><span>€</span></div><div class="note">Tariffa base × 2 — inserisci la tariffa base giornaliera</div></div>
       <div class="field"><label>Trattenuta sindacato CISL (€)</label><div class="field-row"><input type="number" id="trattenuta_sindacato" step="0.01"><span>€</span></div></div>
       <div class="field"><label>Add. regionale (€)</label><div class="field-row"><input type="number" id="trattenuta_regionale" step="0.01"><span>€</span></div></div>
       <div class="field"><label>Contr. Pegaso (€)</label><div class="field-row"><input type="number" id="trattenuta_pegaso" step="0.01"><span>€</span></div></div>
@@ -177,7 +178,8 @@
 const CAMPI = ["retribuzione_totale","tariffa_nott_50","tariffa_dom","tariffa_nott_ord",
   "tariffa_strao_fer_d","tariffa_strao_fer_n","tariffa_strao_fest_d","tariffa_strao_fest_n",
   "tariffa_rep_feriale","tariffa_rep_semifestiva","tariffa_rep_festiva",
-  "indennita_turno","trattenuta_sindacato","trattenuta_regionale","trattenuta_pegaso",
+  "indennita_turno","tariffa_fest_riposo",
+  "trattenuta_sindacato","trattenuta_regionale","trattenuta_pegaso",
   "aliquota_inps","detrazioni_annue"];
 
 function getToken()  { return localStorage.getItem('token'); }

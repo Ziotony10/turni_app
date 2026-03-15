@@ -301,6 +301,7 @@
     <button onclick="changeAnno(-1)">◀</button>
     <select id="selAnno" onchange="loadAll()"></select>
     <button onclick="changeAnno(1)">▶</button>
+    <button onclick="cancellaMese()" style="background:rgba(239,68,68,.15);color:#FCA5A5;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:6px 14px;font-size:0.85rem;cursor:pointer;" title="Cancella tutti i turni del mese">🗑 Mese</button>
   </div>
   <button onclick="logout()" style="background:rgba(239,68,68,.15);color:#FCA5A5;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:6px 14px;font-size:0.85rem;cursor:pointer;">Esci</button>
   <span class="user-label" style="font-size:0.85rem;color:var(--muted)"></span>
@@ -949,6 +950,15 @@ function fmtH(h) {
 window.addEventListener('appinstalled', () => {
   document.getElementById('installBtn').style.display = 'none';
 });
+
+async function cancellaMese() {
+  const nomeMese = MESI_IT[mese-1];
+  if (!confirm(`⚠️ Sei sicuro di voler cancellare TUTTI i turni di ${nomeMese} ${anno}?\n\nQuesta operazione non può essere annullata.`)) return;
+  if (!confirm(`Ultima conferma: cancellare tutti i turni di ${nomeMese} ${anno}?`)) return;
+  await fetch(`${API}/api/turni-mese/${anno}/${mese}`, { method: 'DELETE' });
+  await loadMese();
+  loadRiepilogo();
+}
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 </script>
