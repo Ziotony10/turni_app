@@ -382,6 +382,8 @@ function renderCalendario() {
   let html = `<table>
     <thead><tr>
       <th>Data</th><th>Giorno</th><th>Turno</th>
+      <th style="text-align:center">Inizio</th>
+      <th style="text-align:center">Fine</th>
       <th style="text-align:center">Ore Tot</th>
       <th style="text-align:center">Diurne</th>
       <th style="text-align:center">Notturne</th>
@@ -428,6 +430,8 @@ function renderCalendario() {
       <td class="cell-data">${g} ${MESI_IT[mese-1].slice(0,3)}</td>
       <td class="cell-giorno">${GIORNI_IT[dow]}</td>
       <td class="cell-turno">${badgeHtml}</td>
+      <td class="cell-ore" style="font-size:0.78rem;color:var(--muted)">${row.ora_inizio || '—'}</td>
+      <td class="cell-ore" style="font-size:0.78rem;color:var(--muted)">${row.ora_fine || '—'}</td>
       <td class="cell-ore">${oreTot ? fmtH(oreTot) : '—'}</td>
       <td class="cell-ore">${oreDiurne ? fmtH(oreDiurne) : '—'}</td>
       <td class="cell-ore">${oreNott ? fmtH(oreNott) : '—'}</td>
