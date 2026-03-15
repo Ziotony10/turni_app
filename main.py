@@ -130,9 +130,10 @@ def calcola_ore(turno, ora_inizio, ora_fine, data_str):
     ef = to_min(ora_fine)   if ora_fine   else None
     std = TURNO_ORARI.get(turno)
 
-    # Controlla se il giorno è festivo (festività o domenica)
+    # Controlla se il giorno è festivo da CALENDARIO (non domenica)
+    # La domenica aziendale è R, non un festivo automatico
     try:
-        festivo = data_str in FESTIVITA or date.fromisoformat(data_str).weekday() == 6
+        festivo = data_str in FESTIVITA
     except:
         festivo = False
 
@@ -180,7 +181,8 @@ def calcola_ore(turno, ora_inizio, ora_fine, data_str):
 
 def calcola_tipo_rep(turno, data_str):
     if turno == "RC": return "semifestiva"
-    if turno == "R" or data_str in FESTIVITA: return "festiva"
+    if turno == "R": return "festiva"
+    if data_str in FESTIVITA: return "festiva"
     if TURNI_CONFIG.get(turno,{}).get("lavorativo"): return "feriale"
     return ""
 
