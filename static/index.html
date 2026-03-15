@@ -196,6 +196,61 @@
   }
   .time-edit-input.visible { display: block; }
 
+  /* ── MOBILE RESPONSIVE ── */
+  @media (max-width: 768px) {
+    header { padding: 10px 14px; gap: 8px; }
+    header h1 { font-size: 1rem; }
+    nav { display: none; }
+    .nav-controls { gap: 6px; }
+    .nav-controls select, .nav-controls button { padding: 5px 10px; font-size: 0.8rem; }
+    .header-right { gap: 6px; }
+    .user-label { display: none; }
+    .btn-logout { padding: 5px 10px; font-size: 0.78rem; }
+    .month-tabs { padding: 8px 10px; gap: 3px; }
+    .month-tab { padding: 5px 10px; font-size: 0.75rem; }
+    .main { flex-direction: column; height: auto; }
+    .cal-wrap { padding: 10px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { min-width: 520px; }
+    th { padding: 8px 5px; font-size: 0.62rem; }
+    td { padding: 7px 5px; font-size: 0.76rem; }
+    td.cell-data   { width: 54px; font-size: 0.73rem; }
+    td.cell-giorno { width: 28px; font-size: 0.68rem; }
+    td.cell-turno  { width: 54px; }
+    td.cell-ore    { width: 44px; font-size: 0.7rem; }
+    .badge { padding: 2px 5px; font-size: 0.68rem; }
+    /* Nascondi colonne meno critiche */
+    th:nth-child(7), td:nth-child(7),
+    th:nth-child(8), td:nth-child(8),
+    th:nth-child(12), td:nth-child(12) { display: none; }
+    /* Sidebar orizzontale */
+    .sidebar {
+      width: 100%; border-left: none; border-top: 1px solid var(--border);
+      flex-direction: row; overflow-x: auto; overflow-y: hidden;
+      padding: 12px 10px; gap: 10px; flex-wrap: nowrap;
+    }
+    .stat-card { min-width: 170px; flex-shrink: 0; }
+    /* Modal full-screen dal basso */
+    .overlay { align-items: flex-end; }
+    .modal {
+      width: 100%; max-width: 100%; border-radius: 16px 16px 0 0;
+      padding: 20px 14px; max-height: 90vh; overflow-y: auto;
+    }
+    .modal h2 { font-size: 0.95rem; }
+    .turno-grid { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+    .turno-btn { padding: 5px 2px; font-size: 0.7rem; }
+    .time-row { gap: 6px; }
+    .time-display { font-size: 1.5rem; }
+    .time-btns { gap: 3px; }
+    .time-adj { padding: 4px 2px; font-size: 0.65rem; }
+    .form-grid { grid-template-columns: 1fr; }
+    .modal-actions { gap: 6px; }
+    .btn { padding: 9px; font-size: 0.85rem; }
+    /* Nav mobile sotto header */
+    .mobile-nav { display: flex !important; flex-wrap: wrap; gap: 5px; padding: 8px 14px; background: var(--card); border-bottom: 1px solid var(--border); }
+    .mobile-nav a { color: var(--muted); text-decoration: none; font-size: 0.75rem; padding: 4px 10px; border-radius: 6px; background: var(--card2); }
+  }
+  .mobile-nav { display: none; }
+
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -220,6 +275,11 @@
 </header>
 
 <div class="month-tabs" id="monthTabs"></div>
+<div class="mobile-nav">
+  <a href="/riepilogo.html">📊 Riepilogo</a>
+  <a href="/bustapaga.html">💶 Busta Paga</a>
+  <a href="/impostazioni.html">⚙️ Impostazioni</a>
+</div>
 
 <div class="main">
   <div class="cal-wrap">

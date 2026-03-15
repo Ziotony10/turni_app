@@ -64,6 +64,28 @@
   .fiscal-item .fv { font-size:1rem; font-weight:700; }
 
   .loading { text-align:center; padding:60px; color:var(--muted); }
+
+  @media (max-width: 768px) {
+    header { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
+    header h1 { font-size: 1rem; }
+    nav { display: none; }
+    .header-right { gap: 6px; }
+    .user-label { display: none; }
+    .btn-logout { padding: 5px 10px; font-size: 0.78rem; }
+    .nav-controls { gap: 6px; }
+    .nav-controls select, .nav-controls button { padding: 5px 10px; font-size: 0.8rem; }
+    .container { padding: 12px; }
+    .fields-grid { grid-template-columns: 1fr !important; }
+    table { font-size: 0.75rem; }
+    th, td { padding: 6px 5px; }
+    .busta-info { grid-template-columns: 1fr 1fr !important; }
+    .ore-grid { grid-template-columns: repeat(3, 1fr) !important; }
+    .fiscal-grid { grid-template-columns: 1fr 1fr !important; }
+    .netto-card { flex-direction: column; gap: 8px; text-align: center; }
+    .netto-val { font-size: 1.8rem; }
+    .riepilogo-table { font-size: 0.7rem; }
+    .card { padding: 24px 18px; }
+  }
 </style>
 </head>
 <body>
