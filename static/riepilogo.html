@@ -45,7 +45,12 @@
   }
   .riepilogo-table td.label-col {
     text-align:left; font-weight:600; color:var(--muted);
-    background:var(--card); font-size:0.8rem; position:sticky; left:0; z-index:1;
+    background:var(--card); font-size:0.8rem; position:sticky; left:0; z-index:2;
+    box-shadow: 2px 0 6px rgba(0,0,0,0.4);
+  }
+  .riepilogo-table th.label-col {
+    text-align:left; min-width:160px; position:sticky; left:0; z-index:3;
+    background:var(--card2); box-shadow: 2px 0 6px rgba(0,0,0,0.4);
   }
   .riepilogo-table td.tot-col { background:#172033; color:#60A5FA; font-weight:700; }
   .riepilogo-table td.zero { color:var(--border); }
@@ -110,22 +115,13 @@
     .card { padding: 24px 18px; }
   }
 
-  .bottom-nav {
-    display: none;
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-    background: var(--card); border-top: 1px solid var(--border);
-    padding: 8px 0 env(safe-area-inset-bottom, 8px);
-  }
-  .bottom-nav-inner { display: flex; justify-content: space-around; }
-  .bottom-nav a {
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    color: var(--muted); text-decoration: none; font-size: 0.65rem;
-    font-weight: 600; padding: 4px 12px; border-radius: 8px;
-  }
-  .bottom-nav a.active { color: var(--accent); }
-  .bottom-nav a span.icon { font-size: 1.3rem; line-height: 1; }
+  
+  
+  
+  
+  
   @media (max-width: 768px) {
-    .bottom-nav { display: block; }
+    
     body { padding-bottom: 70px; }
   }
 
@@ -133,6 +129,25 @@
   .top-nav a { color:var(--muted); text-decoration:none; font-size:0.9rem; padding:6px 14px; border-radius:8px; background:var(--card2); }
   .top-nav a:hover { color:var(--text); }
   
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: var(--card); border-top: 1px solid var(--border);
+    padding: 8px 0 env(safe-area-inset-bottom, 8px);
+  }
+  .bottom-nav-inner { display: flex; justify-content: space-around; align-items: stretch; }
+  .bottom-nav a {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--muted); text-decoration: none; font-size: 0.62rem;
+    font-weight: 600; padding: 4px 8px; border-radius: 8px; flex: 1; text-align: center;
+  }
+  .bottom-nav a.active { color: var(--accent); }
+  .bottom-nav a span.icon { font-size: 1.25rem; line-height: 1; }
+  @media (max-width: 768px) {
+    .bottom-nav { display: block !important; }
+  }
 </style>
 </head>
 <body>
@@ -413,11 +428,7 @@ window.fetch = function(url, opts={}) {
   } catch(e) { logout(); }
 })();
 </script>
-<nav class="bottom-nav"><div class="bottom-nav-inner">
-    <a href="/"><span class="icon">🗓</span><span>Turni</span></a>
-    <a href="/riepilogo.html" class="active"><span class="icon">📊</span><span>Riepilogo</span></a>
-    <a href="/bustapaga.html"><span class="icon">💶</span><span>Busta Paga</span></a>
-    <a href="/impostazioni.html"><span class="icon">⚙️</span><span>Impostazioni</span></a>
-</div></nav>
+
+<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"  class="active"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/tabella.html"><span class="icon">📋</span><span>Tabella</span></a><a href="/impostazioni.html"><span class="icon">⚙️</span><span>Impost.</span></a></div></nav>
 </body>
 </html>

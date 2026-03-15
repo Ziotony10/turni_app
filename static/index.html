@@ -197,20 +197,11 @@
   .time-edit-input.visible { display: block; }
 
   /* ── BOTTOM NAV MOBILE ── */
-  .bottom-nav {
-    display: none;
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-    background: var(--card); border-top: 1px solid var(--border);
-    padding: 8px 0 env(safe-area-inset-bottom, 8px);
-  }
-  .bottom-nav-inner { display: flex; justify-content: space-around; }
-  .bottom-nav a {
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    color: var(--muted); text-decoration: none; font-size: 0.65rem;
-    font-weight: 600; padding: 4px 12px; border-radius: 8px;
-  }
-  .bottom-nav a.active { color: var(--accent); }
-  .bottom-nav a span.icon { font-size: 1.3rem; line-height: 1; }
+  
+  
+  
+  
+  
 
   /* ── MOBILE RESPONSIVE ── */
   @media (max-width: 768px) {
@@ -276,7 +267,7 @@
     .modal-actions { gap: 8px; margin-top: 16px; }
 
     /* Mostra bottom nav */
-    .bottom-nav { display: block; }
+    
   }
 
   ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -286,6 +277,25 @@
   .top-nav { display:flex; gap:4px; }
   .top-nav a { color:var(--muted); text-decoration:none; font-size:0.9rem; padding:6px 14px; border-radius:8px; background:var(--card2); }
   .top-nav a:hover { color:var(--text); }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: var(--card); border-top: 1px solid var(--border);
+    padding: 8px 0 env(safe-area-inset-bottom, 8px);
+  }
+  .bottom-nav-inner { display: flex; justify-content: space-around; align-items: stretch; }
+  .bottom-nav a {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--muted); text-decoration: none; font-size: 0.62rem;
+    font-weight: 600; padding: 4px 8px; border-radius: 8px; flex: 1; text-align: center;
+  }
+  .bottom-nav a.active { color: var(--accent); }
+  .bottom-nav a span.icon { font-size: 1.25rem; line-height: 1; }
+  @media (max-width: 768px) {
+    .bottom-nav { display: block !important; }
+  }
 </style>
 </head>
 <body>
@@ -295,19 +305,27 @@
     <nav class="top-nav">
     <a href="/riepilogo.html">📊 Riepilogo Anno</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
+    <a href="/tabella.html">📋 Tabella Turni</a>
     <a href="/impostazioni.html">⚙️ Impostazioni</a>
+    <a href="/admin.html" id="adminNavLink" style="display:none;color:#F59E0B">🔧 Admin</a>
   </nav>
   <div class="nav-controls">
     <button onclick="changeAnno(-1)">◀</button>
     <select id="selAnno" onchange="loadAll()"></select>
     <button onclick="changeAnno(1)">▶</button>
-    <button onclick="cancellaMese()" style="background:rgba(239,68,68,.15);color:#FCA5A5;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:6px 14px;font-size:0.85rem;cursor:pointer;" title="Cancella tutti i turni del mese">🗑 Mese</button>
   </div>
   <button onclick="logout()" style="background:rgba(239,68,68,.15);color:#FCA5A5;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:6px 14px;font-size:0.85rem;cursor:pointer;">Esci</button>
   <span class="user-label" style="font-size:0.85rem;color:var(--muted)"></span>
 </header>
 
-<div class="month-tabs" id="monthTabs"></div>
+<div class="month-tabs" id="monthTabs">
+  <div class="month-tab" id="cancellaBtn"
+    onclick="cancellaMese()"
+    style="margin-left:auto;opacity:0.3;color:var(--muted)"
+    onmouseover="this.style.opacity='1';this.style.color='#FCA5A5';this.style.background='rgba(239,68,68,.15)';this.style.borderColor='rgba(239,68,68,.4)'"
+    onmouseout="this.style.opacity='0.3';this.style.color='var(--muted)';this.style.background='';this.style.borderColor='transparent'"
+    title="Cancella tutti i turni del mese">🗑 Cancella mese</div>
+</div>
 
 <div class="main">
   <div class="cal-wrap">
@@ -447,12 +465,13 @@ async function loadAll() {
 // ── TABS ────────────────────────────────────────────────────────────────────
 function buildMonthTabs() {
   const c = document.getElementById('monthTabs');
+  const cancellaBtn = document.getElementById('cancellaBtn');
   MESI_IT.forEach((m, i) => {
     const d = document.createElement('div');
     d.className = 'month-tab' + (i+1 === mese ? ' active' : '');
     d.textContent = m;
-    d.onclick = () => { mese = i+1; document.querySelectorAll('.month-tab').forEach((t,j)=>t.classList.toggle('active',j===i)); loadMese(); loadRiepilogo(); };
-    c.appendChild(d);
+    d.onclick = () => { mese = i+1; document.querySelectorAll('.month-tab:not(#cancellaBtn)').forEach((t,j)=>t.classList.toggle('active',j===i)); loadMese(); loadRiepilogo(); };
+    c.insertBefore(d, cancellaBtn);
   });
 }
 
@@ -990,6 +1009,11 @@ window.fetch = function(url, opts={}) {
     const me = await fetch('/api/auth/me').then(r=>r.json());
     const nomeTxt = getNome();
     document.querySelectorAll('.user-label').forEach(el => el.textContent = '👤 ' + nomeTxt);
+    if (me.is_admin) {
+      const lnk = document.getElementById('adminNavLink');
+      if (lnk) lnk.style.display = '';
+      localStorage.setItem('is_admin','true');
+    }
     if(typeof init === 'function') init();
     else if(typeof loadAll === 'function') loadAll();
     else if(typeof load === 'function') load();
@@ -999,26 +1023,8 @@ window.fetch = function(url, opts={}) {
 
 </script>
 <!-- BOTTOM NAV MOBILE -->
-<nav class="bottom-nav">
-  <div class="bottom-nav-inner">
-    <a href="/" class="active">
-      <span class="icon">🗓</span>
-      <span>Turni</span>
-    </a>
-    <a href="/riepilogo.html">
-      <span class="icon">📊</span>
-      <span>Riepilogo</span>
-    </a>
-    <a href="/bustapaga.html">
-      <span class="icon">💶</span>
-      <span>Busta Paga</span>
-    </a>
-    <a href="/impostazioni.html">
-      <span class="icon">⚙️</span>
-      <span>Impostazioni</span>
-    </a>
-  </div>
-</nav>
 
+
+<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"  class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/tabella.html"><span class="icon">📋</span><span>Tabella</span></a><a href="/impostazioni.html"><span class="icon">⚙️</span><span>Impost.</span></a></div></nav>
 </body>
 </html>
