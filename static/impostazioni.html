@@ -38,6 +38,8 @@
   .saved-msg { color:#34D399; font-size:0.85rem; display:none; }
 
   @media (max-width: 768px) {
+    .top-nav { display: none !important; }
+    nav { display: none !important; }
     header { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
     header h1 { font-size: 1rem; }
     nav { display: none; }
@@ -77,13 +79,19 @@
     .bottom-nav { display: block; }
     body { padding-bottom: 70px; }
   }
+
+  .top-nav { display:flex; gap:4px; }
+  .top-nav a { color:var(--muted); text-decoration:none; font-size:0.9rem; padding:6px 14px; border-radius:8px; background:var(--card2); }
+  .top-nav a:hover { color:var(--text); }
+  
 </style>
 </head>
 <body>
 <header>
   <h1>⚙️ <span>Impostazioni</span></h1>
-  <nav>
+    <nav class="top-nav">
     <a href="/">📅 Calendario</a>
+    <a href="/riepilogo.html">📊 Riepilogo Anno</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
   </nav>
   <div class="header-right">

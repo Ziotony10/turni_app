@@ -218,6 +218,7 @@
     header { padding: 10px 12px; gap: 8px; }
     header h1 { font-size: 1rem; }
     header nav { display: none; }
+    .top-nav { display: none !important; }
     .nav-controls select, .nav-controls button { padding: 5px 10px; font-size: 0.82rem; }
     .user-label { display: none; }
     [onclick="logout()"] { padding: 5px 10px; font-size: 0.78rem; }
@@ -281,16 +282,20 @@
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .top-nav { display:flex; gap:4px; }
+  .top-nav a { color:var(--muted); text-decoration:none; font-size:0.9rem; padding:6px 14px; border-radius:8px; background:var(--card2); }
+  .top-nav a:hover { color:var(--text); }
 </style>
 </head>
 <body>
 
 <header>
   <h1>🗓 Gestione <span>Turni</span></h1>
-  <nav style="display:flex;gap:4px;">
-    <a href="/riepilogo.html" style="color:var(--muted);text-decoration:none;font-size:0.9rem;padding:6px 14px;border-radius:8px;background:var(--card2);">📊 Riepilogo Anno</a>
-    <a href="/bustapaga.html" style="color:var(--muted);text-decoration:none;font-size:0.9rem;padding:6px 14px;border-radius:8px;background:var(--card2);">💶 Busta Paga</a>
-    <a href="/impostazioni.html" style="color:var(--muted);text-decoration:none;font-size:0.9rem;padding:6px 14px;border-radius:8px;background:var(--card2);">⚙️ Impostazioni</a>
+    <nav class="top-nav">
+    <a href="/riepilogo.html">📊 Riepilogo Anno</a>
+    <a href="/bustapaga.html">💶 Busta Paga</a>
+    <a href="/impostazioni.html">⚙️ Impostazioni</a>
   </nav>
   <div class="nav-controls">
     <button onclick="changeAnno(-1)">◀</button>

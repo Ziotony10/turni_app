@@ -87,6 +87,8 @@
   .loading { text-align:center; padding:80px; color:var(--muted); font-size:1rem; }
 
   @media (max-width: 768px) {
+    .top-nav { display: none !important; }
+    nav { display: none !important; }
     header { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
     header h1 { font-size: 1rem; }
     nav { display: none; }
@@ -126,13 +128,18 @@
     .bottom-nav { display: block; }
     body { padding-bottom: 70px; }
   }
+
+  .top-nav { display:flex; gap:4px; }
+  .top-nav a { color:var(--muted); text-decoration:none; font-size:0.9rem; padding:6px 14px; border-radius:8px; background:var(--card2); }
+  .top-nav a:hover { color:var(--text); }
+  
 </style>
 </head>
 <body>
 
 <header>
   <h1>📊 Riepilogo <span>Annuale</span></h1>
-  <nav>
+    <nav class="top-nav">
     <a href="/">📅 Calendario</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
     <a href="/impostazioni.html">⚙️ Impostazioni</a>
