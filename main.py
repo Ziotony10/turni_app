@@ -130,6 +130,12 @@ def calcola_ore(turno, ora_inizio, ora_fine, data_str):
     ef = to_min(ora_fine)   if ora_fine   else None
     std = TURNO_ORARI.get(turno)
 
+    # Controlla se il giorno è festivo (festività o domenica)
+    try:
+        festivo = data_str in FESTIVITA or date.fromisoformat(data_str).weekday() == 6
+    except:
+        festivo = False
+
     if turno == "R":
         if ei is not None and ef is not None:
             d,n = split_dn(ei,ef); r["strao_fest_diurno"]=d; r["strao_fest_notturno"]=n
@@ -144,6 +150,16 @@ def calcola_ore(turno, ora_inizio, ora_fine, data_str):
         return r
 
     si, sf = std
+
+    # ── Giorno FESTIVO con turno lavorativo → tutto strao festivo ──────────────
+    if festivo:
+        ini = ei if ei is not None else si
+        fin = ef if ef is not None else sf
+        d,n = split_dn(ini, fin)
+        r["strao_fest_diurno"] = d; r["strao_fest_notturno"] = n
+        return r
+
+    # ── Giorno normale ─────────────────────────────────────────────────────────
     if ei is None and ef is None:
         d,n = split_dn(si,sf); r["ore_diurne"]=d; r["ore_notturne"]=n
         return r
