@@ -206,6 +206,7 @@
 <header>
   <h1>🗓 Gestione <span>Turni</span></h1>
   <nav style="display:flex;gap:4px;">
+    <a href="/riepilogo.html" style="color:var(--muted);text-decoration:none;font-size:0.9rem;padding:6px 14px;border-radius:8px;background:var(--card2);">📊 Riepilogo Anno</a>
     <a href="/bustapaga.html" style="color:var(--muted);text-decoration:none;font-size:0.9rem;padding:6px 14px;border-radius:8px;background:var(--card2);">💶 Busta Paga</a>
     <a href="/impostazioni.html" style="color:var(--muted);text-decoration:none;font-size:0.9rem;padding:6px 14px;border-radius:8px;background:var(--card2);">⚙️ Impostazioni</a>
   </nav>
@@ -483,14 +484,6 @@ async function loadRiepilogo() {
       <div class="stat-row"><span>🔵 Feriale</span><span>${m.reperibilita_feriale||0}</span></div>
       <div class="stat-row"><span>🟡 Semi-festiva</span><span>${m.reperibilita_semifestiva||0}</span></div>
       <div class="stat-row"><span>🔴 Festiva</span><span>${m.reperibilita_festiva||0}</span></div>
-    </div>
-
-    <div class="stat-card">
-      <h3>📊 Anno ${anno}</h3>
-      ${Object.entries(data).map(([mes, val]) => {
-        const tot = (val.ore_diurne||0)+(val.ore_notturne||0);
-        return tot > 0 ? `<div class="stat-row"><span>${MESI_IT[mes-1].slice(0,3)}</span><span>${fmtH(tot)}</span></div>` : '';
-      }).join('')}
     </div>
   `;
 }

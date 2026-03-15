@@ -411,7 +411,12 @@ def get_busta_paga(anno: int, mese: int, user = Depends(get_current_user)):
 
     tot = {"ore_diurne":0.0,"ore_notturne":0.0,"strao_diurno":0.0,"strao_notturno":0.0,
            "strao_fest_diurno":0.0,"strao_fest_notturno":0.0,
-           "rep_feriale":0,"rep_semifestiva":0,"rep_festiva":0,"domeniche":0,"giorni_lavoro":0}
+           "rep_feriale":0,"rep_semifestiva":0,"rep_festiva":0,
+           "domeniche":0,"giorni_lavoro":0,
+           "notte_assenza":0.0}  # ore notturne teoriche nei giorni di assenza
+
+    # Ore notturne teoriche per turno di assenza
+    NOTTE_ASSENZA = {"F": 0.0, "F-P": 3.0, "F-N": 7.0}
     for r in rows_prec:
         d = dict(r); t = d.get("turno") or ""
         if TURNI_CONFIG.get(t,{}).get("lavorativo"):
@@ -424,6 +429,10 @@ def get_busta_paga(anno: int, mese: int, user = Depends(get_current_user)):
         elif rep=="semifestiva": tot["rep_semifestiva"]+=1
         elif rep=="festiva": tot["rep_festiva"]+=1
 
+        # Ore notturne teoriche nei giorni di assenza (per Lavoro Ordinario Notte)
+        if t in NOTTE_ASSENZA:
+            tot["notte_assenza"] += NOTTE_ASSENZA[t]
+
     mesi_it = ["","Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"]
     ref_prec = f"{mesi_it[mese_prec]}/{str(anno_prec)[-2:]}"
     ref_corr = f"{mesi_it[mese]}/{str(anno)[-2:]}"
@@ -433,7 +442,7 @@ def get_busta_paga(anno: int, mese: int, user = Depends(get_current_user)):
         {"voce":"Indennità turno X",             "ref":ref_corr,"qty":None,"tariffa":None,                          "importo":cfg["indennita_turno"]},
         {"voce":"Ore notturne in turno 50%",     "ref":ref_prec,"qty":tot["ore_notturne"],       "tariffa":cfg["tariffa_nott_50"],        "importo":round(tot["ore_notturne"]       *cfg["tariffa_nott_50"],       2)},
         {"voce":"Indennità lavoro domenicale",   "ref":ref_prec,"qty":tot["domeniche"]*8,        "tariffa":cfg["tariffa_dom"],            "importo":round(tot["domeniche"]*8        *cfg["tariffa_dom"],           2)},
-        {"voce":"Lavoro ordinario notte",        "ref":ref_prec,"qty":tot["ore_notturne"],       "tariffa":cfg["tariffa_nott_ord"],       "importo":round(tot["ore_notturne"]       *cfg["tariffa_nott_ord"],      2)},
+        {"voce":"Lavoro ordinario notte",        "ref":ref_prec,"qty":tot["notte_assenza"],       "tariffa":cfg["tariffa_nott_ord"],       "importo":round(tot["notte_assenza"]       *cfg["tariffa_nott_ord"],      2)},
         {"voce":"Str. Feriale Diurno 150%",      "ref":ref_prec,"qty":tot["strao_diurno"],       "tariffa":cfg["tariffa_strao_fer_d"],   "importo":round(tot["strao_diurno"]       *cfg["tariffa_strao_fer_d"],   2)},
         {"voce":"Str. Feriale Notturno 160%",    "ref":ref_prec,"qty":tot["strao_notturno"],     "tariffa":cfg["tariffa_strao_fer_n"],   "importo":round(tot["strao_notturno"]     *cfg["tariffa_strao_fer_n"],   2)},
         {"voce":"Str. Festivo Diurno 160%",      "ref":ref_prec,"qty":tot["strao_fest_diurno"],  "tariffa":cfg["tariffa_strao_fest_d"],  "importo":round(tot["strao_fest_diurno"]  *cfg["tariffa_strao_fest_d"],  2)},
