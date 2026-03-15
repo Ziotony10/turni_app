@@ -69,6 +69,7 @@ IMPOSTAZIONI_DEFAULTS = {
     "tariffa_rep_festiva": "53.13", "indennita_turno": "279.66",
     "trattenuta_sindacato": "18.86", "trattenuta_regionale": "50.00",
     "trattenuta_pegaso": "33.90", "aliquota_inps": "9.19", "detrazioni_annue": "1955.00",
+    "tariffa_fest_riposo": "98.97654",  # Festività in giorno di riposo (tariffa base)
 }
 
 # ─── DB helpers ───────────────────────────────────────────────────────────────
@@ -374,6 +375,18 @@ def delete_turno(data: str, user=Depends(get_current_user)):
     conn.commit(); conn.close()
     return {"ok": True}
 
+@app.delete("/api/turni-mese/{anno}/{mese}")
+def delete_mese(anno: int, mese: int, user=Depends(get_current_user)):
+    conn = get_db()
+    if USE_PG:
+        ex(conn, "DELETE FROM turni WHERE user_id=%s AND EXTRACT(YEAR FROM data::date)=%s AND EXTRACT(MONTH FROM data::date)=%s",
+           (user["id"], anno, mese))
+    else:
+        ex(conn, "DELETE FROM turni WHERE user_id=? AND data LIKE ?",
+           (user["id"], f"{anno:04d}-{mese:02d}-%"))
+    conn.commit(); conn.close()
+    return {"ok": True}
+
 @app.get("/api/riepilogo/{anno}")
 def get_riepilogo(anno: int, user=Depends(get_current_user)):
     conn = get_db()
@@ -387,7 +400,8 @@ def get_riepilogo(anno: int, user=Depends(get_current_user)):
     mesi = {m: {"ore_diurne":0.0,"ore_notturne":0.0,"strao_diurno":0.0,"strao_notturno":0.0,
                 "strao_fest_diurno":0.0,"strao_fest_notturno":0.0,
                 "reperibilita_feriale":0,"reperibilita_semifestiva":0,"reperibilita_festiva":0,
-                "mal":0,"ferie":0,"rc":0,"r":0,"rot":0,"rf":0} for m in range(1,13)}
+                "mal":0,"ferie":0,"rc":0,"r":0,"rot":0,"rf":0,
+                "fest_riposo":0} for m in range(1,13)}
     for r in rows:
         d = r["data"]; d_str = d if isinstance(d,str) else d.isoformat()
         mes = int(d_str.split("-")[1]); m = mesi[mes]; t = r.get("turno") or ""
@@ -403,6 +417,9 @@ def get_riepilogo(anno: int, user=Depends(get_current_user)):
         if rep=="feriale": m["reperibilita_feriale"]+=1
         elif rep=="semifestiva": m["reperibilita_semifestiva"]+=1
         elif rep=="festiva": m["reperibilita_festiva"]+=1
+        # Festività in giorno di riposo (R o RC in giorno festivo da calendario)
+        if t in ("R", "RC") and d_str in FESTIVITA:
+            m["fest_riposo"] += 1
     return mesi
 
 @app.get("/api/impostazioni")
@@ -443,7 +460,7 @@ def get_busta_paga(anno: int, mese: int, user=Depends(get_current_user)):
     tot = {"ore_diurne":0.0,"ore_notturne":0.0,"strao_diurno":0.0,"strao_notturno":0.0,
            "strao_fest_diurno":0.0,"strao_fest_notturno":0.0,
            "rep_feriale":0,"rep_semifestiva":0,"rep_festiva":0,
-           "domeniche":0,"giorni_lavoro":0,"notte_assenza":0.0}
+           "domeniche":0,"giorni_lavoro":0,"notte_assenza":0.0,"fest_riposo":0}
 
     for r in rows:
         d = r["data"]; d_str = d if isinstance(d,str) else d.isoformat()
@@ -458,6 +475,9 @@ def get_busta_paga(anno: int, mese: int, user=Depends(get_current_user)):
         elif rep=="semifestiva": tot["rep_semifestiva"]+=1
         elif rep=="festiva": tot["rep_festiva"]+=1
         if t in NOTTE_ASSENZA: tot["notte_assenza"] += NOTTE_ASSENZA[t]
+        # Festività in giorno di riposo
+        if t in ("R", "RC") and d_str in FESTIVITA:
+            tot["fest_riposo"] += 1
 
     mi = ["","Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"]
     rp = f"{mi[mp]}/{str(ap)[-2:]}"; rc = f"{mi[mese]}/{str(anno)[-2:]}"
@@ -475,6 +495,7 @@ def get_busta_paga(anno: int, mese: int, user=Depends(get_current_user)):
         {"voce":"Ind. Reperibilità Feriale",     "ref":rp,"qty":tot["rep_feriale"],        "tariffa":cfg["tariffa_rep_feriale"],   "importo":round(tot["rep_feriale"]        *cfg["tariffa_rep_feriale"],   2)},
         {"voce":"Ind. Reperibilità Semifestiva", "ref":rp,"qty":tot["rep_semifestiva"],    "tariffa":cfg["tariffa_rep_semifestiva"],"importo":round(tot["rep_semifestiva"]   *cfg["tariffa_rep_semifestiva"],2)},
         {"voce":"Ind. Reperibilità Festiva",     "ref":rp,"qty":tot["rep_festiva"],        "tariffa":cfg["tariffa_rep_festiva"],   "importo":round(tot["rep_festiva"]        *cfg["tariffa_rep_festiva"],   2)},
+        {"voce":"Festività in giorno di riposo", "ref":rp,"qty":tot["fest_riposo"],       "tariffa":cfg["tariffa_fest_riposo"],   "importo":round(tot["fest_riposo"]        *cfg["tariffa_fest_riposo"]*2, 2)},
     ]
     tc = round(sum(v["importo"] for v in vc), 2)
     inps = round(tc * cfg.get("aliquota_inps",9.19)/100, 2)
