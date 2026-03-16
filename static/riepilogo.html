@@ -45,35 +45,35 @@
   }
   .riepilogo-table td.label-col {
     text-align:left; font-weight:600; color:var(--muted);
-    background:var(--card); font-size:0.8rem; position:sticky; left:0; z-index:2;
-    box-shadow: 2px 0 6px rgba(0,0,0,0.4);
+    background:#1E293B; font-size:0.8rem; position:sticky; left:0; z-index:2;
+    box-shadow: 3px 0 8px rgba(0,0,0,0.6);
   }
   .riepilogo-table th.label-col {
-    text-align:left; min-width:160px; position:sticky; left:0; z-index:3;
-    background:var(--card2); box-shadow: 2px 0 6px rgba(0,0,0,0.4);
+    text-align:left; min-width:150px; position:sticky; left:0; z-index:3;
+    background:#263348; box-shadow: 3px 0 8px rgba(0,0,0,0.6);
   }
   .riepilogo-table td.tot-col { background:#172033; color:#60A5FA; font-weight:700; }
   .riepilogo-table td.zero { color:var(--border); }
 
   /* Sezioni della tabella */
   .riepilogo-table tr.section-header td {
-    background:var(--card2); color:var(--accent); font-weight:700;
+    background:#263348; color:var(--accent); font-weight:700;
     font-size:0.75rem; text-transform:uppercase; letter-spacing:.06em;
     padding:12px 10px;
   }
   .riepilogo-table tr.section-header td.label-col {
-    background:var(--card2); color:var(--accent);
+    background:#263348; color:var(--accent);
   }
 
   /* Riga totali */
   .riepilogo-table tr.total-row td {
-    background:rgba(59,130,246,0.08); font-weight:700; color:var(--text);
+    background:#1a2840; font-weight:700; color:var(--text);
   }
   .riepilogo-table tr.total-row td.label-col {
-    background:rgba(59,130,246,0.12); color:var(--accent);
+    background:#1a2840; color:var(--accent);
   }
   .riepilogo-table tr.total-row td.tot-col {
-    background:rgba(59,130,246,0.2); color:#60A5FA;
+    background:#1a3060; color:#60A5FA;
   }
 
   /* Colori valori */
@@ -92,42 +92,37 @@
   .loading { text-align:center; padding:80px; color:var(--muted); font-size:1rem; }
 
   @media (max-width: 768px) {
-    .top-nav { display: none !important; }
-    nav { display: none !important; }
+    
     header { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
     header h1 { font-size: 1rem; }
-    nav { display: none; }
     .header-right { gap: 6px; }
     .user-label { display: none; }
     .btn-logout { padding: 5px 10px; font-size: 0.78rem; }
-    .nav-controls { gap: 6px; }
     .nav-controls select, .nav-controls button { padding: 5px 10px; font-size: 0.8rem; }
-    .container { padding: 12px; }
-    .fields-grid { grid-template-columns: 1fr !important; }
-    table { font-size: 0.75rem; }
-    th, td { padding: 6px 5px; }
-    .busta-info { grid-template-columns: 1fr 1fr !important; }
-    .ore-grid { grid-template-columns: repeat(3, 1fr) !important; }
-    .fiscal-grid { grid-template-columns: 1fr 1fr !important; }
-    .netto-card { flex-direction: column; gap: 8px; text-align: center; }
-    .netto-val { font-size: 1.8rem; }
-    .riepilogo-table { font-size: 0.7rem; }
-    .card { padding: 24px 18px; }
-  }
-
-  
-  
-  
-  
-  
-  @media (max-width: 768px) {
-    
+    .container { padding: 8px; overflow-x: hidden; }
     body { padding-bottom: 70px; }
+
+    /* Riepilogo tabella mobile */
+    .riepilogo-table { font-size: 0.65rem; }
+    .riepilogo-table th, .riepilogo-table td { padding: 6px 4px; }
+    .riepilogo-table th.label-col,
+    .riepilogo-table td.label-col { min-width: 110px; max-width: 110px; font-size: 0.65rem; }
+    .riepilogo-table th.mese-col,
+    .riepilogo-table td { min-width: 36px; }
+    .riepilogo-table th.tot-col,
+    .riepilogo-table td.tot-col { min-width: 44px; }
   }
 
-  .top-nav { display:flex; gap:4px; }
-  .top-nav a { color:var(--muted); text-decoration:none; font-size:0.9rem; padding:6px 14px; border-radius:8px; background:var(--card2); }
-  .top-nav a:hover { color:var(--text); }
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
   
 
   /* ── BOTTOM NAV ── */
@@ -148,16 +143,24 @@
   @media (max-width: 768px) {
     .bottom-nav { display: block !important; }
   }
+  .top-nav { display:flex; gap:4px; flex-wrap:wrap; }
+  .top-nav a { color:var(--muted); text-decoration:none; font-size:0.88rem; padding:6px 12px; border-radius:8px; background:var(--card2); white-space:nowrap; }
+  .top-nav a:hover { color:var(--text); background:#2d3f55; }
+  #adminNavLink { display:none; }
+  @media (max-width:768px) { .top-nav { display:none !important; } }
 </style>
 </head>
 <body>
 
 <header>
   <h1>📊 Riepilogo <span>Annuale</span></h1>
-    <nav class="top-nav">
+        <nav class="top-nav">
     <a href="/">📅 Calendario</a>
+    <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
+    <a href="/tabella.html">📋 Tabella Turni</a>
     <a href="/impostazioni.html">⚙️ Impostazioni</a>
+    <a href="/admin.html" id="adminNavLink" style="display:none;color:#F59E0B">🔧 Admin</a>
   </nav>
   <div class="header-right">
     <div class="nav-controls">
@@ -418,17 +421,29 @@ window.fetch = function(url, opts={}) {
   });
 };
 
+
+
 (async function() {
   if (!getToken()) { window.location.href='/login.html'; return; }
   try {
-    await fetch('/api/auth/me').then(r => { if(!r.ok) throw new Error(); return r.json(); });
-    document.querySelectorAll('.user-label').forEach(el => el.textContent = '👤 ' + getNome());
+    const me = await fetch('/api/auth/me').then(r => r.json());
+    if (!me || !me.id) { logout(); return; }
+    document.querySelectorAll('.user-label').forEach(el => el.textContent = '👤 ' + (me.nome || me.username || ''));
+    if (me.is_admin) {
+      const lnk = document.getElementById('adminNavLink');
+      if (lnk) lnk.style.display = '';
+      const mbl = document.getElementById('adminMobileBtn');
+      if (mbl) mbl.style.display = 'flex';
+      localStorage.setItem('is_admin', 'true');
+    } else {
+      localStorage.removeItem('is_admin');
+    }
     initSelAnno();
     load();
-  } catch(e) { logout(); }
+  } catch(e) { console.error('Auth error:', e); logout(); }
 })();
 </script>
 
-<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"  class="active"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/tabella.html"><span class="icon">📋</span><span>Tabella</span></a><a href="/impostazioni.html"><span class="icon">⚙️</span><span>Impost.</span></a></div></nav>
+<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"  class="active"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/tabella.html"><span class="icon">📋</span><span>Tabella</span></a><a href="/impostazioni.html"><span class="icon">⚙️</span><span>Impost.</span></a><a href="/admin.html" id="adminMobileBtn" style="display:none;color:#F59E0B"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
 </body>
 </html>

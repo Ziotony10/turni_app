@@ -10,8 +10,8 @@
   body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; }
   header { background:var(--card); border-bottom:1px solid var(--border); padding:16px 24px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   header h1 { font-size:1.2rem; font-weight:700; } header h1 span { color:var(--accent); }
-  .top-nav { display:flex; gap:4px; }
-  .top-nav a { color:var(--muted); text-decoration:none; font-size:0.9rem; padding:6px 14px; border-radius:8px; background:var(--card2); }
+  
+  
   .header-right { display:flex; align-items:center; gap:10px; margin-left:auto; }
   .user-label { font-size:0.85rem; color:var(--muted); }
   .btn-logout { background:rgba(239,68,68,.15); color:#FCA5A5; border:1px solid rgba(239,68,68,.3); border-radius:8px; padding:6px 14px; font-size:0.85rem; cursor:pointer; }
@@ -72,7 +72,7 @@
   
   @media (max-width:768px) {
     header { padding:10px 14px; } header h1 { font-size:1rem; }
-    .top-nav { display:none; } .user-label { display:none; }
+     .user-label { display:none; }
     .container { padding:0 12px; margin:16px auto; padding-bottom:80px; }
     .form-grid, .form-grid-3 { grid-template-columns:1fr; }
     
@@ -96,17 +96,24 @@
   @media (max-width: 768px) {
     .bottom-nav { display: block !important; }
   }
+  .top-nav { display:flex; gap:4px; flex-wrap:wrap; }
+  .top-nav a { color:var(--muted); text-decoration:none; font-size:0.88rem; padding:6px 12px; border-radius:8px; background:var(--card2); white-space:nowrap; }
+  .top-nav a:hover { color:var(--text); background:#2d3f55; }
+  #adminNavLink { display:none; }
+  @media (max-width:768px) { .top-nav { display:none !important; } }
 </style>
 </head>
 <body>
 
 <header>
   <h1>📋 <span>Tabella Turni</span></h1>
-  <nav class="top-nav">
+      <nav class="top-nav">
     <a href="/">📅 Calendario</a>
     <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
+    <a href="/tabella.html">📋 Tabella Turni</a>
     <a href="/impostazioni.html">⚙️ Impostazioni</a>
+    <a href="/admin.html" id="adminNavLink" style="display:none;color:#F59E0B">🔧 Admin</a>
   </nav>
   <div class="header-right">
     <span class="user-label"></span>
@@ -134,30 +141,19 @@
       <div class="form-grid">
         <div>
           <label>Giorno di inizio</label>
-          <input type="date" id="dataInizio" onchange="updatePreview()">
+          <input type="date" id="dataInizio" onchange="onDataChange()">
+          <div id="giornoRilevato" style="font-size:0.78rem;color:var(--accent);margin-top:5px;height:18px"></div>
         </div>
         <div>
-          <label>Anno di riferimento</label>
-          <input type="number" id="annoFine" value="2026" min="2025" max="2030" onchange="updatePreview()">
+          <label>Giorno di fine</label>
+          <input type="date" id="dataFine" onchange="updatePreview()">
         </div>
       </div>
 
-      <div class="form-grid">
+      <div class="form-grid" style="grid-template-columns:1fr">
         <div>
           <label>Settimana di inizio (nella tabella)</label>
           <select id="selSettimana" onchange="updatePreview()"></select>
-        </div>
-        <div>
-          <label>Giorno della settimana di inizio</label>
-          <select id="selGiorno" onchange="updatePreview()">
-            <option value="0">Lunedì</option>
-            <option value="1">Martedì</option>
-            <option value="2">Mercoledì</option>
-            <option value="3">Giovedì</option>
-            <option value="4">Venerdì</option>
-            <option value="5">Sabato</option>
-            <option value="6">Domenica</option>
-          </select>
         </div>
       </div>
 
@@ -223,6 +219,24 @@ function renderSelector() {
   document.getElementById('previewBox').style.display = 'none';
 }
 
+// Restituisce 0=lun ... 6=dom dalla stringa "YYYY-MM-DD"
+function dowFromDate(dateStr) {
+  // Usiamo T12:00:00 per evitare problemi di timezone
+  const d = new Date(dateStr + 'T12:00:00');
+  return (d.getDay() + 6) % 7; // JS: 0=dom → converti 0=lun
+}
+
+const GIORNI_NOMI = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+
+function onDataChange() {
+  const dataInizio = document.getElementById('dataInizio').value;
+  if (!dataInizio) return;
+  const dow = dowFromDate(dataInizio);
+  document.getElementById('giornoRilevato').textContent =
+    `📅 ${dataInizio} è un ${GIORNI_NOMI[dow]}`;
+  updatePreview();
+}
+
 async function onTabChange() {
   const id = document.getElementById('selTabella').value;
   if (!id) { document.getElementById('formApplica').style.display='none'; return; }
@@ -231,16 +245,19 @@ async function onTabChange() {
 
   // Popola settimane
   const selSett = document.getElementById('selSettimana');
-  selSett.innerHTML = Array.from({length: tab.num_settimane}, (_,i)=>`<option value="${i+1}">Settimana ${i+1}</option>`).join('');
+  selSett.innerHTML = Array.from({length: tab.num_settimane}, (_,i)=>
+    `<option value="${i+1}">Settimana ${i+1}</option>`).join('');
 
-  // Default data inizio = oggi
+  // Default: oggi come inizio, fine anno come fine
   const oggi = new Date().toISOString().slice(0,10);
+  const fineAnno = new Date().getFullYear() + '-12-31';
   document.getElementById('dataInizio').value = oggi;
-  document.getElementById('annoFine').value = new Date().getFullYear();
+  document.getElementById('dataFine').value = fineAnno;
 
-  // Default giorno = giorno della settimana di oggi (0=lun)
-  const dow = (new Date().getDay() + 6) % 7; // JS: 0=dom, converti in 0=lun
-  document.getElementById('selGiorno').value = dow;
+  // Mostra il giorno rilevato
+  const dow = dowFromDate(oggi);
+  document.getElementById('giornoRilevato').textContent =
+    `📅 ${oggi} è un ${GIORNI_NOMI[dow]}`;
 
   document.getElementById('formApplica').style.display = 'block';
   updatePreview();
@@ -254,39 +271,51 @@ function updatePreview() {
 
   fetch(`/api/admin/tabelle/${id}`).then(r=>r.json()).then(tab => {
     const settimane = tab.turni_json || tab.turni || [];
-    const settInizio = parseInt(document.getElementById('selSettimana').value) - 1;
-    const giornoInizio = parseInt(document.getElementById('selGiorno').value);
+    const numSett = settimane.length;
+    if (!numSett) return;
 
-    // Mostra prime 3 settimane a partire dalla posizione scelta
+    const settInizio = parseInt(document.getElementById('selSettimana').value) - 1; // 0-based
+    // Giorno della settimana rilevato automaticamente dalla data
+    const giornoInizio = dowFromDate(dataInizio); // 0=lun
+
+    // Posizione assoluta nella sequenza linearizzata della tabella
+    const totPos = numSett * 7;
+    let pos = (settInizio * 7 + giornoInizio) % totPos;
+
     let html = '';
-    let curSett = settInizio;
-    let curGiorno = giornoInizio;
     let dataStr = dataInizio;
 
-    for (let w=0; w<3; w++) {
-      const week = settimane[curSett] || Array(7).fill('');
-      html += `<div class="week-header">Settimana ${curSett+1} della tabella → dal ${dataStr}</div>`;
-      html += '<div class="preview-week-label">' + GIORNI.map(g=>`<span>${g}</span>`).join('') + '</div>';
+    for (let riga = 0; riga < 3; riga++) {
+      // Calcola data fine settimana (6 giorni dopo)
+      const dFine = new Date(dataStr + 'T12:00:00');
+      dFine.setDate(dFine.getDate() + 6);
+      const dataFineW = dFine.toISOString().slice(0,10);
+
+      html += `<div class="week-header">Giorni ${riga*7+1}–${riga*7+7} &nbsp;(${dataStr} → ${dataFineW})</div>`;
+
+      // Header giorni: partendo dal giorno reale della settimana
+      const hdr = [];
+      for (let d = 0; d < 7; d++) hdr.push(GIORNI[(giornoInizio + d) % 7]);
+      html += '<div class="preview-week-label">' + hdr.map(g=>`<span>${g}</span>`).join('') + '</div>';
       html += '<div class="preview-week">';
 
-      for (let d=0; d<7; d++) {
-        const idx = (curGiorno + d) % 7;
-        const settIdx = (curSett + Math.floor((curGiorno + d) / 7)) % settimane.length;
-        const weekData = settimane[settIdx] || [];
-        const turno = (weekData[idx] || '').trim().split(' ')[0] || '';
+      for (let d = 0; d < 7; d++) {
+        const p = (pos + d) % totPos;
+        const s = Math.floor(p / 7) % numSett;
+        const g = p % 7;
+        const turno = ((settimane[s] || [])[g] || '').trim().split(' ')[0] || '';
         const color = TURNO_COLORS[turno] || 'var(--card)';
-        const isStart = w===0 && d===0;
-        html += `<div class="preview-day ${isStart?'start':''}" style="background:${color}">${turno||'—'}</div>`;
+        const isStart = riga === 0 && d === 0;
+        html += `<div class="preview-day ${isStart ? 'start' : ''}" style="background:${color}">${turno || '—'}</div>`;
       }
 
       html += '</div>';
-      // Avanza di una settimana
-      curSett = (curSett + 1) % settimane.length;
+      pos = (pos + 7) % totPos;
 
-      // Calcola data prossima settimana
-      const d = new Date(dataStr + 'T12:00:00');
-      d.setDate(d.getDate() + 7);
-      dataStr = d.toISOString().slice(0,10);
+      // Avanza di 7 giorni
+      const nd = new Date(dataStr + 'T12:00:00');
+      nd.setDate(nd.getDate() + 7);
+      dataStr = nd.toISOString().slice(0, 10);
     }
 
     document.getElementById('previewContent').innerHTML = html;
@@ -297,15 +326,19 @@ function updatePreview() {
 async function applica() {
   const id = parseInt(document.getElementById('selTabella').value);
   const dataInizio = document.getElementById('dataInizio').value;
-  const annoFine = parseInt(document.getElementById('annoFine').value);
+  const dataFine   = document.getElementById('dataFine').value;
   const settimanaInizio = parseInt(document.getElementById('selSettimana').value);
-  const giornoInizio = parseInt(document.getElementById('selGiorno').value);
 
   if (!dataInizio) { alert('Seleziona un giorno di inizio'); return; }
+  if (!dataFine)   { alert('Seleziona un giorno di fine'); return; }
+  if (dataFine < dataInizio) { alert('Il giorno di fine deve essere dopo il giorno di inizio'); return; }
 
-  const annoInizio = new Date(dataInizio).getFullYear();
-  if (!confirm(`Applicare la tabella dal ${dataInizio} fino al 31/12/${annoFine}?\n\nI turni esistenti verranno sovrascritti.`)) return;
-  if (!confirm('Ultima conferma: sovrascrivere i turni dal calendario?')) return;
+  // Il giorno della settimana viene rilevato automaticamente dalla data
+  const giornoInizio = dowFromDate(dataInizio);
+  const annoFine = parseInt(dataFine.slice(0,4));
+
+  if (!confirm(`Applicare la tabella dal ${dataInizio} fino al ${dataFine}?\n\nI turni esistenti verranno sovrascritti.`)) return;
+  if (!confirm('Ultima conferma: sovrascrivere i turni nel calendario?')) return;
 
   const btn = document.getElementById('btnApplica');
   btn.disabled = true; btn.textContent = '⏳ Applicazione in corso...';
@@ -316,6 +349,7 @@ async function applica() {
     body: JSON.stringify({
       tab_id: id,
       data_inizio: dataInizio,
+      data_fine: dataFine,
       settimana_inizio: settimanaInizio,
       giorno_inizio: giornoInizio,
       anno_fine: annoFine
@@ -331,21 +365,29 @@ async function applica() {
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
+
+
 (async function() {
   if (!getToken()) { window.location.href='/login.html'; return; }
   try {
-    const me = await fetch('/api/auth/me').then(r=>r.json());
-    document.querySelectorAll('.user-label').forEach(el=>el.textContent='👤 '+getNome());
-    if (me.is_admin) document.getElementById('adminLink').style.display='block';
-
-    allTabelle = await fetch('/api/admin/tabelle').then(r=>r.json());
-    if (allTabelle.length===0) {
-      document.getElementById('emptyState').style.display='block';
+    const me = await fetch('/api/auth/me').then(r => r.json());
+    if (!me || !me.id) { logout(); return; }
+    document.querySelectorAll('.user-label').forEach(el => el.textContent = '👤 ' + (me.nome || me.username || ''));
+    if (me.is_admin) {
+      const lnk = document.getElementById('adminNavLink');
+      if (lnk) lnk.style.display = '';
+      const mbl = document.getElementById('adminMobileBtn');
+      if (mbl) mbl.style.display = 'flex';
+      localStorage.setItem('is_admin', 'true');
+    } else {
+      localStorage.removeItem('is_admin');
     }
+    allTabelle = await fetch('/api/admin/tabelle').then(r=>r.json());
+    if (allTabelle.length===0) document.getElementById('emptyState').style.display='block';
     renderSelector();
-  } catch(e) { logout(); }
+  } catch(e) { console.error('Auth error:', e); logout(); }
 })();
 </script>
-<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/tabella.html"  class="active"><span class="icon">📋</span><span>Tabella</span></a><a href="/impostazioni.html"><span class="icon">⚙️</span><span>Impost.</span></a></div></nav>
+<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/tabella.html"  class="active"><span class="icon">📋</span><span>Tabella</span></a><a href="/impostazioni.html"><span class="icon">⚙️</span><span>Impost.</span></a><a href="/admin.html" id="adminMobileBtn" style="display:none;color:#F59E0B"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
 </body>
 </html>

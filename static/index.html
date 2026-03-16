@@ -209,7 +209,7 @@
     header { padding: 10px 12px; gap: 8px; }
     header h1 { font-size: 1rem; }
     header nav { display: none; }
-    .top-nav { display: none !important; }
+    
     .nav-controls select, .nav-controls button { padding: 5px 10px; font-size: 0.82rem; }
     .user-label { display: none; }
     [onclick="logout()"] { padding: 5px 10px; font-size: 0.78rem; }
@@ -274,9 +274,9 @@
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-  .top-nav { display:flex; gap:4px; }
-  .top-nav a { color:var(--muted); text-decoration:none; font-size:0.9rem; padding:6px 14px; border-radius:8px; background:var(--card2); }
-  .top-nav a:hover { color:var(--text); }
+  
+  
+  
 
   /* ── BOTTOM NAV ── */
   .bottom-nav {
@@ -296,14 +296,20 @@
   @media (max-width: 768px) {
     .bottom-nav { display: block !important; }
   }
+  .top-nav { display:flex; gap:4px; flex-wrap:wrap; }
+  .top-nav a { color:var(--muted); text-decoration:none; font-size:0.88rem; padding:6px 12px; border-radius:8px; background:var(--card2); white-space:nowrap; }
+  .top-nav a:hover { color:var(--text); background:#2d3f55; }
+  #adminNavLink { display:none; }
+  @media (max-width:768px) { .top-nav { display:none !important; } }
 </style>
 </head>
 <body>
 
 <header>
   <h1>🗓 Gestione <span>Turni</span></h1>
-    <nav class="top-nav">
-    <a href="/riepilogo.html">📊 Riepilogo Anno</a>
+        <nav class="top-nav">
+    <a href="/">📅 Calendario</a>
+    <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
     <a href="/tabella.html">📋 Tabella Turni</a>
     <a href="/impostazioni.html">⚙️ Impostazioni</a>
@@ -1003,28 +1009,31 @@ window.fetch = function(url, opts={}) {
 };
 
 // Controlla login all'avvio
-(async function checkAuth() {
+
+
+
+(async function() {
   if (!getToken()) { window.location.href='/login.html'; return; }
   try {
-    const me = await fetch('/api/auth/me').then(r=>r.json());
-    const nomeTxt = getNome();
-    document.querySelectorAll('.user-label').forEach(el => el.textContent = '👤 ' + nomeTxt);
+    const me = await fetch('/api/auth/me').then(r => r.json());
+    if (!me || !me.id) { logout(); return; }
+    document.querySelectorAll('.user-label').forEach(el => el.textContent = '👤 ' + (me.nome || me.username || ''));
     if (me.is_admin) {
       const lnk = document.getElementById('adminNavLink');
       if (lnk) lnk.style.display = '';
-      localStorage.setItem('is_admin','true');
+      const mbl = document.getElementById('adminMobileBtn');
+      if (mbl) mbl.style.display = 'flex';
+      localStorage.setItem('is_admin', 'true');
+    } else {
+      localStorage.removeItem('is_admin');
     }
-    if(typeof init === 'function') init();
-    else if(typeof loadAll === 'function') loadAll();
-    else if(typeof load === 'function') load();
-    else if(typeof carica === 'function') carica();
-  } catch(e) { logout(); }
+    if(typeof init==='function') init(); else if(typeof loadAll==='function') loadAll();
+  } catch(e) { console.error('Auth error:', e); logout(); }
 })();
-
 </script>
 <!-- BOTTOM NAV MOBILE -->
 
 
-<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"  class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/tabella.html"><span class="icon">📋</span><span>Tabella</span></a><a href="/impostazioni.html"><span class="icon">⚙️</span><span>Impost.</span></a></div></nav>
+<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"  class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/tabella.html"><span class="icon">📋</span><span>Tabella</span></a><a href="/impostazioni.html"><span class="icon">⚙️</span><span>Impost.</span></a><a href="/admin.html" id="adminMobileBtn" style="display:none;color:#F59E0B"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
 </body>
 </html>
