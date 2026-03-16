@@ -338,7 +338,22 @@ def login(form: OAuth2PasswordRequestForm = Depends()):
 
 @app.get("/api/auth/me")
 def me(current_user=Depends(get_current_user)):
-    return current_user
+    conn = get_db()
+    user = fetchone(conn, "SELECT id, username, nome, is_admin FROM utenti WHERE id=?", (current_user["id"],))
+    conn.close()
+    if not user:
+        raise HTTPException(401, "Utente non trovato")
+    # antonino.adragna è sempre admin indipendentemente dal valore nel DB
+    is_admin = bool(user.get("is_admin")) or user["username"] == "antonino.adragna"
+    # Aggiorna il DB se necessario
+    if user["username"] == "antonino.adragna" and not user.get("is_admin"):
+        try:
+            conn2 = get_db()
+            ex(conn2, "UPDATE utenti SET is_admin=1 WHERE username='antonino.adragna'")
+            conn2.commit()
+            conn2.close()
+        except: pass
+    return {"id": user["id"], "username": user["username"], "nome": user["nome"], "is_admin": is_admin}
 
 # ─── Admin: gestione utenti ───────────────────────────────────────────────────
 @app.get("/api/admin/utenti")
@@ -427,9 +442,10 @@ def delete_tabella(tab_id: int, admin=Depends(require_admin)):
 class ApplicaTabella(BaseModel):
     tab_id: int
     data_inizio: str       # "YYYY-MM-DD"
+    data_fine: Optional[str] = None   # "YYYY-MM-DD" — se assente usa fine anno
     settimana_inizio: int  # quale settimana della tabella inizia (1-based)
     giorno_inizio: int     # quale giorno della settimana inizia (0=lun, 6=dom)
-    anno_fine: int         # fino a fine di quest'anno
+    anno_fine: int         # anno di fine (per retrocompatibilità)
 
 @app.post("/api/tabella/applica")
 def applica_tabella(payload: ApplicaTabella, user=Depends(get_current_user)):
@@ -443,7 +459,11 @@ def applica_tabella(payload: ApplicaTabella, user=Depends(get_current_user)):
     num_sett = len(settimane)
 
     data_inizio = date.fromisoformat(payload.data_inizio)
-    data_fine   = date(payload.anno_fine, 12, 31)
+    # Usa data_fine se fornita, altrimenti fine anno
+    if payload.data_fine:
+        data_fine = date.fromisoformat(payload.data_fine)
+    else:
+        data_fine = date(payload.anno_fine, 12, 31)
 
     # Calcola posizione iniziale nella tabella
     sett_idx = (payload.settimana_inizio - 1) % num_sett  # 0-based
@@ -468,36 +488,48 @@ def applica_tabella(payload: ApplicaTabella, user=Depends(get_current_user)):
             data_str = data_cur.isoformat()
             ore = calcola_ore(turno, None, None, data_str)
             tipo_rep = ""
+            # Salva gli orari standard del turno per mostrare Inizio/Fine nel calendario
+            std = TURNO_ORARI.get(turno)
+            if std:
+                def mins_to_hhmm(m):
+                    m = m % 1440
+                    return f"{m//60:02d}:{m%60:02d}"
+                std_ini_str = mins_to_hhmm(std[0])
+                std_fin_str = mins_to_hhmm(std[1])
+            else:
+                std_ini_str = None
+                std_fin_str = None
+
             if USE_PG:
                 ex(conn, """INSERT INTO turni
-                      (user_id,data,turno,ore_diurne,ore_notturne,strao_diurno,strao_notturno,
-                       strao_fest_diurno,strao_fest_notturno,reperibilita,note)
-                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                      (user_id,data,turno,ora_inizio,ora_fine,ore_diurne,ore_notturne,
+                       strao_diurno,strao_notturno,strao_fest_diurno,strao_fest_notturno,reperibilita,note)
+                   VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                    ON CONFLICT(user_id,data) DO UPDATE SET
-                      turno=EXCLUDED.turno, ore_diurne=EXCLUDED.ore_diurne,
-                      ore_notturne=EXCLUDED.ore_notturne, strao_diurno=EXCLUDED.strao_diurno,
-                      strao_notturno=EXCLUDED.strao_notturno,
+                      turno=EXCLUDED.turno, ora_inizio=EXCLUDED.ora_inizio, ora_fine=EXCLUDED.ora_fine,
+                      ore_diurne=EXCLUDED.ore_diurne, ore_notturne=EXCLUDED.ore_notturne,
+                      strao_diurno=EXCLUDED.strao_diurno, strao_notturno=EXCLUDED.strao_notturno,
                       strao_fest_diurno=EXCLUDED.strao_fest_diurno,
                       strao_fest_notturno=EXCLUDED.strao_fest_notturno,
                       reperibilita=EXCLUDED.reperibilita""",
-                   (user["id"],data_str,turno,ore["ore_diurne"],ore["ore_notturne"],
-                    ore["strao_diurno"],ore["strao_notturno"],ore["strao_fest_diurno"],
-                    ore["strao_fest_notturno"],tipo_rep or None,None))
+                   (user["id"],data_str,turno,std_ini_str,std_fin_str,
+                    ore["ore_diurne"],ore["ore_notturne"],ore["strao_diurno"],ore["strao_notturno"],
+                    ore["strao_fest_diurno"],ore["strao_fest_notturno"],tipo_rep or None,None))
             else:
                 conn.execute("""INSERT INTO turni
-                      (user_id,data,turno,ore_diurne,ore_notturne,strao_diurno,strao_notturno,
-                       strao_fest_diurno,strao_fest_notturno,reperibilita,note)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?)
+                      (user_id,data,turno,ora_inizio,ora_fine,ore_diurne,ore_notturne,
+                       strao_diurno,strao_notturno,strao_fest_diurno,strao_fest_notturno,reperibilita,note)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
                    ON CONFLICT(user_id,data) DO UPDATE SET
-                      turno=excluded.turno, ore_diurne=excluded.ore_diurne,
-                      ore_notturne=excluded.ore_notturne, strao_diurno=excluded.strao_diurno,
-                      strao_notturno=excluded.strao_notturno,
+                      turno=excluded.turno, ora_inizio=excluded.ora_inizio, ora_fine=excluded.ora_fine,
+                      ore_diurne=excluded.ore_diurne, ore_notturne=excluded.ore_notturne,
+                      strao_diurno=excluded.strao_diurno, strao_notturno=excluded.strao_notturno,
                       strao_fest_diurno=excluded.strao_fest_diurno,
                       strao_fest_notturno=excluded.strao_fest_notturno,
                       reperibilita=excluded.reperibilita""",
-                   (user["id"],data_str,turno,ore["ore_diurne"],ore["ore_notturne"],
-                    ore["strao_diurno"],ore["strao_notturno"],ore["strao_fest_diurno"],
-                    ore["strao_fest_notturno"],tipo_rep or None,None))
+                   (user["id"],data_str,turno,std_ini_str,std_fin_str,
+                    ore["ore_diurne"],ore["ore_notturne"],ore["strao_diurno"],ore["strao_notturno"],
+                    ore["strao_fest_diurno"],ore["strao_fest_notturno"],tipo_rep or None,None))
             inseriti += 1
 
         # Avanza al giorno successivo
