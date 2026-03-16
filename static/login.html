@@ -97,12 +97,11 @@
   <!-- REGISTER -->
   <div id="formRegister" style="display:none">
     <div class="field">
-      <label>Nome (opzionale)</label>
-      <input type="text" id="regNome" placeholder="es. Mario Rossi">
-    </div>
-    <div class="field">
-      <label>Username</label>
-      <input type="text" id="regUser" placeholder="scegli uno username">
+      <label>Username <span style="color:var(--muted);font-weight:400;font-size:0.78rem">(formato: nome.cognome)</span></label>
+      <input type="text" id="regUser" placeholder="es. mario.rossi"
+             oninput="this.value=this.value.toLowerCase().replace(/[^a-z.]/g,'')"
+             autocomplete="username">
+      <div style="font-size:0.75rem;color:var(--muted);margin-top:4px">Solo lettere minuscole e punto. Scrivi il tuo <strong style="color:var(--text)">nome.cognome</strong> — es: antonio.adragna</div>
     </div>
     <div class="field">
       <label>Password</label>
@@ -145,10 +144,16 @@ async function doLogin() {
 }
 
 async function doRegister() {
-  const nome = document.getElementById('regNome').value.trim();
-  const u    = document.getElementById('regUser').value.trim();
-  const p    = document.getElementById('regPass').value;
+  const u = document.getElementById('regUser').value.trim().toLowerCase();
+  const p = document.getElementById('regPass').value;
   if (!u || !p) { showErr('Compila username e password'); return; }
+  // Valida formato nome.cognome
+  if (!/^[a-z]+\.[a-z]+$/.test(u)) {
+    showErr('Username non valido. Usa il formato nome.cognome (es. mario.rossi)');
+    return;
+  }
+  // Deriva il nome visualizzato dal username (mario.rossi → Mario Rossi)
+  const nome = u.split('.').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
   try {
     const res = await fetch('/api/auth/register', {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -158,7 +163,7 @@ async function doRegister() {
     if (!res.ok) { showErr(data.detail || 'Errore registrazione'); return; }
     localStorage.setItem('token', data.access_token);
     localStorage.setItem('username', data.username);
-    localStorage.setItem('nome', nome || u);
+    localStorage.setItem('nome', nome);
     window.location.href = '/';
   } catch(e) { showErr('Errore di connessione'); }
 }

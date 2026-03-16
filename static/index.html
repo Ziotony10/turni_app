@@ -19,20 +19,16 @@
     --radius:    10px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-  /* ── HEADER ── */
+  
   
   
   
 
-  .nav-controls { display: flex; align-items: center; gap: 10px; margin-left: auto; }
-  .nav-controls select, .nav-controls button {
-    background: var(--card2); border: 1px solid var(--border);
-    color: var(--text); border-radius: 8px; padding: 6px 14px;
-    font-size: 0.9rem; cursor: pointer;
-  }
-  .nav-controls button:hover { background: var(--accent); border-color: var(--accent); }
+  
+  .nav-controls select, 
+  
 
   /* ── MONTH TABS ── */
   .month-tabs {
@@ -49,29 +45,53 @@
   .month-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
 
   /* ── MAIN LAYOUT ── */
-  .main { display: flex; gap: 0; height: calc(100vh - 110px); }
+  .main {
+    display: flex; flex-direction: row; gap: 0;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
 
   /* ── CALENDAR TABLE ── */
-  .cal-wrap { flex: 1; overflow-y: auto; padding: 20px 24px; }
-  table { width: 100%; border-collapse: collapse; }
+  .cal-wrap { flex: 1; overflow-y: auto; overflow-x: auto; padding: 0; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
   th {
-    background: var(--card2); color: var(--muted); font-size: 0.75rem;
-    font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
-    padding: 10px 12px; text-align: left; position: sticky; top: 0; z-index: 2;
+    background: var(--card2); color: var(--muted); font-size: 0.73rem;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 10px 8px; text-align: center; position: sticky; top: 0; z-index: 2;
+    white-space: nowrap; overflow: hidden;
   }
+  th:first-child, th:nth-child(2) { text-align: left; }
   tr.day-row { cursor: pointer; transition: background 0.1s; }
   tr.day-row:hover td { background: rgba(255,255,255,0.04) !important; }
-  td { padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 0.875rem; vertical-align: middle; }
+  td {
+    padding: 8px 8px; border-bottom: 1px solid var(--border);
+    font-size: 0.85rem; vertical-align: middle;
+    text-align: center; white-space: nowrap; overflow: hidden;
+  }
+  td:first-child, td:nth-child(2) { text-align: left; }
 
-  td.cell-data   { font-weight: 600; color: var(--muted); width: 100px; }
-  td.cell-giorno { color: var(--muted); width: 80px; font-size: 0.8rem; }
-  td.cell-turno  { width: 120px; }
-  td.cell-ore    { width: 70px; text-align: center; }
-  td.cell-note   { color: var(--muted); font-size: 0.8rem; }
+  /* Larghezze colonne fisse */
+  th:nth-child(1),  td:nth-child(1)  { width: 72px;  }  /* Data */
+  th:nth-child(2),  td:nth-child(2)  { width: 52px;  }  /* Giorno */
+  th:nth-child(3),  td:nth-child(3)  { width: 72px;  }  /* Turno */
+  th:nth-child(4),  td:nth-child(4)  { width: 58px;  }  /* Inizio */
+  th:nth-child(5),  td:nth-child(5)  { width: 58px;  }  /* Fine */
+  th:nth-child(6),  td:nth-child(6)  { width: 58px;  }  /* Ore Tot */
+  th:nth-child(7),  td:nth-child(7)  { width: 54px;  }  /* Diurne */
+  th:nth-child(8),  td:nth-child(8)  { width: 54px;  }  /* Notturne */
+  th:nth-child(9),  td:nth-child(9)  { width: 56px;  }  /* Strao D */
+  th:nth-child(10), td:nth-child(10) { width: 56px;  }  /* Strao N */
+  th:nth-child(11), td:nth-child(11) { width: 40px;  }  /* Rep */
+  th:nth-child(12), td:nth-child(12) { width: auto; text-align: left; }  /* Note */
+
+  td.cell-data   { font-weight: 600; color: var(--muted); }
+  td.cell-giorno { color: var(--muted); font-size: 0.78rem; }
+  td.cell-note   { color: var(--muted); font-size: 0.8rem; text-align: left !important; }
 
   .badge {
-    display: inline-block; padding: 3px 10px; border-radius: 20px;
-    font-size: 0.8rem; font-weight: 700; color: white; letter-spacing: 0.03em;
+    display: inline-block; padding: 3px 8px; border-radius: 20px;
+    font-size: 0.78rem; font-weight: 700; color: white; letter-spacing: 0.02em;
   }
 
   tr.is-festivo td.cell-data { color: #EF4444; }
@@ -80,19 +100,19 @@
 
   /* ── SIDEBAR ── */
   .sidebar {
-    width: 260px; border-left: 1px solid var(--border);
-    padding: 20px 16px; overflow-y: auto;
-    display: flex; flex-direction: column; gap: 16px;
+    width: 260px; min-width: 260px; border-left: 1px solid var(--border);
+    padding: 16px 14px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 14px;
+    flex-shrink: 0;
   }
-  .sidebar h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 4px; }
-
+  .sidebar h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 4px; }
   .stat-card {
     background: var(--card2); border-radius: var(--radius);
     padding: 12px 14px; border: 1px solid var(--border);
   }
   .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
-  .stat-row span:first-child { font-size: 0.82rem; color: var(--muted); }
-  .stat-row span:last-child  { font-size: 0.9rem; font-weight: 700; }
+  .stat-row span:first-child { font-size: 0.8rem; color: var(--muted); }
+  .stat-row span:last-child  { font-size: 0.88rem; font-weight: 700; }
   .stat-row.highlight span:last-child { color: var(--accent); }
 
   /* ── MODAL ── */
@@ -200,44 +220,32 @@
 
   /* ── MOBILE RESPONSIVE ── */
   @media (max-width: 768px) {
-    /* Header */
-    
-    
-    header nav { display: none; }
-    
-    .nav-controls select, .nav-controls button { padding: 5px 10px; font-size: 0.82rem; }
-    
+    .nav-controls select,
     [onclick="logout()"] { padding: 5px 10px; font-size: 0.78rem; }
 
     /* Tab mesi */
     .month-tabs { padding: 8px 8px; gap: 3px; }
     .month-tab { padding: 5px 9px; font-size: 0.74rem; }
 
-    /* Layout */
-    .main { flex-direction: column; height: auto; padding-bottom: 70px; }
+    /* Layout mobile */
+    body { height: auto; overflow: auto; }
+    .main { flex-direction: column; flex: none; overflow: visible; min-height: 0; }
 
     /* Calendario scroll orizzontale */
-    .cal-wrap { padding: 8px 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
-    /* Tabella semplificata: mostra solo le colonne essenziali */
-    table { min-width: 0; width: 100%; table-layout: fixed; }
-    th, td { padding: 8px 4px; font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    td.cell-data   { width: 52px; font-size: 0.72rem; }
-    td.cell-giorno { width: 26px; font-size: 0.68rem; }
-    td.cell-turno  { width: 52px; }
-    td.cell-ore    { width: 40px; text-align: center; }
-    .badge { padding: 2px 5px; font-size: 0.66rem; }
+    .cal-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0; }
+    table { table-layout: auto; min-width: 520px; }
+    th, td { padding: 7px 5px; font-size: 0.7rem; }
 
     /* Nascondi colonne secondarie su mobile */
-    th:nth-child(5),  td:nth-child(5),   /* Fine */
-    th:nth-child(7),  td:nth-child(7),   /* Diurne */
-    th:nth-child(8),  td:nth-child(8),   /* Notturne */
-    th:nth-child(12), td:nth-child(12)   /* Note */
+    th:nth-child(5),  td:nth-child(5),
+    th:nth-child(7),  td:nth-child(7),
+    th:nth-child(8),  td:nth-child(8),
+    th:nth-child(12), td:nth-child(12)
     { display: none; }
 
     /* Sidebar orizzontale scorrevole */
     .sidebar {
-      width: 100%; border-left: none; border-top: 1px solid var(--border);
+      width: 100%; min-width: 0; border-left: none; border-top: 1px solid var(--border);
       flex-direction: row; overflow-x: auto; overflow-y: hidden;
       padding: 10px 8px; gap: 8px; flex-wrap: nowrap;
     }
@@ -260,14 +268,21 @@
     .time-adj { padding: 5px 2px; font-size: 0.66rem; }
     .form-grid { grid-template-columns: 1fr; gap: 10px; }
     .modal-actions { gap: 8px; margin-top: 16px; }
+  }
 
     /* Mostra bottom nav */
     
   }
 
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  /* Scrollbar invisibile ma funzionale */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border); }
+  .cal-wrap { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+  .cal-wrap:hover { scrollbar-color: var(--border) transparent; }
+  .sidebar { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+  .sidebar:hover { scrollbar-color: var(--border) transparent; }
 
   
   
@@ -288,43 +303,25 @@
   
   @media (max-width:768px) {  }
 
-  /* ── HEADER FISSO ── */
-  header {
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
-    padding: 12px 24px;
-    display: flex; align-items: center; gap: 16px;
-    position: sticky; top: 0; z-index: 10;
-  }
+  
+  
   /* Titolo in contenitore a larghezza fissa: nessuno spostamento al cambio pagina */
-  .page-title {
-    min-width: 220px;
-    font-size: 1.15rem; font-weight: 700; color: var(--text);
-    white-space: nowrap; flex-shrink: 0;
-  }
-  .page-title span { color: var(--accent); }
-  .top-nav { display:flex; gap:4px; flex-wrap:nowrap; }
-  .top-nav a {
-    color:var(--muted); text-decoration:none; font-size:0.82rem;
-    padding:6px 11px; border-radius:8px; background:var(--card2);
-    white-space:nowrap; transition: color .15s, background .15s;
-  }
-  .top-nav a:hover { color:var(--text); background:#2d3f55; }
-  #adminNavLink { display:none; color:#F59E0B !important; }
-  .header-right { display:flex; align-items:center; gap:8px; margin-left:auto; }
-  .user-label { font-size:0.82rem; color:var(--muted); }
-  .btn-logout {
-    background:rgba(239,68,68,.15); color:#FCA5A5;
-    border:1px solid rgba(239,68,68,.3); border-radius:8px;
-    padding:6px 12px; font-size:0.82rem; cursor:pointer;
-  }
-  .btn-logout:hover { background:#EF4444; color:white; }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   @media (max-width: 768px) {
-    header { padding: 10px 12px; gap: 8px; position: sticky; top: 0; z-index: 10; }
-    .page-title { min-width: 0; font-size: 0.95rem; }
-    .top-nav { display: none !important; }
-    .user-label { display: none; }
-    .btn-logout { padding: 5px 10px; font-size: 0.76rem; }
+    
+    
+    
+    
+    
   }
 
 
@@ -352,13 +349,63 @@
     body { padding-bottom: 64px; }
   }
 
+
+  /* ── HEADER ── */
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    height: 56px;
+    padding: 0 20px;
+    display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 20;
+    flex-shrink: 0;
+  }
+  .page-title {
+    width: 230px; min-width: 230px; max-width: 230px;
+    font-size: 1.05rem; font-weight: 700; color: var(--text);
+    white-space: nowrap; overflow: hidden; flex-shrink: 0;
+  }
+  .page-title span { color: var(--accent); }
+  .top-nav { display: flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
+  .top-nav a {
+    color: var(--muted); text-decoration: none; font-size: 0.82rem;
+    padding: 5px 10px; border-radius: 8px; background: var(--card2);
+    white-space: nowrap; line-height: 1; transition: color .15s, background .15s;
+  }
+  .top-nav a:hover { color: var(--text); background: #2d3f55; }
+  .top-nav a#adminNavLink { display: none; color: #F59E0B; }
+  .header-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  .header-controls select, .header-controls button {
+    background: var(--card2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 5px 10px;
+    font-size: 0.82rem; cursor: pointer; height: 32px;
+  }
+  .header-controls button:hover { background: var(--accent); border-color: var(--accent); }
+  .btn-logout {
+    background: rgba(239,68,68,.15); color: #FCA5A5;
+    border: 1px solid rgba(239,68,68,.3); border-radius: 8px;
+    padding: 5px 12px; font-size: 0.82rem; cursor: pointer;
+    height: 32px; white-space: nowrap;
+  }
+  .btn-logout:hover { background: #EF4444; color: white; }
+  .user-label { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+  @media (max-width: 768px) {
+    header { height: 48px; padding: 0 12px; gap: 8px; }
+    .page-title { width: auto; min-width: 0; max-width: 160px; font-size: 0.9rem; }
+    .top-nav { display: none !important; }
+    .user-label { display: none; }
+    .header-controls select { display: none; }
+    .header-controls button { padding: 4px 8px; font-size: 0.78rem; }
+    .btn-logout { padding: 4px 8px; font-size: 0.78rem; }
+  }
+
 </style>
 </head>
 <body>
 
 <header>
   <div class="page-title">🗓 Gestione <span>Turni</span></div>
-          <nav class="top-nav">
+  <nav class="top-nav">
     <a href="/">📅 Calendario</a>
     <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
@@ -366,13 +413,13 @@
     <a href="/impostazioni.html">⚙️ Impostazioni</a>
     <a href="/admin.html" id="adminNavLink">🔧 Admin</a>
   </nav>
-  <div class="nav-controls">
+  <div class="header-controls">
     <button onclick="changeAnno(-1)">◀</button>
     <select id="selAnno" onchange="loadAll()"></select>
     <button onclick="changeAnno(1)">▶</button>
+    <span class="user-label"></span>
+    <button class="btn-logout" onclick="logout()">Esci</button>
   </div>
-  <button onclick="logout()" style="background:rgba(239,68,68,.15);color:#FCA5A5;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:6px 14px;font-size:0.85rem;cursor:pointer;">Esci</button>
-  <span class="user-label" style="font-size:0.85rem;color:var(--muted)"></span>
 </header>
 
 <div class="month-tabs" id="monthTabs">
@@ -553,11 +600,11 @@ function renderCalendario() {
       <th>Data</th><th>Giorno</th><th>Turno</th>
       <th style="text-align:center">Inizio</th>
       <th style="text-align:center">Fine</th>
-      <th style="text-align:center">Ore Tot</th>
+      <th style="text-align:center">Ore</th>
       <th style="text-align:center">Diurne</th>
-      <th style="text-align:center">Notturne</th>
-      <th style="text-align:center">Strao D</th>
-      <th style="text-align:center">Strao N</th>
+      <th style="text-align:center">Nott.</th>
+      <th style="text-align:center">Str.D</th>
+      <th style="text-align:center">Str.N</th>
       <th style="text-align:center">Rep.</th>
       <th>Note</th>
     </tr></thead><tbody>`;
@@ -1067,11 +1114,18 @@ window.fetch = function(url, opts={}) {
     const me = await fetch('/api/auth/me').then(r => r.json());
     if (!me || !me.id) { logout(); return; }
     document.querySelectorAll('.user-label').forEach(el => el.textContent = '👤 ' + (me.nome || me.username || ''));
-    if (me.is_admin) {
+        if (me.is_admin) {
       const lnk = document.getElementById('adminNavLink');
-      if (lnk) lnk.style.display = '';
+      if (lnk) { lnk.style.setProperty('display', 'inline-block', 'important'); }
       const mbl = document.getElementById('adminMobileBtn');
-      if (mbl) mbl.style.display = 'flex';
+      if (mbl) { mbl.style.setProperty('display', 'flex', 'important'); }
+      localStorage.setItem('is_admin', 'true');
+    }
+        if (me.is_admin) {
+      const lnk = document.getElementById('adminNavLink');
+      if (lnk) { lnk.style.setProperty('display', 'inline-block', 'important'); }
+      const mbl = document.getElementById('adminMobileBtn');
+      if (mbl) { mbl.style.setProperty('display', 'flex', 'important'); }
       localStorage.setItem('is_admin', 'true');
     } else {
       localStorage.removeItem('is_admin');

@@ -18,9 +18,9 @@
   nav { display:flex; gap:4px; }
   nav a { color:var(--muted); text-decoration:none; font-size:0.9rem; padding:6px 14px; border-radius:8px; }
   nav a:hover { background:var(--card2); color:var(--text); }
-  .nav-controls { display:flex; align-items:center; gap:8px; margin-left:auto; }
-  .nav-controls select, .nav-controls button { background:var(--card2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 14px; font-size:0.9rem; cursor:pointer; }
-  .nav-controls button:hover { background:var(--accent); border-color:var(--accent); }
+  
+  .nav-controls select, 
+  
 
   .container { max-width:920px; margin:32px auto; padding:0 24px; display:flex; flex-direction:column; gap:20px; }
 
@@ -74,8 +74,8 @@
     
     
     
-    .nav-controls { gap: 6px; }
-    .nav-controls select, .nav-controls button { padding: 5px 10px; font-size: 0.8rem; }
+    
+    .nav-controls select, 
     .container { padding: 12px; }
     .fields-grid { grid-template-columns: 1fr !important; }
     table { font-size: 0.75rem; }
@@ -119,43 +119,25 @@
   
   @media (max-width:768px) {  }
 
-  /* ── HEADER FISSO ── */
-  header {
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
-    padding: 12px 24px;
-    display: flex; align-items: center; gap: 16px;
-    position: sticky; top: 0; z-index: 10;
-  }
+  
+  
   /* Titolo in contenitore a larghezza fissa: nessuno spostamento al cambio pagina */
-  .page-title {
-    min-width: 220px;
-    font-size: 1.15rem; font-weight: 700; color: var(--text);
-    white-space: nowrap; flex-shrink: 0;
-  }
-  .page-title span { color: var(--accent); }
-  .top-nav { display:flex; gap:4px; flex-wrap:nowrap; }
-  .top-nav a {
-    color:var(--muted); text-decoration:none; font-size:0.82rem;
-    padding:6px 11px; border-radius:8px; background:var(--card2);
-    white-space:nowrap; transition: color .15s, background .15s;
-  }
-  .top-nav a:hover { color:var(--text); background:#2d3f55; }
-  #adminNavLink { display:none; color:#F59E0B !important; }
-  .header-right { display:flex; align-items:center; gap:8px; margin-left:auto; }
-  .user-label { font-size:0.82rem; color:var(--muted); }
-  .btn-logout {
-    background:rgba(239,68,68,.15); color:#FCA5A5;
-    border:1px solid rgba(239,68,68,.3); border-radius:8px;
-    padding:6px 12px; font-size:0.82rem; cursor:pointer;
-  }
-  .btn-logout:hover { background:#EF4444; color:white; }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   @media (max-width: 768px) {
-    header { padding: 10px 12px; gap: 8px; position: sticky; top: 0; z-index: 10; }
-    .page-title { min-width: 0; font-size: 0.95rem; }
-    .top-nav { display: none !important; }
-    .user-label { display: none; }
-    .btn-logout { padding: 5px 10px; font-size: 0.76rem; }
+    
+    
+    
+    
+    
   }
 
 
@@ -183,12 +165,62 @@
     body { padding-bottom: 64px; }
   }
 
+
+  /* ── HEADER ── */
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    height: 56px;
+    padding: 0 20px;
+    display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 20;
+    flex-shrink: 0;
+  }
+  .page-title {
+    width: 230px; min-width: 230px; max-width: 230px;
+    font-size: 1.05rem; font-weight: 700; color: var(--text);
+    white-space: nowrap; overflow: hidden; flex-shrink: 0;
+  }
+  .page-title span { color: var(--accent); }
+  .top-nav { display: flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
+  .top-nav a {
+    color: var(--muted); text-decoration: none; font-size: 0.82rem;
+    padding: 5px 10px; border-radius: 8px; background: var(--card2);
+    white-space: nowrap; line-height: 1; transition: color .15s, background .15s;
+  }
+  .top-nav a:hover { color: var(--text); background: #2d3f55; }
+  .top-nav a#adminNavLink { display: none; color: #F59E0B; }
+  .header-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  .header-controls select, .header-controls button {
+    background: var(--card2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 5px 10px;
+    font-size: 0.82rem; cursor: pointer; height: 32px;
+  }
+  .header-controls button:hover { background: var(--accent); border-color: var(--accent); }
+  .btn-logout {
+    background: rgba(239,68,68,.15); color: #FCA5A5;
+    border: 1px solid rgba(239,68,68,.3); border-radius: 8px;
+    padding: 5px 12px; font-size: 0.82rem; cursor: pointer;
+    height: 32px; white-space: nowrap;
+  }
+  .btn-logout:hover { background: #EF4444; color: white; }
+  .user-label { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+  @media (max-width: 768px) {
+    header { height: 48px; padding: 0 12px; gap: 8px; }
+    .page-title { width: auto; min-width: 0; max-width: 160px; font-size: 0.9rem; }
+    .top-nav { display: none !important; }
+    .user-label { display: none; }
+    .header-controls select { display: none; }
+    .header-controls button { padding: 4px 8px; font-size: 0.78rem; }
+    .btn-logout { padding: 4px 8px; font-size: 0.78rem; }
+  }
+
 </style>
 </head>
 <body>
 <header>
   <div class="page-title">💶 Busta <span>Paga</span></div>
-          <nav class="top-nav">
+  <nav class="top-nav">
     <a href="/">📅 Calendario</a>
     <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
@@ -196,14 +228,14 @@
     <a href="/impostazioni.html">⚙️ Impostazioni</a>
     <a href="/admin.html" id="adminNavLink">🔧 Admin</a>
   </nav>
-  <div class="nav-controls">
+  <div class="header-controls">
     <button onclick="changeNav(-1)">◀</button>
     <select id="selMese"></select>
     <select id="selAnno"></select>
     <button onclick="changeNav(1)">▶</button>
+    <span class="user-label"></span>
+    <button class="btn-logout" onclick="logout()">Esci</button>
   </div>
-  <button onclick="logout()" style="background:rgba(239,68,68,.15);color:#FCA5A5;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:6px 14px;font-size:0.85rem;cursor:pointer;">Esci</button>
-  <span class="user-label" style="font-size:0.85rem;color:var(--muted)"></span>
 </header>
 
 <div class="container" id="container">
@@ -220,7 +252,16 @@ function initSelectors() {
   const sa = document.getElementById('selAnno');
   MESI.forEach((m,i) => { const o=document.createElement('option'); o.value=i+1; o.textContent=m; if(i+1===mese) o.selected=true; sm.appendChild(o); });
   for (let y=2024; y<=2030; y++) { const o=document.createElement('option'); o.value=y; o.textContent=y; if(y===anno) o.selected=true; sa.appendChild(o); }
-  sm.onchange = () => { mese=parseInt(sm.value); load(); };
+  sm.onchange = () => { mese=parseInt(sm.value);     if (me.is_admin) {
+      const lnk = document.getElementById('adminNavLink');
+      if (lnk) { lnk.style.setProperty('display', 'inline-block', 'important'); }
+      const mbl = document.getElementById('adminMobileBtn');
+      if (mbl) { mbl.style.setProperty('display', 'flex', 'important'); }
+      localStorage.setItem('is_admin', 'true');
+    } else {
+      localStorage.removeItem('is_admin');
+    }
+    load(); };
   sa.onchange = () => { anno=parseInt(sa.value); load(); };
 }
 
@@ -381,14 +422,12 @@ window.fetch = function(url, opts={}) {
     const me = await fetch('/api/auth/me').then(r => r.json());
     if (!me || !me.id) { logout(); return; }
     document.querySelectorAll('.user-label').forEach(el => el.textContent = '👤 ' + (me.nome || me.username || ''));
-    if (me.is_admin) {
+        if (me.is_admin) {
       const lnk = document.getElementById('adminNavLink');
-      if (lnk) lnk.style.display = '';
+      if (lnk) { lnk.style.setProperty('display', 'inline-block', 'important'); }
       const mbl = document.getElementById('adminMobileBtn');
-      if (mbl) mbl.style.display = 'flex';
+      if (mbl) { mbl.style.setProperty('display', 'flex', 'important'); }
       localStorage.setItem('is_admin', 'true');
-    } else {
-      localStorage.removeItem('is_admin');
     }
     load();
   } catch(e) { console.error('Auth error:', e); logout(); }
