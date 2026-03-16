@@ -389,6 +389,21 @@ def delete_user(user_id: int, admin=Depends(require_admin)):
     conn.commit(); conn.close()
     return {"ok": True}
 
+class ResetPasswordInput(BaseModel):
+    nuova_password: str
+
+@app.post("/api/admin/utenti/{user_id}/reset-password")
+def reset_password(user_id: int, payload: ResetPasswordInput, admin=Depends(require_admin)):
+    if len(payload.nuova_password) < 6:
+        raise HTTPException(400, "Password troppo corta (min 6 caratteri)")
+    conn = get_db()
+    user = fetchone(conn, "SELECT username FROM utenti WHERE id=?", (user_id,))
+    if not user: raise HTTPException(404, "Utente non trovato")
+    ex(conn, "UPDATE utenti SET password_hash=? WHERE id=?",
+       (hash_password(payload.nuova_password), user_id))
+    conn.commit(); conn.close()
+    return {"ok": True}
+
 # ─── Admin: tabelle turni ─────────────────────────────────────────────────────
 @app.get("/api/admin/tabelle")
 def get_tabelle(user=Depends(get_current_user)):
