@@ -9,16 +9,16 @@
   * { box-sizing:border-box; margin:0; padding:0; }
   body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; }
 
-  header { background:var(--card); border-bottom:1px solid var(--border); padding:16px 24px; display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-  header h1 { font-size:1.2rem; font-weight:700; }
-  header h1 span { color:var(--accent); }
+  
+  
+  
   nav { display:flex; gap:4px; }
   nav a { color:var(--muted); text-decoration:none; font-size:0.9rem; padding:6px 14px; border-radius:8px; background:var(--card2); }
   nav a:hover { color:var(--text); }
-  .header-right { display:flex; align-items:center; gap:10px; margin-left:auto; }
-  .user-label { font-size:0.85rem; color:var(--muted); }
-  .btn-logout { background:rgba(239,68,68,.15); color:#FCA5A5; border:1px solid rgba(239,68,68,.3); border-radius:8px; padding:6px 14px; font-size:0.85rem; cursor:pointer; }
-  .btn-logout:hover { background:#EF4444; color:white; }
+  
+  
+  
+  
 
   .nav-controls { display:flex; align-items:center; gap:8px; }
   .nav-controls select, .nav-controls button { background:var(--card2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:6px 14px; font-size:0.9rem; cursor:pointer; }
@@ -93,14 +93,14 @@
 
   @media (max-width: 768px) {
     
-    header { padding: 10px 14px; gap: 8px; flex-wrap: wrap; }
-    header h1 { font-size: 1rem; }
-    .header-right { gap: 6px; }
-    .user-label { display: none; }
-    .btn-logout { padding: 5px 10px; font-size: 0.78rem; }
+    
+    
+    
+    
+    
     .nav-controls select, .nav-controls button { padding: 5px 10px; font-size: 0.8rem; }
     .container { padding: 8px; overflow-x: hidden; }
-    body { padding-bottom: 70px; }
+    
 
     /* Riepilogo tabella mobile */
     .riepilogo-table { font-size: 0.65rem; }
@@ -125,42 +125,98 @@
   
   
 
-  /* ── BOTTOM NAV ── */
+  
+  
+  
+  
+  
+  
+  @media (max-width: 768px) {
+    
+  }
+  
+  
+  
+  
+  @media (max-width:768px) {  }
+
+  /* ── HEADER FISSO ── */
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex; align-items: center; gap: 16px;
+    position: sticky; top: 0; z-index: 10;
+  }
+  /* Titolo in contenitore a larghezza fissa: nessuno spostamento al cambio pagina */
+  .page-title {
+    min-width: 220px;
+    font-size: 1.15rem; font-weight: 700; color: var(--text);
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .page-title span { color: var(--accent); }
+  .top-nav { display:flex; gap:4px; flex-wrap:nowrap; }
+  .top-nav a {
+    color:var(--muted); text-decoration:none; font-size:0.82rem;
+    padding:6px 11px; border-radius:8px; background:var(--card2);
+    white-space:nowrap; transition: color .15s, background .15s;
+  }
+  .top-nav a:hover { color:var(--text); background:#2d3f55; }
+  #adminNavLink { display:none; color:#F59E0B !important; }
+  .header-right { display:flex; align-items:center; gap:8px; margin-left:auto; }
+  .user-label { font-size:0.82rem; color:var(--muted); }
+  .btn-logout {
+    background:rgba(239,68,68,.15); color:#FCA5A5;
+    border:1px solid rgba(239,68,68,.3); border-radius:8px;
+    padding:6px 12px; font-size:0.82rem; cursor:pointer;
+  }
+  .btn-logout:hover { background:#EF4444; color:white; }
+  @media (max-width: 768px) {
+    header { padding: 10px 12px; gap: 8px; position: sticky; top: 0; z-index: 10; }
+    .page-title { min-width: 0; font-size: 0.95rem; }
+    .top-nav { display: none !important; }
+    .user-label { display: none; }
+    .btn-logout { padding: 5px 10px; font-size: 0.76rem; }
+  }
+
+
+  /* ── BOTTOM NAV MOBILE ── */
   .bottom-nav {
     display: none;
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     background: var(--card); border-top: 1px solid var(--border);
-    padding: 8px 0 env(safe-area-inset-bottom, 8px);
+    padding: 6px 0 env(safe-area-inset-bottom, 6px);
   }
-  .bottom-nav-inner { display: flex; justify-content: space-around; align-items: stretch; }
+  .bottom-nav-inner {
+    display: flex; justify-content: space-around; align-items: stretch;
+  }
   .bottom-nav a {
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    color: var(--muted); text-decoration: none; font-size: 0.62rem;
-    font-weight: 600; padding: 4px 8px; border-radius: 8px; flex: 1; text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    color: var(--muted); text-decoration: none; font-size: 0.6rem;
+    font-weight: 600; padding: 4px 6px; border-radius: 6px; flex: 1;
+    text-align: center; min-width: 0;
   }
   .bottom-nav a.active { color: var(--accent); }
-  .bottom-nav a span.icon { font-size: 1.25rem; line-height: 1; }
+  .bottom-nav a span.icon { font-size: 1.2rem; line-height: 1; }
+  #adminMobileBtn { display: none; color: #F59E0B !important; }
   @media (max-width: 768px) {
-    .bottom-nav { display: block !important; }
+    .bottom-nav { display: block; }
+    body { padding-bottom: 64px; }
   }
-  .top-nav { display:flex; gap:4px; flex-wrap:wrap; }
-  .top-nav a { color:var(--muted); text-decoration:none; font-size:0.88rem; padding:6px 12px; border-radius:8px; background:var(--card2); white-space:nowrap; }
-  .top-nav a:hover { color:var(--text); background:#2d3f55; }
-  #adminNavLink { display:none; }
-  @media (max-width:768px) { .top-nav { display:none !important; } }
+
 </style>
 </head>
 <body>
 
 <header>
-  <h1>📊 Riepilogo <span>Annuale</span></h1>
-        <nav class="top-nav">
+  <div class="page-title">📊 Riepilogo <span>Annuale</span></div>
+          <nav class="top-nav">
     <a href="/">📅 Calendario</a>
     <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
     <a href="/tabella.html">📋 Tabella Turni</a>
     <a href="/impostazioni.html">⚙️ Impostazioni</a>
-    <a href="/admin.html" id="adminNavLink" style="display:none;color:#F59E0B">🔧 Admin</a>
+    <a href="/admin.html" id="adminNavLink">🔧 Admin</a>
   </nav>
   <div class="header-right">
     <div class="nav-controls">
@@ -421,8 +477,6 @@ window.fetch = function(url, opts={}) {
   });
 };
 
-
-
 (async function() {
   if (!getToken()) { window.location.href='/login.html'; return; }
   try {
@@ -444,6 +498,7 @@ window.fetch = function(url, opts={}) {
 })();
 </script>
 
-<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"  class="active"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/tabella.html"><span class="icon">📋</span><span>Tabella</span></a><a href="/impostazioni.html"><span class="icon">⚙️</span><span>Impost.</span></a><a href="/admin.html" id="adminMobileBtn" style="display:none;color:#F59E0B"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
+
+<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"  class="active"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/tabella.html"><span class="icon">📋</span><span>Tabella</span></a><a href="/impostazioni.html"><span class="icon">⚙️</span><span>Impost.</span></a><a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
 </body>
 </html>
