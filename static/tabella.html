@@ -472,6 +472,12 @@ async function applica() {
     renderSelector();
   } catch(e) { console.error('Auth error:', e); logout(); }
 })();
+
+// ── KEEP-ALIVE: pinga il server ogni 5 minuti per non farlo addormentare ──
+setInterval(async () => {
+  try { await fetch('/api/config'); } catch(e) {}
+}, 5 * 60 * 1000);
+
 </script>
 
 <nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/tabella.html"  class="active"><span class="icon">📋</span><span>Tabella</span></a><a href="/impostazioni.html"><span class="icon">⚙️</span><span>Impost.</span></a><a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a></div></nav>

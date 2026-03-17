@@ -525,6 +525,12 @@ window.fetch = function(url, opts={}) {
     load();
   } catch(e) { console.error('Auth error:', e); logout(); }
 })();
+
+// ── KEEP-ALIVE: pinga il server ogni 5 minuti per non farlo addormentare ──
+setInterval(async () => {
+  try { await fetch('/api/config'); } catch(e) {}
+}, 5 * 60 * 1000);
+
 </script>
 
 
