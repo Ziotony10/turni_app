@@ -45,7 +45,7 @@
   .month-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
 
   /* ── MAIN LAYOUT ── */
-  .main {
+  .main, #mainContent {
     display: flex; flex-direction: row; gap: 0;
     flex: 1;
     overflow: hidden;
@@ -373,6 +373,11 @@
     white-space: nowrap; line-height: 1; transition: color .15s, background .15s;
   }
   .top-nav a:hover { color: var(--text); background: #2d3f55; }
+  .top-nav a.nav-active {
+    color: var(--text); background: #2d3f55;
+    cursor: default; opacity: 0.85;
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
   .top-nav a#adminNavLink { display: none; color: #F59E0B; }
   .header-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
   .header-controls select, .header-controls button {
@@ -399,26 +404,136 @@
     .btn-logout { padding: 4px 8px; font-size: 0.78rem; }
   }
 
+
+  /* ── USER DROPDOWN ── */
+  .user-menu { position:relative; }
+  .user-btn {
+    display:flex; align-items:center; gap:6px;
+    background:var(--card2); border:1px solid var(--border);
+    color:var(--text); border-radius:8px; padding:5px 10px;
+    font-size:0.82rem; cursor:pointer; height:32px;
+    transition:background .15s;
+  }
+  .user-btn:hover { background:#2d3f55; }
+  .user-btn .avatar {
+    width:20px; height:20px; border-radius:50%;
+    background:var(--accent); color:white;
+    font-size:0.65rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .user-dropdown {
+    display:none; position:absolute; right:0; top:calc(100% + 6px);
+    background:var(--card); border:1px solid var(--border);
+    border-radius:10px; min-width:200px; z-index:200;
+    box-shadow:0 8px 24px rgba(0,0,0,.4); overflow:hidden;
+  }
+  .user-dropdown.open { display:block; }
+  .ud-header {
+    padding:12px 14px; background:var(--card2);
+    border-bottom:1px solid var(--border);
+    font-size:0.78rem; color:var(--muted);
+  }
+  .ud-header strong { display:block; color:var(--text); font-size:0.9rem; margin-bottom:2px; }
+  .ud-item {
+    display:flex; align-items:center; gap:8px;
+    padding:10px 14px; font-size:0.85rem; cursor:pointer;
+    color:var(--text); transition:background .1s;
+  }
+  .ud-item:hover { background:var(--card2); }
+  .ud-item.danger { color:#FCA5A5; }
+  .ud-item.danger:hover { background:rgba(239,68,68,.1); }
+  .ud-sep { height:1px; background:var(--border); margin:2px 0; }
+
+  /* ── MODAL ACCOUNT ── */
+  .acc-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.6); z-index:300;
+    align-items:center; justify-content:center;
+  }
+  .acc-overlay.open { display:flex; }
+  .acc-modal {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:14px; padding:28px; width:400px; max-width:95vw;
+  }
+  .acc-modal h2 { font-size:1rem; font-weight:700; margin-bottom:20px; }
+  .acc-field { margin-bottom:14px; }
+  .acc-field label {
+    display:block; font-size:0.75rem; color:var(--muted);
+    font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;
+  }
+  .acc-field input {
+    width:100%; background:var(--card2); border:1px solid var(--border);
+    color:var(--text); border-radius:8px; padding:10px 12px;
+    font-size:0.9rem; outline:none; transition:border-color .15s;
+  }
+  .acc-field input:focus { border-color:var(--accent); box-shadow:0 0 0 2px rgba(59,130,246,.15); }
+  .acc-msg { font-size:0.82rem; margin:10px 0; min-height:18px; }
+  .acc-actions { display:flex; gap:10px; margin-top:20px; }
+  .acc-btn {
+    flex:1; padding:10px; border-radius:8px; border:none;
+    font-size:0.9rem; font-weight:600; cursor:pointer;
+  }
+  .acc-btn-primary { background:var(--accent); color:white; }
+  .acc-btn-primary:hover { background:#2563EB; }
+  .acc-btn-cancel { background:var(--card2); color:var(--muted); border:1px solid var(--border); }
+
 </style>
 </head>
 <body>
 
 <header>
   <div class="page-title">🗓 Gestione <span>Turni</span></div>
-  <nav class="top-nav">
-    <a href="/">📅 Calendario</a>
+        <nav class="top-nav">
+    <a href="#" onclick="return false;" class="nav-active">📅 Calendario</a>
     <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
-    <a href="/tabella.html">📋 Tabella Turni</a>
-    <a href="/impostazioni.html">⚙️ Impostazioni</a>
     <a href="/admin.html" id="adminNavLink">🔧 Admin</a>
   </nav>
   <div class="header-controls">
     <button onclick="changeAnno(-1)">◀</button>
     <select id="selAnno" onchange="loadAll()"></select>
     <button onclick="changeAnno(1)">▶</button>
-    <span class="user-label"></span>
-    <button class="btn-logout" onclick="logout()">Esci</button>
+        <div class="user-menu">
+      <button class="user-btn" onclick="toggleUserMenu(event)" id="userBtn">
+        <div class="avatar" id="userAvatar">?</div>
+        <span id="userNameLabel">—</span>
+        <span style="font-size:0.65rem;color:var(--muted)">▼</span>
+      </button>
+      <div class="user-dropdown" id="userDropdown">
+        <div class="ud-header">
+          <strong id="udName">—</strong>
+          <span id="udUsername"></span>
+        </div>
+        <div class="ud-item" onclick="window.location.href='/impostazioni.html'">👤 Impostazioni account</div>
+        <div class="ud-sep"></div>
+        <div class="ud-item danger" onclick="logout()">↩ Esci</div>
+      </div>
+    </div>
+
+    <!-- Modal account / cambio password -->
+    <div class="acc-overlay" id="accOverlay" onclick="if(event.target===this)closeAccModal()">
+      <div class="acc-modal">
+        <h2>🔑 Impostazioni account</h2>
+        <div class="acc-field">
+          <label>Password attuale</label>
+          <input type="password" id="accPwdOld" placeholder="••••••••">
+        </div>
+        <div class="acc-field">
+          <label>Nuova password</label>
+          <input type="password" id="accPwdNew" placeholder="min 6 caratteri">
+        </div>
+        <div class="acc-field">
+          <label>Conferma nuova password</label>
+          <input type="password" id="accPwdConfirm" placeholder="ripeti la nuova password">
+        </div>
+        <div class="acc-msg" id="accMsg"></div>
+        <div class="acc-actions">
+          <button class="acc-btn acc-btn-cancel" onclick="closeAccModal()">Annulla</button>
+          <button class="acc-btn acc-btn-primary" onclick="doChangePwd()">Salva password</button>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -429,9 +544,86 @@
     onmouseover="this.style.opacity='1';this.style.color='#FCA5A5';this.style.background='rgba(239,68,68,.15)';this.style.borderColor='rgba(239,68,68,.4)'"
     onmouseout="this.style.opacity='0.3';this.style.color='var(--muted)';this.style.background='';this.style.borderColor='transparent'"
     title="Cancella tutti i turni del mese">🗑 Cancella mese</div>
+  <div class="month-tab" id="importaBtn"
+    onclick="toggleImportaDrawer()"
+    style="opacity:0.5;color:var(--muted)"
+    onmouseover="this.style.opacity='1';this.style.color='#93C5FD';this.style.background='rgba(59,130,246,.12)';this.style.borderColor='rgba(59,130,246,.3)'"
+    onmouseout="if(!drawerOpen){this.style.opacity='0.5';this.style.color='var(--muted)';this.style.background='';this.style.borderColor='transparent'}"
+    title="Importa tabella turni">📋 Importa tabella</div>
 </div>
 
-<div class="main">
+<!-- PANNELLO IMPORTA TABELLA (full-page, nasconde calendario) -->
+<div id="importaDrawer" style="display:none;flex:1;flex-direction:column;overflow-y:auto;background:var(--bg);">
+  <div style="max-width:860px;width:100%;margin:0 auto;padding:36px 28px;">
+
+    <!-- Intestazione -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px;gap:16px">
+      <div>
+        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:8px">📋 Importa tabella turni</h2>
+        <p style="font-size:0.88rem;color:var(--muted);line-height:1.5">Seleziona la tabella, imposta il periodo e la settimana di partenza.<br>Il sistema compilerà automaticamente i tuoi turni nel calendario.</p>
+      </div>
+      <button onclick="toggleImportaDrawer()"
+        style="flex-shrink:0;background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 16px;cursor:pointer;font-size:0.85rem;transition:all .15s;white-space:nowrap"
+        onmouseover="this.style.background='#2d3f55';this.style.color='var(--text)'"
+        onmouseout="this.style.background='var(--card2)';this.style.color='var(--muted)'">← Torna al calendario</button>
+    </div>
+
+    <!-- Filtro tipo -->
+    <div style="margin-bottom:24px">
+      <div style="font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Tipo tabella</div>
+      <div style="display:flex;gap:8px" id="drawerTipoTabs">
+        <div class="month-tab active" onclick="drawerFilterTipo('tutti',this)" style="padding:6px 14px;font-size:0.82rem">Tutte</div>
+        <div class="month-tab" onclick="drawerFilterTipo('telefonisti',this)" style="padding:6px 14px;font-size:0.82rem">📞 Telefonisti</div>
+        <div class="month-tab" onclick="drawerFilterTipo('capisala',this)" style="padding:6px 14px;font-size:0.82rem">👔 Capisala</div>
+      </div>
+    </div>
+
+    <!-- Campi -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px">
+      <div>
+        <label style="display:block;font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Tabella</label>
+        <select id="drawerTabella" onchange="drawerOnTabChange()" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:0.88rem;outline:none">
+          <option value="">— Scegli tabella —</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Settimana di inizio</label>
+        <select id="drawerSettimana" onchange="drawerUpdatePreview()" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:0.88rem;outline:none">
+          <option value="1">Settimana 1</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Giorno di inizio</label>
+        <input type="date" id="drawerDataInizio" onchange="drawerOnDataChange()" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:0.88rem;outline:none">
+        <div id="drawerGiornoLabel" style="font-size:0.75rem;color:var(--accent);margin-top:6px;min-height:18px"></div>
+      </div>
+      <div>
+        <label style="display:block;font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Giorno di fine</label>
+        <input type="date" id="drawerDataFine" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:0.88rem;outline:none">
+      </div>
+    </div>
+
+    <!-- Anteprima -->
+    <div id="drawerPreview" style="display:none;margin-bottom:28px">
+      <div style="font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">📅 Anteprima — prime 3 settimane</div>
+      <div id="drawerPreviewContent"></div>
+    </div>
+
+    <!-- Bottone applica -->
+    <div style="display:flex;align-items:center;gap:14px">
+      <button onclick="drawerApplica()" id="drawerBtn"
+        style="background:var(--accent);color:white;border:none;border-radius:10px;padding:13px 36px;font-size:1rem;font-weight:700;cursor:pointer;transition:background .15s"
+        onmouseover="this.style.background='#2563EB'"
+        onmouseout="this.style.background='var(--accent)'">
+        ✅ Applica al calendario
+      </button>
+      <div id="drawerResult" style="font-size:0.88rem;display:none"></div>
+    </div>
+
+  </div>
+</div>
+
+<div id="mainContent" class="main">
   <div class="cal-wrap">
     <div id="calBody" class="loading">Caricamento…</div>
   </div>
@@ -570,11 +762,18 @@ async function loadAll() {
 function buildMonthTabs() {
   const c = document.getElementById('monthTabs');
   const cancellaBtn = document.getElementById('cancellaBtn');
+  const importaBtn  = document.getElementById('importaBtn');
   MESI_IT.forEach((m, i) => {
     const d = document.createElement('div');
     d.className = 'month-tab' + (i+1 === mese ? ' active' : '');
     d.textContent = m;
-    d.onclick = () => { mese = i+1; document.querySelectorAll('.month-tab:not(#cancellaBtn)').forEach((t,j)=>t.classList.toggle('active',j===i)); loadMese(); loadRiepilogo(); };
+    d.onclick = () => {
+      mese = i+1;
+      document.querySelectorAll('.month-tab:not(#cancellaBtn):not(#importaBtn)').forEach((t,j)=>t.classList.toggle('active',j===i));
+      // Se il drawer è aperto, chiudilo e torna al calendario
+      if (drawerOpen) toggleImportaDrawer();
+      loadMese(); loadRiepilogo();
+    };
     c.insertBefore(d, cancellaBtn);
   });
 }
@@ -1083,7 +1282,51 @@ async function cancellaMese() {
   loadRiepilogo();
 }
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeAccModal(); } });
+
+// ── USER MENU ─────────────────────────────────────────────────────────────
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  document.getElementById('userDropdown').classList.toggle('open');
+}
+document.addEventListener('click', () => {
+  document.getElementById('userDropdown')?.classList.remove('open');
+});
+
+// ── ACCOUNT MODAL (cambio password) ───────────────────────────────────────
+function openAccModal() {
+  document.getElementById('userDropdown')?.classList.remove('open');
+  document.getElementById('accOverlay').classList.add('open');
+  document.getElementById('accPwdOld').value = '';
+  document.getElementById('accPwdNew').value = '';
+  document.getElementById('accPwdConfirm').value = '';
+  document.getElementById('accMsg').textContent = '';
+  document.getElementById('accMsg').style.color = '';
+  setTimeout(() => document.getElementById('accPwdOld').focus(), 100);
+}
+function closeAccModal() {
+  document.getElementById('accOverlay').classList.remove('open');
+}
+async function doChangePwd() {
+  const old = document.getElementById('accPwdOld').value;
+  const nw  = document.getElementById('accPwdNew').value;
+  const cnf = document.getElementById('accPwdConfirm').value;
+  const msg = document.getElementById('accMsg');
+  msg.textContent = '';
+  if (!old || !nw || !cnf) { msg.textContent = '⚠️ Compila tutti i campi'; msg.style.color='#F59E0B'; return; }
+  if (nw.length < 6)       { msg.textContent = '⚠️ Minimo 6 caratteri'; msg.style.color='#F59E0B'; return; }
+  if (nw !== cnf)          { msg.textContent = '⚠️ Le password non coincidono'; msg.style.color='#EF4444'; return; }
+  const res = await fetch('/api/auth/change-password', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ password_attuale: old, nuova_password: nw })
+  }).then(r=>r.json()).catch(()=>({ok:false}));
+  if (res.ok) {
+    msg.textContent = '✅ Password cambiata con successo!'; msg.style.color='#34D399';
+    setTimeout(closeAccModal, 1500);
+  } else {
+    msg.textContent = '❌ ' + (res.detail || 'Password attuale non corretta'); msg.style.color='#EF4444';
+  }
+}
 </script>
 <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
 // ── AUTH ─────────────────────────────────────────────────────────────────────
@@ -1113,15 +1356,16 @@ window.fetch = function(url, opts={}) {
   try {
     const me = await fetch('/api/auth/me').then(r => r.json());
     if (!me || !me.id) { logout(); return; }
-    document.querySelectorAll('.user-label').forEach(el => el.textContent = '👤 ' + (me.nome || me.username || ''));
-        if (me.is_admin) {
-      const lnk = document.getElementById('adminNavLink');
-      if (lnk) { lnk.style.setProperty('display', 'inline-block', 'important'); }
-      const mbl = document.getElementById('adminMobileBtn');
-      if (mbl) { mbl.style.setProperty('display', 'flex', 'important'); }
-      localStorage.setItem('is_admin', 'true');
-    }
-        if (me.is_admin) {
+    // user label handled by menu
+    
+    // Aggiorna user menu
+    const nome = me.nome || me.username || '';
+    const initiali = nome.split(' ').map(p=>p[0]||'').join('').slice(0,2).toUpperCase();
+    const el = document.getElementById('userNameLabel'); if(el) el.textContent = nome.split(' ')[0];
+    const av = document.getElementById('userAvatar'); if(av) av.textContent = initiali || '?';
+    const ud = document.getElementById('udName'); if(ud) ud.textContent = nome;
+    const uu = document.getElementById('udUsername'); if(uu) uu.textContent = me.username;
+    if (me.is_admin) {
       const lnk = document.getElementById('adminNavLink');
       if (lnk) { lnk.style.setProperty('display', 'inline-block', 'important'); }
       const mbl = document.getElementById('adminMobileBtn');
@@ -1134,6 +1378,175 @@ window.fetch = function(url, opts={}) {
   } catch(e) { console.error('Auth error:', e); logout(); }
 })();
 
+// ── DRAWER IMPORTA TABELLA ──────────────────────────────────────────────
+let drawerOpen = false;
+let drawerTabelle = [];
+let drawerTipoFiltro = 'tutti';
+const GIORNI_NOMI_D = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+const TURNO_COLORS_D = {M:'#1E40AF',M1:'#1D4ED8',M2:'#2563EB',M3:'#3B82F6',P:'#B45309',N:'#4338CA',RC:'#065F46',R:'#991B1B',ROT:'#374151',RF:'#374151',MAL:'#F97316',F:'#0F766E','F-P':'#166534','F-N':'#1E3A5F'};
+
+function dowFromDateD(s) { return (new Date(s+'T12:00:00').getDay()+6)%7; }
+
+async function toggleImportaDrawer() {
+  const drawer = document.getElementById('importaDrawer');
+  const main   = document.getElementById('mainContent');
+  const btn    = document.getElementById('importaBtn');
+  drawerOpen = !drawerOpen;
+
+  if (drawerOpen) {
+    main.style.display   = 'none';
+    drawer.style.display = 'flex';
+    btn.style.opacity='1'; btn.style.color='#93C5FD';
+    btn.style.background='rgba(59,130,246,.2)'; btn.style.borderColor='rgba(59,130,246,.4)';
+    if (drawerTabelle.length === 0) {
+      drawerTabelle = await fetch('/api/admin/tabelle').then(r=>r.json()).catch(()=>[]);
+      drawerRenderSelector();
+    }
+    const oggi = new Date().toISOString().slice(0,10);
+    const fineAnno = new Date().getFullYear() + '-12-31';
+    document.getElementById('drawerDataInizio').value = oggi;
+    document.getElementById('drawerDataFine').value = fineAnno;
+    drawerOnDataChange();
+  } else {
+    main.style.display   = 'flex';
+    drawer.style.display = 'none';
+    btn.style.opacity='0.5'; btn.style.color='var(--muted)';
+    btn.style.background=''; btn.style.borderColor='transparent';
+  }
+}
+
+function drawerFilterTipo(tipo, el) {
+  drawerTipoFiltro = tipo;
+  document.querySelectorAll('#drawerTipoTabs .month-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  drawerRenderSelector();
+}
+
+function drawerRenderSelector() {
+  const sel = document.getElementById('drawerTabella');
+  const filtered = drawerTipoFiltro==='tutti' ? drawerTabelle : drawerTabelle.filter(t=>t.tipo===drawerTipoFiltro);
+  sel.innerHTML = '<option value="">— Scegli —</option>' +
+    filtered.map(t=>`<option value="${t.id}">${t.tipo==='telefonisti'?'📞':'👔'} ${t.nome}</option>`).join('');
+  document.getElementById('drawerPreview').style.display = 'none';
+}
+
+function drawerOnDataChange() {
+  const d = document.getElementById('drawerDataInizio').value;
+  if (!d) return;
+  const dow = dowFromDateD(d);
+  document.getElementById('drawerGiornoLabel').textContent = `📅 ${GIORNI_NOMI_D[dow]}`;
+  drawerUpdatePreview();
+}
+
+async function drawerOnTabChange() {
+  const id = document.getElementById('drawerTabella').value;
+  if (!id) return;
+  const tab = await fetch(`/api/admin/tabelle/${id}`).then(r=>r.json()).catch(()=>null);
+  if (!tab) return;
+  const sel = document.getElementById('drawerSettimana');
+  sel.innerHTML = Array.from({length:tab.num_settimane},(_,i)=>`<option value="${i+1}">Settimana ${i+1}</option>`).join('');
+  drawerUpdatePreview();
+}
+
+async function drawerUpdatePreview() {
+  const id = document.getElementById('drawerTabella').value;
+  const dataInizio = document.getElementById('drawerDataInizio').value;
+  if (!id || !dataInizio) return;
+
+  const tab = await fetch(`/api/admin/tabelle/${id}`).then(r=>r.json()).catch(()=>null);
+  if (!tab) return;
+
+  const settimane = tab.turni_json || tab.turni || [];
+  const numSett = settimane.length;
+  if (!numSett) return;
+
+  const settInizio   = parseInt(document.getElementById('drawerSettimana').value) - 1;
+  const giornoInizio = dowFromDateD(dataInizio); // 0=lun
+  const totPos       = numSett * 7;
+
+  // Posizione nella tabella del primo giorno selezionato
+  let pos = (settInizio * 7 + giornoInizio) % totPos;
+
+  // Per l'anteprima: risaliamo all'inizio della settimana (lunedì precedente)
+  // in modo da mostrare sempre 3 righe lun-dom
+  const dataLun = new Date(dataInizio + 'T12:00:00');
+  dataLun.setDate(dataLun.getDate() - giornoInizio); // torno al lunedì
+  const posLun = (pos - giornoInizio + totPos) % totPos; // posizione del lunedì in tabella
+
+  const GIORNI_SHORT = ['L','M','M','G','V','S','D'];
+  let html = '';
+
+  for (let riga = 0; riga < 3; riga++) {
+    // Date della riga corrente
+    const dataRigaStart = new Date(dataLun);
+    dataRigaStart.setDate(dataRigaStart.getDate() + riga * 7);
+    const dataRigaEnd = new Date(dataRigaStart);
+    dataRigaEnd.setDate(dataRigaEnd.getDate() + 6);
+
+    html += `<div style="margin-bottom:8px">
+      <div style="font-size:0.7rem;color:var(--muted);margin-bottom:4px">
+        ${dataRigaStart.toISOString().slice(0,10)} → ${dataRigaEnd.toISOString().slice(0,10)}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px">`;
+
+    for (let g = 0; g < 7; g++) {
+      const absGiorno = riga * 7 + g; // giorno assoluto dalla prima riga
+      const isBeforeStart = riga === 0 && g < giornoInizio;
+
+      if (isBeforeStart) {
+        // Giorno oscurato (prima della data di inizio)
+        html += `<div style="border-radius:6px;padding:5px 2px;text-align:center;background:var(--bg);opacity:0.25;border:1px solid var(--border)">
+          <div style="font-size:0.6rem;color:var(--muted);font-weight:700">${GIORNI_SHORT[g]}</div>
+          <div style="font-size:0.68rem;color:var(--border)">—</div>
+        </div>`;
+      } else {
+        const p = (posLun + absGiorno) % totPos;
+        const s = Math.floor(p / 7) % numSett;
+        const gi = p % 7;
+        const turno = ((settimane[s] || [])[gi] || '').trim().split(' ')[0] || '';
+        const color = TURNO_COLORS_D[turno] || 'var(--card2)';
+        html += `<div style="border-radius:6px;padding:5px 2px;text-align:center;background:${color}">
+          <div style="font-size:0.6rem;color:rgba(255,255,255,0.6);font-weight:700">${GIORNI_SHORT[g]}</div>
+          <div style="font-size:0.72rem;color:white;font-weight:800">${turno || '·'}</div>
+        </div>`;
+      }
+    }
+    html += '</div></div>';
+  }
+
+  document.getElementById('drawerPreviewContent').innerHTML = html;
+  document.getElementById('drawerPreview').style.display = 'block';
+}
+
+async function drawerApplica() {
+  const id = parseInt(document.getElementById('drawerTabella').value);
+  const dataInizio = document.getElementById('drawerDataInizio').value;
+  const dataFine   = document.getElementById('drawerDataFine').value;
+  const settimanaInizio = parseInt(document.getElementById('drawerSettimana').value);
+  if (!id)        { alert('Seleziona una tabella'); return; }
+  if (!dataInizio){ alert('Seleziona data di inizio'); return; }
+  if (!dataFine)  { alert('Seleziona data di fine'); return; }
+  if (!confirm(`Applicare dal ${dataInizio} al ${dataFine}?\nI turni esistenti saranno sovrascritti.`)) return;
+  if (!confirm('Ultima conferma: sovrascrivere i turni?')) return;
+  const btn = document.getElementById('drawerBtn');
+  btn.disabled=true; btn.textContent='⏳ In corso...';
+  const giornoInizio = dowFromDateD(dataInizio);
+  const annoFine = parseInt(dataFine.slice(0,4));
+  const res = await fetch('/api/tabella/applica',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({tab_id:id, data_inizio:dataInizio, data_fine:dataFine, settimana_inizio:settimanaInizio, giorno_inizio:giornoInizio, anno_fine:annoFine})
+  }).then(r=>r.json()).catch(()=>({ok:false}));
+  btn.disabled=false; btn.textContent='✅ Applica al calendario';
+  if (res.ok) {
+    alert(`✅ Inseriti ${res.inseriti} turni nel calendario!`);
+    toggleImportaDrawer(); // chiude il pannello e torna al calendario
+    await loadMese(); loadRiepilogo();
+  } else {
+    const el = document.getElementById('drawerResult');
+    el.style.display='block'; el.style.color='#EF4444'; el.textContent='❌ Errore nell\'applicazione';
+  }
+}
+
 // ── KEEP-ALIVE: pinga il server ogni 5 minuti per non farlo addormentare ──
 setInterval(async () => {
   try { await fetch('/api/config'); } catch(e) {}
@@ -1142,6 +1555,6 @@ setInterval(async () => {
 </script>
 <!-- BOTTOM NAV MOBILE -->
 
-<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"  class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/tabella.html"><span class="icon">📋</span><span>Tabella</span></a><a href="/impostazioni.html"><span class="icon">⚙️</span><span>Impost.</span></a><a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
+<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"  class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="#" onclick="openAccModal();return false"><span class="icon">👤</span><span>Account</span></a><a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
 </body>
 </html>

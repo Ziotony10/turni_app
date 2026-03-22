@@ -106,6 +106,11 @@
     white-space: nowrap; line-height: 1; transition: color .15s, background .15s;
   }
   .top-nav a:hover { color: var(--text); background: #2d3f55; }
+  .top-nav a.nav-active {
+    color: var(--text); background: #2d3f55;
+    cursor: default; opacity: 0.85;
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
   .top-nav a#adminNavLink { display: none; color: #F59E0B; }
   .header-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
   .header-controls select, .header-controls button {
@@ -132,23 +137,133 @@
     .btn-logout { padding: 4px 8px; font-size: 0.78rem; }
   }
 
+
+  /* ── USER DROPDOWN ── */
+  .user-menu { position:relative; }
+  .user-btn {
+    display:flex; align-items:center; gap:6px;
+    background:var(--card2); border:1px solid var(--border);
+    color:var(--text); border-radius:8px; padding:5px 10px;
+    font-size:0.82rem; cursor:pointer; height:32px;
+    transition:background .15s;
+  }
+  .user-btn:hover { background:#2d3f55; }
+  .user-btn .avatar {
+    width:20px; height:20px; border-radius:50%;
+    background:var(--accent); color:white;
+    font-size:0.65rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .user-dropdown {
+    display:none; position:absolute; right:0; top:calc(100% + 6px);
+    background:var(--card); border:1px solid var(--border);
+    border-radius:10px; min-width:200px; z-index:200;
+    box-shadow:0 8px 24px rgba(0,0,0,.4); overflow:hidden;
+  }
+  .user-dropdown.open { display:block; }
+  .ud-header {
+    padding:12px 14px; background:var(--card2);
+    border-bottom:1px solid var(--border);
+    font-size:0.78rem; color:var(--muted);
+  }
+  .ud-header strong { display:block; color:var(--text); font-size:0.9rem; margin-bottom:2px; }
+  .ud-item {
+    display:flex; align-items:center; gap:8px;
+    padding:10px 14px; font-size:0.85rem; cursor:pointer;
+    color:var(--text); transition:background .1s;
+  }
+  .ud-item:hover { background:var(--card2); }
+  .ud-item.danger { color:#FCA5A5; }
+  .ud-item.danger:hover { background:rgba(239,68,68,.1); }
+  .ud-sep { height:1px; background:var(--border); margin:2px 0; }
+
+  /* ── MODAL ACCOUNT ── */
+  .acc-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.6); z-index:300;
+    align-items:center; justify-content:center;
+  }
+  .acc-overlay.open { display:flex; }
+  .acc-modal {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:14px; padding:28px; width:400px; max-width:95vw;
+  }
+  .acc-modal h2 { font-size:1rem; font-weight:700; margin-bottom:20px; }
+  .acc-field { margin-bottom:14px; }
+  .acc-field label {
+    display:block; font-size:0.75rem; color:var(--muted);
+    font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;
+  }
+  .acc-field input {
+    width:100%; background:var(--card2); border:1px solid var(--border);
+    color:var(--text); border-radius:8px; padding:10px 12px;
+    font-size:0.9rem; outline:none; transition:border-color .15s;
+  }
+  .acc-field input:focus { border-color:var(--accent); box-shadow:0 0 0 2px rgba(59,130,246,.15); }
+  .acc-msg { font-size:0.82rem; margin:10px 0; min-height:18px; }
+  .acc-actions { display:flex; gap:10px; margin-top:20px; }
+  .acc-btn {
+    flex:1; padding:10px; border-radius:8px; border:none;
+    font-size:0.9rem; font-weight:600; cursor:pointer;
+  }
+  .acc-btn-primary { background:var(--accent); color:white; }
+  .acc-btn-primary:hover { background:#2563EB; }
+  .acc-btn-cancel { background:var(--card2); color:var(--muted); border:1px solid var(--border); }
+
 </style>
 </head>
 <body>
 <header>
   <div class="page-title">🔧 <span>Admin</span></div>
-  <nav class="top-nav">
+        <nav class="top-nav">
     <a href="/">📅 Calendario</a>
     <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
-    <a href="/tabella.html">📋 Tabella Turni</a>
-    <a href="/impostazioni.html">⚙️ Impostazioni</a>
-    <a href="/admin.html" id="adminNavLink">🔧 Admin</a>
+    <a href="#" onclick="return false;" class="nav-active" id="adminNavLink">🔧 Admin</a>
   </nav>
   <div class="header-controls">
 
-    <span class="user-label"></span>
-    <button class="btn-logout" onclick="logout()">Esci</button>
+        <div class="user-menu">
+      <button class="user-btn" onclick="toggleUserMenu(event)" id="userBtn">
+        <div class="avatar" id="userAvatar">?</div>
+        <span id="userNameLabel">—</span>
+        <span style="font-size:0.65rem;color:var(--muted)">▼</span>
+      </button>
+      <div class="user-dropdown" id="userDropdown">
+        <div class="ud-header">
+          <strong id="udName">—</strong>
+          <span id="udUsername"></span>
+        </div>
+        <div class="ud-item" onclick="window.location.href='/impostazioni.html'">👤 Impostazioni account</div>
+        <div class="ud-sep"></div>
+        <div class="ud-item danger" onclick="logout()">↩ Esci</div>
+      </div>
+    </div>
+
+    <!-- Modal account / cambio password -->
+    <div class="acc-overlay" id="accOverlay" onclick="if(event.target===this)closeAccModal()">
+      <div class="acc-modal">
+        <h2>🔑 Impostazioni account</h2>
+        <div class="acc-field">
+          <label>Password attuale</label>
+          <input type="password" id="accPwdOld" placeholder="••••••••">
+        </div>
+        <div class="acc-field">
+          <label>Nuova password</label>
+          <input type="password" id="accPwdNew" placeholder="min 6 caratteri">
+        </div>
+        <div class="acc-field">
+          <label>Conferma nuova password</label>
+          <input type="password" id="accPwdConfirm" placeholder="ripeti la nuova password">
+        </div>
+        <div class="acc-msg" id="accMsg"></div>
+        <div class="acc-actions">
+          <button class="acc-btn acc-btn-cancel" onclick="closeAccModal()">Annulla</button>
+          <button class="acc-btn acc-btn-primary" onclick="doChangePwd()">Salva password</button>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -186,17 +301,16 @@ async function init() {
     document.getElementById('container').innerHTML = '<div class="alert-admin">⛔ Accesso riservato agli amministratori.</div>';
     return;
   }
-  document.querySelectorAll('.user-label').forEach(el=>el.textContent='👤 '+getNome());
-      if (me.is_admin) {
-      const lnk = document.getElementById('adminNavLink');
-      if (lnk) { lnk.style.setProperty('display', 'inline-block', 'important'); }
-      const mbl = document.getElementById('adminMobileBtn');
-      if (mbl) { mbl.style.setProperty('display', 'flex', 'important'); }
-      localStorage.setItem('is_admin', 'true');
-    } else {
-      localStorage.removeItem('is_admin');
-    }
-    await loadAll();
+  const nome = me.nome || me.username || '';
+  const initiali = nome.split(' ').map(p=>p[0]||'').join('').slice(0,2).toUpperCase();
+  const el1 = document.getElementById('userNameLabel'); if(el1) el1.textContent = nome.split(' ')[0];
+  const el2 = document.getElementById('userAvatar');    if(el2) el2.textContent = initiali || '?';
+  const el3 = document.getElementById('udName');        if(el3) el3.textContent = nome;
+  const el4 = document.getElementById('udUsername');    if(el4) el4.textContent = me.username;
+  const lnk = document.getElementById('adminNavLink');
+  if (lnk) lnk.style.setProperty('display', 'inline-block', 'important');
+  localStorage.setItem('is_admin', 'true');
+  await loadAll();
 }
 
 async function loadAll() {
@@ -480,15 +594,66 @@ async function deleteTabella(id, nome) {
   if (!getToken()) { window.location.href='/login.html'; return; }
   try {
     const me = await fetch('/api/auth/me').then(r=>r.json());
-    if (!me.is_admin) {
+    if (!me || !me.is_admin) {
       document.getElementById('container').innerHTML='<div class="alert-admin">⛔ Accesso riservato agli amministratori.</div>';
       return;
     }
+    const nome = me.nome || me.username || '';
+    const initiali = nome.split(' ').map(p=>p[0]||'').join('').slice(0,2).toUpperCase();
+    const el1 = document.getElementById('userNameLabel'); if(el1) el1.textContent = nome.split(' ')[0];
+    const el2 = document.getElementById('userAvatar');    if(el2) el2.textContent = initiali || '?';
+    const el3 = document.getElementById('udName');        if(el3) el3.textContent = nome;
+    const el4 = document.getElementById('udUsername');    if(el4) el4.textContent = me.username;
+    const lnk = document.getElementById('adminNavLink');
+    if (lnk) lnk.style.setProperty('display','inline-block','important');
     localStorage.setItem('is_admin', 'true');
-    document.querySelectorAll('.user-label').forEach(el=>el.textContent='👤 '+getNome());
     await loadAll();
   } catch(e) { logout(); }
 })();
+
+// ── USER MENU ────────────────────────────────────────────────────────────────
+function toggleUserMenu(e) {
+  e.stopPropagation();
+  document.getElementById('userDropdown').classList.toggle('open');
+}
+document.addEventListener('click', () => {
+  document.getElementById('userDropdown')?.classList.remove('open');
+});
+
+// ── ACCOUNT MODAL ─────────────────────────────────────────────────────────────
+function openAccModal() {
+  document.getElementById('userDropdown')?.classList.remove('open');
+  document.getElementById('accOverlay').classList.add('open');
+  ['accPwdOld','accPwdNew','accPwdConfirm'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  const msg = document.getElementById('accMsg'); if(msg){msg.textContent='';msg.style.color='';}
+  setTimeout(() => document.getElementById('accPwdOld')?.focus(), 100);
+}
+function closeAccModal() {
+  document.getElementById('accOverlay').classList.remove('open');
+}
+async function doChangePwd() {
+  const old = document.getElementById('accPwdOld').value;
+  const nw  = document.getElementById('accPwdNew').value;
+  const cnf = document.getElementById('accPwdConfirm').value;
+  const msg = document.getElementById('accMsg');
+  msg.textContent = '';
+  if (!old || !nw || !cnf) { msg.textContent='⚠️ Compila tutti i campi'; msg.style.color='#F59E0B'; return; }
+  if (nw.length < 6)       { msg.textContent='⚠️ Minimo 6 caratteri'; msg.style.color='#F59E0B'; return; }
+  if (nw !== cnf)          { msg.textContent='⚠️ Le password non coincidono'; msg.style.color='#EF4444'; return; }
+  const res = await fetch('/api/auth/change-password', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ password_attuale: old, nuova_password: nw })
+  }).then(r=>r.json()).catch(()=>({ok:false}));
+  if (res.ok) {
+    msg.textContent='✅ Password cambiata!'; msg.style.color='#34D399';
+    setTimeout(closeAccModal, 1500);
+  } else {
+    msg.textContent='❌ ' + (res.detail||'Password attuale non corretta'); msg.style.color='#EF4444';
+  }
+}
+
 </script>
 </body>
 </html>
