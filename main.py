@@ -68,6 +68,7 @@ IMPOSTAZIONI_DEFAULTS = {
     "tariffa_rep_feriale": "15.26", "tariffa_rep_semifestiva": "32.99",
     "tariffa_rep_festiva": "53.13", "indennita_turno": "279.66",
     "trattenuta_sindacato": "18.86", "trattenuta_regionale": "50.00",
+    "trattenuta_comunale": "0.00",
     "trattenuta_pegaso": "33.90", "aliquota_inps": "9.19", "detrazioni_annue": "1955.00",
     "tariffa_fest_riposo": "98.97654",  # Festività in giorno di riposo (tariffa base)
 }
@@ -391,6 +392,24 @@ def delete_user(user_id: int, admin=Depends(require_admin)):
 
 class ResetPasswordInput(BaseModel):
     nuova_password: str
+
+class ChangePasswordInput(BaseModel):
+    password_attuale: str
+    nuova_password: str
+
+@app.post("/api/auth/change-password")
+def change_password(payload: ChangePasswordInput, user=Depends(get_current_user)):
+    if len(payload.nuova_password) < 6:
+        raise HTTPException(400, "Password troppo corta (min 6 caratteri)")
+    conn = get_db()
+    u = fetchone(conn, "SELECT password_hash FROM utenti WHERE id=?", (user["id"],))
+    if not u or not verify_password(payload.password_attuale, u["password_hash"]):
+        conn.close()
+        raise HTTPException(400, "Password attuale non corretta")
+    ex(conn, "UPDATE utenti SET password_hash=? WHERE id=?",
+       (hash_password(payload.nuova_password), user["id"]))
+    conn.commit(); conn.close()
+    return {"ok": True}
 
 @app.post("/api/admin/utenti/{user_id}/reset-password")
 def reset_password(user_id: int, payload: ResetPasswordInput, admin=Depends(require_admin)):
@@ -768,9 +787,10 @@ def get_busta_paga(anno: int, mese: int, user=Depends(get_current_user)):
 
     vt = [
         {"voce":f"Contributi INPS ({cfg.get('aliquota_inps',9.19):.2f}%)","importo":inps,"calcolato":True},
-        {"voce":"IRPEF stimata mensile (2024)","importo":im,"calcolato":True},
+        {"voce":"IRPEF stimata mensile","importo":im,"calcolato":True},
         {"voce":"Trattenuta sindacato (CISL)","importo":cfg["trattenuta_sindacato"]},
-        {"voce":"Add. regionale trattenuta",  "importo":cfg["trattenuta_regionale"]},
+        {"voce":"Add. reg. da tratt. A.P.","importo":cfg["trattenuta_regionale"]},
+        {"voce":"Add. com. da tratt. A.P.","importo":cfg.get("trattenuta_comunale",0.0)},
         {"voce":"Contr. Prev. Compl. (Pegaso)","importo":cfg["trattenuta_pegaso"]},
     ]
     tt = round(sum(v["importo"] for v in vt),2)
