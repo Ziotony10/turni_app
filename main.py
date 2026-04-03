@@ -8,7 +8,6 @@ from datetime import date, datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 import secrets
-from fastapi.responses import FileResponse
 
 app = FastAPI(title="Gestione Turni")
 DB_PATH    = "turni.db"
@@ -17,14 +16,6 @@ USE_PG     = bool(DATABASE_URL)
 
 if USE_PG:
     import psycopg2, psycopg2.extras
-
-
-@app.get("/static/{full_path:path}")
-def serve_static(full_path: str):
-    file_path = os.path.join("static", full_path)
-    if os.path.isfile(file_path):
-        return FileResponse(file_path)
-    raise HTTPException(status_code=404)
 
 # ─── Sicurezza ────────────────────────────────────────────────────────────────
 SECRET_KEY   = os.environ.get("JWT_SECRET", secrets.token_hex(32))
@@ -850,4 +841,4 @@ def get_busta_paga(anno: int, mese: int, user=Depends(get_current_user)):
                                  "detrazione_applicata":det,"irpef_netta_annua":in_,
                                  "inps_mensile":inps,"irpef_mensile":im}}
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
