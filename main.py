@@ -19,15 +19,12 @@ if USE_PG:
     import psycopg2, psycopg2.extras
 
 
-@app.get("/{full_path:path}")
-def serve_files(full_path: str):
+@app.get("/static/{full_path:path}")
+def serve_static(full_path: str):
     file_path = os.path.join("static", full_path)
-
     if os.path.isfile(file_path):
         return FileResponse(file_path)
-
-    # fallback → index (login)
-    return FileResponse("static/index.html")
+    raise HTTPException(status_code=404)
 
 # ─── Sicurezza ────────────────────────────────────────────────────────────────
 SECRET_KEY   = os.environ.get("JWT_SECRET", secrets.token_hex(32))
