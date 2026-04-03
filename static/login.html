@@ -64,6 +64,7 @@
     .riepilogo-table { font-size: 0.7rem; }
     .card { padding: 24px 18px; }
   }
+  @keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -91,7 +92,7 @@
       <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password"
              onkeydown="if(event.key==='Enter') doLogin()">
     </div>
-    <button class="btn-main" onclick="doLogin()">Entra →</button>
+    <button class="btn-main" id="btnLogin" onclick="doLogin()">Entra →</button>
   </div>
 
   <!-- REGISTER -->
@@ -108,7 +109,7 @@
       <input type="password" id="regPass" placeholder="min 6 caratteri"
              onkeydown="if(event.key==='Enter') doRegister()">
     </div>
-    <button class="btn-main" onclick="doRegister()">Crea account →</button>
+    <button class="btn-main" id="btnRegister" onclick="doRegister()">Crea account →</button>
   </div>
 </div>
 
@@ -138,41 +139,71 @@ async function doLogin() {
   const u = document.getElementById('loginUser').value.trim();
   const p = document.getElementById('loginPass').value;
   if (!u || !p) { showErr('Inserisci username e password'); return; }
+
+  const btn = document.getElementById('btnLogin');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px"></span>Accesso in corso...';
+
   try {
     const body = new URLSearchParams({ username: u, password: p });
     const res = await fetch('/api/auth/login', { method:'POST', body });
     const data = await res.json();
-    if (!res.ok) { showErr(data.detail || 'Credenziali non corrette'); return; }
+    if (!res.ok) {
+      showErr(data.detail || 'Credenziali non corrette');
+      btn.disabled = false;
+      btn.innerHTML = 'Entra →';
+      return;
+    }
     localStorage.setItem('token', data.access_token);
     localStorage.setItem('username', data.username);
     localStorage.setItem('nome', data.nome || data.username);
+    btn.innerHTML = '✓ Accesso effettuato';
+    btn.style.background = '#10B981';
     window.location.href = '/';
-  } catch(e) { showErr('Errore di connessione'); }
+  } catch(e) {
+    showErr('Errore di connessione');
+    btn.disabled = false;
+    btn.innerHTML = 'Entra →';
+  }
 }
 
 async function doRegister() {
   const u = document.getElementById('regUser').value.trim().toLowerCase();
   const p = document.getElementById('regPass').value;
   if (!u || !p) { showErr('Compila username e password'); return; }
-  // Valida formato nome.cognome
   if (!/^[a-z]+\.[a-z]+$/.test(u)) {
     showErr('Username non valido. Usa il formato nome.cognome (es. mario.rossi)');
     return;
   }
-  // Deriva il nome visualizzato dal username (mario.rossi → Mario Rossi)
   const nome = u.split('.').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+
+  const btn = document.getElementById('btnRegister');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px"></span>Registrazione...';
+
   try {
     const res = await fetch('/api/auth/register', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ username:u, password:p, nome })
     });
     const data = await res.json();
-    if (!res.ok) { showErr(data.detail || 'Errore registrazione'); return; }
+    if (!res.ok) {
+      showErr(data.detail || 'Errore registrazione');
+      btn.disabled = false;
+      btn.innerHTML = 'Crea account →';
+      return;
+    }
     localStorage.setItem('token', data.access_token);
     localStorage.setItem('username', data.username);
     localStorage.setItem('nome', nome);
+    btn.innerHTML = '✓ Account creato!';
+    btn.style.background = '#10B981';
     window.location.href = '/';
-  } catch(e) { showErr('Errore di connessione'); }
+  } catch(e) {
+    showErr('Errore di connessione');
+    btn.disabled = false;
+    btn.innerHTML = 'Crea account →';
+  }
 }
 
 // Se già loggato vai direttamente alla home
