@@ -8,6 +8,7 @@ from datetime import date, datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 import secrets
+from fastapi.responses import FileResponse
 
 app = FastAPI(title="Gestione Turni")
 DB_PATH    = "turni.db"
@@ -16,6 +17,17 @@ USE_PG     = bool(DATABASE_URL)
 
 if USE_PG:
     import psycopg2, psycopg2.extras
+
+
+@app.get("/{full_path:path}")
+def serve_files(full_path: str):
+    file_path = os.path.join("static", full_path)
+
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+
+    # fallback → index (login)
+    return FileResponse("static/index.html")
 
 # ─── Sicurezza ────────────────────────────────────────────────────────────────
 SECRET_KEY   = os.environ.get("JWT_SECRET", secrets.token_hex(32))
