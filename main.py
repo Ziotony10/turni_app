@@ -329,7 +329,7 @@ async def log_page_visit(request: Request):
 # ─── Read admin endpoints ───────────────────────────────────────────────────────────
 
 @app.get("/api/admin/page-visits")
-async def get_page_visits(current_user: dict = Depends(get_current_admin)):
+async def get_page_visits(current_user: dict = Depends(get_current_user)):
     result = supabase.table("login_page_visits") \
         .select("*") \
         .order("timestamp", desc=True) \
