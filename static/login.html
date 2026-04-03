@@ -122,20 +122,11 @@ function showTab(t) {
 }
 
 
- // Log visita alla pagina login
 (async () => {
     try {
-        await fetch('/api/log-page-visit', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Referer': document.referrer  // da dove arrivano
-            }
-        });
-    } catch (e) {
-        // silenzioso, non blocca il caricamento della pagina
-    }
-})();
+      await fetch('/api/log-page-visit', { method: 'POST' });
+    } catch (e) {}
+  })();
 
 function showErr(msg) {
   const el = document.getElementById('errMsg');
