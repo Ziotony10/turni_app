@@ -8,13 +8,6 @@
   :root { --bg:#0F172A; --card:#1E293B; --card2:#263348; --border:#334155; --text:#E2E8F0; --muted:#94A3B8; --accent:#3B82F6; --red:#EF4444; --green:#10B981; }
   * { box-sizing:border-box; margin:0; padding:0; }
   body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; }
-  
-   
-  
-  
-  
-  
-  
 
   .container { max-width:1000px; margin:28px auto; padding:0 24px; display:flex; flex-direction:column; gap:24px; }
   .section-card { background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
@@ -47,7 +40,6 @@
   .week-num { font-size:0.72rem; color:var(--muted); margin-bottom:6px; font-weight:700; }
   .week-block { border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:8px; background:var(--card2); }
 
-  /* Day cell: bottone colorato cliccabile */
   .day-cell {
     display:flex; flex-direction:column; align-items:center; gap:3px;
     cursor:pointer; border-radius:8px; padding:6px 2px;
@@ -61,7 +53,6 @@
   .day-cell.empty-cell { background:var(--card); border-color:var(--border); }
   .day-cell.empty-cell .dc-turno { color:var(--border); }
 
-  /* Picker popup */
   .turno-picker {
     position:fixed; z-index:200; background:var(--card);
     border:1px solid var(--border); border-radius:12px;
@@ -137,7 +128,6 @@
     .btn-logout { padding: 4px 8px; font-size: 0.78rem; }
   }
 
-
   /* ── USER DROPDOWN ── */
   .user-menu { position:relative; }
   .user-btn {
@@ -211,20 +201,62 @@
   .acc-btn-primary:hover { background:#2563EB; }
   .acc-btn-cancel { background:var(--card2); color:var(--muted); border:1px solid var(--border); }
 
+  /* ── STATUS SISTEMA ── */
+  .status-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+  .status-item {
+    background:var(--card2); border:1px solid var(--border);
+    border-radius:10px; padding:18px 16px; text-align:center;
+  }
+  .status-dot {
+    width:11px; height:11px; border-radius:50%;
+    display:inline-block; margin-right:6px; vertical-align:middle;
+    flex-shrink:0;
+  }
+  .dot-ok    { background:#10B981; box-shadow:0 0 7px rgba(16,185,129,.7); }
+  .dot-warn  { background:#F59E0B; box-shadow:0 0 7px rgba(245,158,11,.7); }
+  .dot-error { background:#EF4444; box-shadow:0 0 7px rgba(239,68,68,.7); }
+  .dot-loading { background:var(--muted); }
+  .status-label { font-size:0.7rem; color:var(--muted); text-transform:uppercase; font-weight:700; letter-spacing:.06em; margin-bottom:10px; }
+  .status-row { display:flex; align-items:center; justify-content:center; gap:4px; margin-bottom:4px; }
+  .status-value { font-size:1.05rem; font-weight:700; }
+  .status-sub   { font-size:0.73rem; color:var(--muted); margin-top:4px; }
+  .refresh-btn  {
+    font-size:0.75rem; padding:4px 12px; border-radius:6px;
+    background:var(--card2); border:1px solid var(--border);
+    color:var(--muted); cursor:pointer; transition:all .15s;
+  }
+  .refresh-btn:hover { color:var(--text); border-color:var(--accent); }
+
+  /* ── LOG ACCESSI ── */
+  .log-table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+  .log-table th { padding:9px 14px; color:var(--muted); font-size:0.7rem; text-transform:uppercase; border-bottom:1px solid var(--border); text-align:left; font-weight:700; letter-spacing:.04em; }
+  .log-table td { padding:9px 14px; border-bottom:1px solid var(--border); }
+  .log-table tr:last-child td { border-bottom:none; }
+  .log-table tr:hover td { background:rgba(255,255,255,.02); }
+  .badge-ok   { background:rgba(16,185,129,.15); color:#34D399; padding:2px 9px; border-radius:4px; font-size:0.72rem; font-weight:700; }
+  .badge-fail { background:rgba(239,68,68,.15);  color:#FCA5A5; padding:2px 9px; border-radius:4px; font-size:0.72rem; font-weight:700; }
+  .log-scroll { max-height:400px; overflow-y:auto; }
+  .log-scroll::-webkit-scrollbar { width:4px; }
+  .log-scroll::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+  .log-scroll::-webkit-scrollbar-track { background:transparent; }
+
+  @media(max-width:600px) {
+    .status-grid { grid-template-columns:1fr; }
+    .log-table th:nth-child(5), .log-table td:nth-child(5) { display:none; }
+  }
 </style>
 </head>
 <body>
 <header>
   <div class="page-title">🔧 <span>Admin</span></div>
-        <nav class="top-nav">
+  <nav class="top-nav">
     <a href="/">📅 Calendario</a>
     <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
     <a href="#" onclick="return false;" class="nav-active" id="adminNavLink">🔧 Admin</a>
   </nav>
   <div class="header-controls">
-
-        <div class="user-menu">
+    <div class="user-menu">
       <button class="user-btn" onclick="toggleUserMenu(event)" id="userBtn">
         <div class="avatar" id="userAvatar">?</div>
         <span id="userNameLabel">—</span>
@@ -241,7 +273,6 @@
       </div>
     </div>
 
-    <!-- Modal account / cambio password -->
     <div class="acc-overlay" id="accOverlay" onclick="if(event.target===this)closeAccModal()">
       <div class="acc-modal">
         <h2>🔑 Impostazioni account</h2>
@@ -294,26 +325,36 @@ const GIORNI = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 let tabelle = [];
 let editingTab = null;
 
-async function init() {
+// ── INIT ─────────────────────────────────────────────────────────────────────
+(async function() {
   if (!getToken()) { window.location.href='/login.html'; return; }
-  const me = await fetch('/api/auth/me').then(r=>r.json()).catch(()=>null);
-  if (!me || !me.is_admin) {
-    document.getElementById('container').innerHTML = '<div class="alert-admin">⛔ Accesso riservato agli amministratori.</div>';
-    return;
-  }
-  const nome = me.nome || me.username || '';
-  const initiali = nome.split(' ').map(p=>p[0]||'').join('').slice(0,2).toUpperCase();
-  const el1 = document.getElementById('userNameLabel'); if(el1) el1.textContent = nome.split(' ')[0];
-  const el2 = document.getElementById('userAvatar');    if(el2) el2.textContent = initiali || '?';
-  const el3 = document.getElementById('udName');        if(el3) el3.textContent = nome;
-  const el4 = document.getElementById('udUsername');    if(el4) el4.textContent = me.username;
-  const lnk = document.getElementById('adminNavLink');
-  if (lnk) lnk.style.setProperty('display', 'inline-block', 'important');
-  localStorage.setItem('is_admin', 'true');
-  await loadAll();
-}
+  try {
+    const me = await fetch('/api/auth/me').then(r=>r.json());
+    if (!me || !me.is_admin) {
+      document.getElementById('container').innerHTML='<div class="alert-admin">⛔ Accesso riservato agli amministratori.</div>';
+      return;
+    }
+    const nome = me.nome || me.username || '';
+    const initiali = nome.split(' ').map(p=>p[0]||'').join('').slice(0,2).toUpperCase();
+    const el1 = document.getElementById('userNameLabel'); if(el1) el1.textContent = nome.split(' ')[0];
+    const el2 = document.getElementById('userAvatar');    if(el2) el2.textContent = initiali || '?';
+    const el3 = document.getElementById('udName');        if(el3) el3.textContent = nome;
+    const el4 = document.getElementById('udUsername');    if(el4) el4.textContent = me.username;
+    const lnk = document.getElementById('adminNavLink');
+    if (lnk) lnk.style.setProperty('display','inline-block','important');
+    localStorage.setItem('is_admin', 'true');
+    await loadAll();
+  } catch(e) { logout(); }
+})();
 
 async function loadAll() {
+  const container = document.getElementById('container');
+  container.innerHTML = '';
+
+  // Render subito le card vuote (scheletro)
+  renderStatusCard();
+  renderLogsCard();
+
   const [utenti, tabs] = await Promise.all([
     fetch('/api/admin/utenti').then(r=>r.json()),
     fetch('/api/admin/tabelle').then(r=>r.json()),
@@ -321,6 +362,178 @@ async function loadAll() {
   tabelle = tabs;
   renderUtenti(utenti);
   renderTabelle(tabs);
+
+  // Carica dati dinamici
+  loadStatus();
+  loadLoginLogs();
+}
+
+// ── STATUS SISTEMA ────────────────────────────────────────────────────────────
+function renderStatusCard() {
+  const container = document.getElementById('container');
+  container.insertAdjacentHTML('beforeend', `
+  <div class="section-card" id="sec-status">
+    <div class="section-head">
+      <span>🟢 Status sistema</span>
+      <button class="refresh-btn" onclick="loadStatus();loadLoginLogs()">↻ Aggiorna</button>
+    </div>
+    <div class="section-body">
+      <div class="status-grid">
+        <div class="status-item">
+          <div class="status-label">Sito / API</div>
+          <div class="status-row">
+            <span class="status-dot dot-loading" id="dot-site"></span>
+            <span class="status-value" id="val-site">—</span>
+          </div>
+          <div class="status-sub" id="sub-site">In attesa...</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">Database</div>
+          <div class="status-row">
+            <span class="status-dot dot-loading" id="dot-db"></span>
+            <span class="status-value" id="val-db">—</span>
+          </div>
+          <div class="status-sub" id="sub-db">In attesa...</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">Latenza DB</div>
+          <div class="status-row">
+            <span class="status-dot dot-loading" id="dot-ping"></span>
+            <span class="status-value" id="val-ping">—</span>
+          </div>
+          <div class="status-sub" id="sub-ping">In attesa...</div>
+        </div>
+      </div>
+    </div>
+  </div>`);
+}
+
+async function loadStatus() {
+  // Reset a loading
+  ['site','db','ping'].forEach(k => {
+    const dot = document.getElementById(`dot-${k}`);
+    if (dot) dot.className = 'status-dot dot-loading';
+  });
+
+  const t0 = performance.now();
+  let data;
+  try {
+    data = await fetch('/api/admin/status').then(r => r.json());
+  } catch(e) {
+    data = { site: 'error', db: 'error', db_ms: -1, db_type: '—' };
+  }
+  const siteMs = Math.round(performance.now() - t0);
+
+  // Sito
+  const siteOk = data.site === 'ok';
+  setStatus('site',
+    siteOk ? 'ok' : 'error',
+    siteOk ? 'Online' : 'Errore',
+    `Risposta: ${siteMs} ms`
+  );
+
+  // Database
+  const dbOk = data.db === 'ok';
+  setStatus('db',
+    dbOk ? 'ok' : 'error',
+    dbOk ? 'Connesso' : 'Errore',
+    data.db_type || '—'
+  );
+
+  // Latenza DB
+  const ms = data.db_ms;
+  const pingClass = ms < 0 ? 'error' : ms < 100 ? 'ok' : ms < 400 ? 'warn' : 'error';
+  const pingLabel = ms < 0 ? 'N/A' : ms < 100 ? 'Ottima' : ms < 400 ? 'Lenta' : 'Critica';
+  setStatus('ping',
+    pingClass,
+    ms >= 0 ? `${ms} ms` : 'N/A',
+    pingLabel
+  );
+}
+
+function setStatus(key, cls, value, sub) {
+  const dot = document.getElementById(`dot-${key}`);
+  const val = document.getElementById(`val-${key}`);
+  const s   = document.getElementById(`sub-${key}`);
+  if (dot) dot.className = `status-dot dot-${cls}`;
+  if (val) val.textContent = value;
+  if (s)   s.textContent = sub;
+}
+
+// ── LOG ACCESSI ────────────────────────────────────────────────────────────────
+function renderLogsCard() {
+  const container = document.getElementById('container');
+  container.insertAdjacentHTML('beforeend', `
+  <div class="section-card" id="sec-logs">
+    <div class="section-head">
+      <span>🔐 Log accessi</span>
+      <span style="font-size:0.75rem;color:var(--muted)">Ultimi 100</span>
+    </div>
+    <div class="log-scroll">
+      <table class="log-table">
+        <thead><tr>
+          <th>Data / Ora</th>
+          <th>Username</th>
+          <th>IP</th>
+          <th>Esito</th>
+          <th>Browser</th>
+        </tr></thead>
+        <tbody id="logTableBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Caricamento...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>`);
+}
+
+async function loadLoginLogs() {
+  const tbody = document.getElementById('logTableBody');
+  if (!tbody) return;
+
+  let logs;
+  try {
+    logs = await fetch('/api/admin/login-logs?limit=100').then(r => r.json());
+  } catch(e) {
+    logs = [];
+  }
+
+  if (!logs.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Nessun accesso registrato</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = logs.map(l => {
+    const ts = (l.timestamp || '').toString().replace('T', ' ').slice(0, 19);
+    const ua = parseUA(l.user_agent || '');
+    const ipStyle = 'font-family:monospace;font-size:0.78rem;color:var(--muted)';
+    return `<tr>
+      <td style="color:var(--muted);font-size:0.8rem;white-space:nowrap">${ts}</td>
+      <td><strong>${l.username || '—'}</strong></td>
+      <td style="${ipStyle}">${l.ip || '—'}</td>
+      <td>${l.success ? '<span class="badge-ok">✓ Successo</span>' : '<span class="badge-fail">✗ Fallito</span>'}</td>
+      <td style="color:var(--muted);font-size:0.75rem">${ua}</td>
+    </tr>`;
+  }).join('');
+}
+
+function parseUA(ua) {
+  if (!ua) return '—';
+  // Estrai browser e OS leggibili
+  let browser = '—', os = '—';
+  if (/Chrome\/(\d+)/.test(ua) && !/Edg/.test(ua) && !/OPR/.test(ua)) browser = `Chrome ${RegExp.$1}`;
+  else if (/Edg\/(\d+)/.test(ua)) browser = `Edge ${RegExp.$1}`;
+  else if (/OPR\/(\d+)/.test(ua)) browser = `Opera ${RegExp.$1}`;
+  else if (/Firefox\/(\d+)/.test(ua)) browser = `Firefox ${RegExp.$1}`;
+  else if (/Safari\//.test(ua) && /Version\/(\d+)/.test(ua)) browser = `Safari ${RegExp.$1}`;
+  else browser = ua.slice(0, 30);
+
+  if (/Windows NT/.test(ua)) os = 'Windows';
+  else if (/Mac OS X/.test(ua)) os = 'macOS';
+  else if (/iPhone|iPad/.test(ua)) os = 'iOS';
+  else if (/Android/.test(ua)) os = 'Android';
+  else if (/Linux/.test(ua)) os = 'Linux';
+
+  return `${browser} · ${os}`;
 }
 
 // ── UTENTI ──────────────────────────────────────────────────────────────────
@@ -346,8 +559,14 @@ function renderUtenti(utenti) {
       </tbody>
     </table>
   </div>`;
+  const container = document.getElementById('container');
   if (existing) existing.outerHTML = html;
-  else document.getElementById('container').insertAdjacentHTML('afterbegin', html);
+  else {
+    // Inserisci dopo status ma prima dei log
+    const secLogs = document.getElementById('sec-logs');
+    if (secLogs) secLogs.insertAdjacentHTML('beforebegin', html);
+    else container.insertAdjacentHTML('beforeend', html);
+  }
 }
 
 async function toggleAdmin(id, username, isAdm) {
@@ -403,8 +622,13 @@ function renderTabelle(tabs) {
     </div>
   </div>`;
 
+  const container = document.getElementById('container');
   if (existing) existing.outerHTML = html;
-  else document.getElementById('container').appendChild(Object.assign(document.createElement('div'),{innerHTML:html}).firstElementChild);
+  else {
+    const secLogs = document.getElementById('sec-logs');
+    if (secLogs) secLogs.insertAdjacentHTML('beforebegin', html);
+    else container.insertAdjacentHTML('beforeend', html);
+  }
 }
 
 const TURNI_COLORS = {
@@ -415,7 +639,6 @@ const TURNI_COLORS = {
 };
 const TURNI_LIST = ['M','M1','M2','M3','P','N','RC','R','ROT','RF','MAL','F','F-P','F-N'];
 
-// Stato tabella in memoria: array[settimana][giorno] = codice turno
 let editorData = [];
 
 function makeDayCell(sett, giorno, turno) {
@@ -458,27 +681,19 @@ let pickerTarget = null;
 function openPicker(sett, giorno, evt) {
   closePicker();
   pickerTarget = {sett, giorno};
-
   const picker = document.createElement('div');
   picker.className = 'turno-picker';
   picker.id = 'turnoPicker';
-
-  // Bottoni turni
   picker.innerHTML = TURNI_LIST.map(t =>
     `<button class="tp-btn" style="background:${TURNI_COLORS[t]||'#374151'}" onclick="selectTurno('${t}')">${t}</button>`
   ).join('') + `<button class="tp-btn tp-clear" onclick="selectTurno('')">✕ Vuoto</button>`;
-
   document.body.appendChild(picker);
-
-  // Posiziona vicino al click
   const rect = evt.currentTarget.getBoundingClientRect();
   let top = rect.bottom + 6, left = rect.left;
   if (left + 260 > window.innerWidth) left = window.innerWidth - 270;
   if (top + 200 > window.innerHeight) top = rect.top - 210;
   picker.style.top = top + 'px';
   picker.style.left = left + 'px';
-
-  // Chiudi cliccando fuori
   setTimeout(() => document.addEventListener('click', closePicker, {once:true}), 50);
   evt.stopPropagation();
 }
@@ -516,13 +731,10 @@ function showEditor(tab) {
   editor.classList.add('open');
   const numSett = tab.num_settimane || 13;
   const turni = tab.turni_json || tab.turni || [];
-
-  // Carica dati in editorData
   editorData = [];
   for (let s = 0; s < numSett; s++) {
     editorData[s] = Array(7).fill('').map((_, d) => (turni[s]?.[d] || '').trim().split(' ')[0] || '');
   }
-
   editor.innerHTML = `
     <hr style="border-color:var(--border);margin:20px 0">
     <h3 style="margin-bottom:16px;font-size:1rem">${editingTab ? 'Modifica tabella' : 'Nuova tabella'}</h3>
@@ -550,7 +762,6 @@ function updateNumSett() {
 
 function rebuildWeeks() {
   const n = parseInt(document.getElementById('tabNumSett').value) || 13;
-  // Preserva dati esistenti, estendi/tronca
   const newData = [];
   for (let s = 0; s < n; s++) {
     newData[s] = editorData[s] || Array(7).fill('');
@@ -588,28 +799,6 @@ async function deleteTabella(id, nome) {
   await fetch(`/api/admin/tabelle/${id}`, {method:'DELETE'});
   await loadAll();
 }
-
-// ── AUTH ─────────────────────────────────────────────────────────────────────
-(async function() {
-  if (!getToken()) { window.location.href='/login.html'; return; }
-  try {
-    const me = await fetch('/api/auth/me').then(r=>r.json());
-    if (!me || !me.is_admin) {
-      document.getElementById('container').innerHTML='<div class="alert-admin">⛔ Accesso riservato agli amministratori.</div>';
-      return;
-    }
-    const nome = me.nome || me.username || '';
-    const initiali = nome.split(' ').map(p=>p[0]||'').join('').slice(0,2).toUpperCase();
-    const el1 = document.getElementById('userNameLabel'); if(el1) el1.textContent = nome.split(' ')[0];
-    const el2 = document.getElementById('userAvatar');    if(el2) el2.textContent = initiali || '?';
-    const el3 = document.getElementById('udName');        if(el3) el3.textContent = nome;
-    const el4 = document.getElementById('udUsername');    if(el4) el4.textContent = me.username;
-    const lnk = document.getElementById('adminNavLink');
-    if (lnk) lnk.style.setProperty('display','inline-block','important');
-    localStorage.setItem('is_admin', 'true');
-    await loadAll();
-  } catch(e) { logout(); }
-})();
 
 // ── USER MENU ────────────────────────────────────────────────────────────────
 function toggleUserMenu(e) {
@@ -653,7 +842,6 @@ async function doChangePwd() {
     msg.textContent='❌ ' + (res.detail||'Password attuale non corretta'); msg.style.color='#EF4444';
   }
 }
-
 </script>
 </body>
 </html>
