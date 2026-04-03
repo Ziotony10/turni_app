@@ -303,6 +303,41 @@ class TurnoInput(BaseModel):
 class ImpostazioniInput(BaseModel):
     valori: dict
 
+
+
+# ─── Access login endpoints ───────────────────────────────────────────────────────────
+@app.post("/api/log-page-visit")
+async def log_page_visit(request: Request):
+    forwarded_for = request.headers.get("X-Forwarded-For")
+    ip = forwarded_for.split(",")[0].strip() if forwarded_for else request.client.host
+    user_agent = request.headers.get("User-Agent", "")
+    referrer = request.headers.get("Referer", "")
+    bot_keywords = ["bot", "crawler", "spider", "ping", "monitor", "uptime"]
+    is_bot = any(kw in user_agent.lower() for kw in bot_keywords)
+    try:
+        supabase.table("login_page_visits").insert({
+            "ip_address": ip,
+            "user_agent": user_agent,
+            "referrer": referrer,
+            "is_bot": is_bot,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }).execute()
+    except Exception as e:
+        print(f"Errore log visita: {e}")
+    return {"status": "ok"}
+
+# ─── Read admin endpoints ───────────────────────────────────────────────────────────
+
+@app.get("/api/admin/page-visits")
+async def get_page_visits(current_user: dict = Depends(get_current_admin)):
+    result = supabase.table("login_page_visits") \
+        .select("*") \
+        .order("timestamp", desc=True) \
+        .limit(200) \
+        .execute()
+    return result.data
+
+
 # ─── Auth endpoints ───────────────────────────────────────────────────────────
 @app.post("/api/auth/register")
 def register(payload: RegisterInput):
