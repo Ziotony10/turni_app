@@ -354,6 +354,7 @@ async function loadAll() {
   // Render subito le card vuote (scheletro)
   renderStatusCard();
   renderLogsCard();
+  renderVisitsCard(); // ← AGGIUNGI
 
   const [utenti, tabs] = await Promise.all([
     fetch('/api/admin/utenti').then(r=>r.json()),
@@ -366,6 +367,7 @@ async function loadAll() {
   // Carica dati dinamici
   loadStatus();
   loadLoginLogs();
+  loadPageVisits(); // ← AGGIUNGI
 }
 
 // ── STATUS SISTEMA ────────────────────────────────────────────────────────────
@@ -515,6 +517,74 @@ async function loadLoginLogs() {
     </tr>`;
   }).join('');
 }
+
+// ── VISITE PAGINA LOGIN ───────────────────────────────────────────────────────
+function renderVisitsCard() {
+  const container = document.getElementById('container');
+  container.insertAdjacentHTML('beforeend', `
+  <div class="section-card" id="sec-visits">
+    <div class="section-head">
+      <span>👁️ Visite pagina login</span>
+      <label style="font-size:0.75rem;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;display:flex;align-items:center;gap:6px;cursor:pointer">
+        <input type="checkbox" id="nascondi-bot" checked onchange="loadPageVisits()"> Nascondi bot/ping
+      </label>
+    </div>
+    <div class="log-scroll">
+      <table class="log-table">
+        <thead><tr>
+          <th>Data / Ora</th>
+          <th>IP</th>
+          <th>Referrer</th>
+          <th>Browser</th>
+          <th style="text-align:center">Bot</th>
+        </tr></thead>
+        <tbody id="visitsTableBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Caricamento...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>`);
+}
+
+async function loadPageVisits() {
+  const tbody = document.getElementById('visitsTableBody');
+  if (!tbody) return;
+
+  let data;
+  try {
+    data = await fetch('/api/admin/page-visits').then(r => r.json());
+  } catch(e) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#FCA5A5;padding:24px">Errore nel caricamento</td></tr>';
+    return;
+  }
+
+  const nascondiBot = document.getElementById('nascondi-bot')?.checked;
+  const filtered = nascondiBot ? data.filter(v => !v.is_bot) : data;
+
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Nessuna visita registrata</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(v => {
+    const ts = (v.timestamp || '').toString().replace('T',' ').slice(0,19);
+    const ua = parseUA(v.user_agent || '');
+    const referrer = v.referrer
+      ? `<span style="font-size:0.78rem;color:var(--muted)">${v.referrer.slice(0,40)}</span>`
+      : '<span style="color:var(--border)">diretto</span>';
+    const bot = v.is_bot
+      ? '<span style="color:#F59E0B;font-size:0.8rem">🤖 sì</span>'
+      : '<span style="color:var(--border)">—</span>';
+    return `<tr>
+      <td style="color:var(--muted);font-size:0.8rem;white-space:nowrap">${ts}</td>
+      <td style="font-family:monospace;font-size:0.78rem;color:var(--muted)">${v.ip_address || '—'}</td>
+      <td>${referrer}</td>
+      <td style="color:var(--muted);font-size:0.75rem">${ua}</td>
+      <td style="text-align:center">${bot}</td>
+    </tr>`;
+  }).join('');
+}
+ // ──────────────────────────────────────────────────────────────────── 
 
 function parseUA(ua) {
   if (!ua) return '—';
