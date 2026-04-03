@@ -841,4 +841,4 @@ def get_busta_paga(anno: int, mese: int, user=Depends(get_current_user)):
                                  "detrazione_applicata":det,"irpef_netta_annua":in_,
                                  "inps_mensile":inps,"irpef_mensile":im}}
 
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
