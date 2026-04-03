@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
@@ -70,7 +70,7 @@ IMPOSTAZIONI_DEFAULTS = {
     "trattenuta_sindacato": "18.86", "trattenuta_regionale": "50.00",
     "trattenuta_comunale": "0.00",
     "trattenuta_pegaso": "33.90", "aliquota_inps": "9.19", "detrazioni_annue": "1955.00",
-    "tariffa_fest_riposo": "98.97654",  # Festività in giorno di riposo (tariffa base)
+    "tariffa_fest_riposo": "98.97654",
 }
 
 # ─── DB helpers ───────────────────────────────────────────────────────────────
@@ -83,7 +83,6 @@ def get_db():
     return conn
 
 def q(sql):
-    """Adatta la query da SQLite a PostgreSQL."""
     if not USE_PG:
         return sql
     sql = sql.replace("?", "%s")
@@ -132,8 +131,6 @@ def calcola_ore(turno, ora_inizio, ora_fine, data_str):
     ef = to_min(ora_fine)   if ora_fine   else None
     std = TURNO_ORARI.get(turno)
 
-    # Controlla se il giorno è festivo da CALENDARIO (non domenica)
-    # La domenica aziendale è R, non un festivo automatico
     try:
         festivo = data_str in FESTIVITA
     except:
@@ -154,7 +151,6 @@ def calcola_ore(turno, ora_inizio, ora_fine, data_str):
 
     si, sf = std
 
-    # ── Giorno FESTIVO con turno lavorativo → tutto strao festivo ──────────────
     if festivo:
         ini = ei if ei is not None else si
         fin = ef if ef is not None else sf
@@ -162,7 +158,6 @@ def calcola_ore(turno, ora_inizio, ora_fine, data_str):
         r["strao_fest_diurno"] = d; r["strao_fest_notturno"] = n
         return r
 
-    # ── Giorno normale ─────────────────────────────────────────────────────────
     if ei is None and ef is None:
         d,n = split_dn(si,sf); r["ore_diurne"]=d; r["ore_notturne"]=n
         return r
@@ -222,12 +217,19 @@ def init_db():
             turni_json TEXT NOT NULL,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
 
+        # ── NUOVA: tabella log accessi ─────────────────────────────────────────
+        ex(conn, """CREATE TABLE IF NOT EXISTS login_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            ip TEXT,
+            success INTEGER DEFAULT 1,
+            user_agent TEXT,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP)""")
+
         if not USE_PG:
-            # Migrazione utenti: aggiungi is_admin se manca
             u_cols = [r[1] for r in conn.execute("PRAGMA table_info(utenti)").fetchall()]
             if "is_admin" not in u_cols:
                 conn.execute("ALTER TABLE utenti ADD COLUMN is_admin INTEGER DEFAULT 0")
-            # Imposta antonino.adragna come admin
             conn.execute("UPDATE utenti SET is_admin=1 WHERE username='antonino.adragna'")
 
             cols = [r[1] for r in conn.execute("PRAGMA table_info(turni)").fetchall()]
@@ -246,11 +248,9 @@ def init_db():
                 conn.execute("INSERT INTO impostazioni SELECT 1, chiave, valore FROM impostazioni_old")
                 conn.execute("DROP TABLE impostazioni_old")
         else:
-            # PostgreSQL: aggiungi colonna is_admin se manca
             try:
                 ex(conn, "ALTER TABLE utenti ADD COLUMN IF NOT EXISTS is_admin INTEGER DEFAULT 0")
             except: conn.rollback()
-            # Imposta antonino.adragna come admin
             ex(conn, "UPDATE utenti SET is_admin=1 WHERE username='antonino.adragna'")
 
         conn.commit()
@@ -314,7 +314,6 @@ def register(payload: RegisterInput):
            (payload.username.strip().lower(), payload.nome or payload.username, hash_password(payload.password)))
         conn.commit()
         user = fetchone(conn, "SELECT id, is_admin FROM utenti WHERE username=?", (payload.username.strip().lower(),))
-        # Imposta admin se è antonino.adragna
         if payload.username.strip().lower() == "antonino.adragna":
             ex(conn, "UPDATE utenti SET is_admin=1 WHERE username=?", (payload.username.strip().lower(),))
             conn.commit()
@@ -328,13 +327,27 @@ def register(payload: RegisterInput):
         conn.close()
 
 @app.post("/api/auth/login")
-def login(form: OAuth2PasswordRequestForm = Depends()):
+def login(request: Request, form: OAuth2PasswordRequestForm = Depends()):
     conn = get_db()
     user = fetchone(conn, "SELECT * FROM utenti WHERE username=?", (form.username.strip().lower(),))
-    conn.close()
-    if not user or not verify_password(form.password, user["password_hash"]):
+    success = bool(user and verify_password(form.password, user["password_hash"]))
+
+    # ── Log dell'accesso ──────────────────────────────────────────────────────
+    try:
+        ip = request.client.host if request.client else "unknown"
+        ua = request.headers.get("user-agent", "")[:200]
+        ex(conn, "INSERT INTO login_logs (username, ip, success, user_agent) VALUES (?,?,?,?)",
+           (form.username.strip().lower(), ip, 1 if success else 0, ua))
+        conn.commit()
+    except Exception:
+        pass  # Il log non deve mai bloccare il login
+
+    if not success:
+        conn.close()
         raise HTTPException(401, "Credenziali non corrette")
+
     token = create_token(user["id"], user["username"], bool(user.get("is_admin")))
+    conn.close()
     return {"access_token": token, "token_type": "bearer", "username": user["username"], "nome": user["nome"], "is_admin": bool(user.get("is_admin"))}
 
 @app.get("/api/auth/me")
@@ -344,9 +357,7 @@ def me(current_user=Depends(get_current_user)):
     conn.close()
     if not user:
         raise HTTPException(401, "Utente non trovato")
-    # antonino.adragna è sempre admin indipendentemente dal valore nel DB
     is_admin = bool(user.get("is_admin")) or user["username"] == "antonino.adragna"
-    # Aggiorna il DB se necessario
     if user["username"] == "antonino.adragna" and not user.get("is_admin"):
         try:
             conn2 = get_db()
@@ -369,7 +380,6 @@ def toggle_admin(user_id: int, admin=Depends(require_admin)):
     conn = get_db()
     user = fetchone(conn, "SELECT is_admin, username FROM utenti WHERE id=?", (user_id,))
     if not user: raise HTTPException(404, "Utente non trovato")
-    # Non puoi rimuovere i tuoi stessi privilegi
     if user["username"] == "antonino.adragna":
         raise HTTPException(400, "Non puoi modificare l'admin principale")
     new_val = 0 if user["is_admin"] else 1
@@ -423,6 +433,44 @@ def reset_password(user_id: int, payload: ResetPasswordInput, admin=Depends(requ
     conn.commit(); conn.close()
     return {"ok": True}
 
+# ─── Admin: status sistema ────────────────────────────────────────────────────
+@app.get("/api/admin/status")
+def get_status(admin=Depends(require_admin)):
+    import time
+    start = time.time()
+    try:
+        conn = get_db()
+        fetchone(conn, "SELECT 1 as x")
+        conn.close()
+        db_ms = round((time.time() - start) * 1000, 1)
+        db_ok = True
+    except Exception:
+        db_ms = -1
+        db_ok = False
+    return {
+        "site": "ok",
+        "db": "ok" if db_ok else "error",
+        "db_ms": db_ms,
+        "db_type": "PostgreSQL (Supabase)" if USE_PG else "SQLite"
+    }
+
+# ─── Admin: log accessi ───────────────────────────────────────────────────────
+@app.get("/api/admin/login-logs")
+def get_login_logs(limit: int = 100, admin=Depends(require_admin)):
+    conn = get_db()
+    if USE_PG:
+        rows = fetchall(conn,
+            "SELECT * FROM login_logs ORDER BY timestamp DESC LIMIT %s", (limit,))
+    else:
+        rows = fetchall(conn,
+            "SELECT * FROM login_logs ORDER BY timestamp DESC LIMIT ?", (limit,))
+    conn.close()
+    # Converti timestamp in stringa se è oggetto datetime
+    for r in rows:
+        if r.get("timestamp") and not isinstance(r["timestamp"], str):
+            r["timestamp"] = r["timestamp"].isoformat()
+    return rows
+
 # ─── Admin: tabelle turni ─────────────────────────────────────────────────────
 @app.get("/api/admin/tabelle")
 def get_tabelle(user=Depends(get_current_user)):
@@ -443,9 +491,9 @@ def get_tabella(tab_id: int, user=Depends(get_current_user)):
 
 class TabellaTurniInput(BaseModel):
     nome: str
-    tipo: str  # "telefonisti" | "capisala"
+    tipo: str
     num_settimane: int
-    turni: list  # lista di liste: [[lun,mar,...,dom], [lun,...], ...]
+    turni: list
 
 @app.post("/api/admin/tabelle")
 def create_tabella(payload: TabellaTurniInput, admin=Depends(require_admin)):
@@ -475,11 +523,11 @@ def delete_tabella(tab_id: int, admin=Depends(require_admin)):
 # ─── Applica tabella turni ────────────────────────────────────────────────────
 class ApplicaTabella(BaseModel):
     tab_id: int
-    data_inizio: str       # "YYYY-MM-DD"
-    data_fine: Optional[str] = None   # "YYYY-MM-DD" — se assente usa fine anno
-    settimana_inizio: int  # quale settimana della tabella inizia (1-based)
-    giorno_inizio: int     # quale giorno della settimana inizia (0=lun, 6=dom)
-    anno_fine: int         # anno di fine (per retrocompatibilità)
+    data_inizio: str
+    data_fine: Optional[str] = None
+    settimana_inizio: int
+    giorno_inizio: int
+    anno_fine: int
 
 @app.post("/api/tabella/applica")
 def applica_tabella(payload: ApplicaTabella, user=Depends(get_current_user)):
@@ -489,21 +537,18 @@ def applica_tabella(payload: ApplicaTabella, user=Depends(get_current_user)):
     tab = fetchone(conn, "SELECT * FROM tabelle_turni WHERE id=?", (payload.tab_id,))
     if not tab: conn.close(); raise HTTPException(404, "Tabella non trovata")
 
-    settimane = json.loads(tab["turni_json"])  # lista di settimane, ogni sett. è lista di 7 turni
+    settimane = json.loads(tab["turni_json"])
     num_sett = len(settimane)
 
     data_inizio = date.fromisoformat(payload.data_inizio)
-    # Usa data_fine se fornita, altrimenti fine anno
     if payload.data_fine:
         data_fine = date.fromisoformat(payload.data_fine)
     else:
         data_fine = date(payload.anno_fine, 12, 31)
 
-    # Calcola posizione iniziale nella tabella
-    sett_idx = (payload.settimana_inizio - 1) % num_sett  # 0-based
-    giorno_idx = payload.giorno_inizio                     # 0=lun, 6=dom
+    sett_idx = (payload.settimana_inizio - 1) % num_sett
+    giorno_idx = payload.giorno_inizio
 
-    # Itera dal giorno di inizio fino al 31 dicembre
     data_cur = data_inizio
     cur_sett = sett_idx
     cur_giorno = giorno_idx
@@ -513,7 +558,6 @@ def applica_tabella(payload: ApplicaTabella, user=Depends(get_current_user)):
         turno_raw = settimane[cur_sett][cur_giorno] if cur_sett < len(settimane) else ""
         turno = turno_raw.strip().split()[0] if turno_raw.strip() else ""
 
-        # Normalizza turno
         TURNI_VALIDI = set(TURNI_CONFIG.keys())
         if turno not in TURNI_VALIDI:
             turno = None
@@ -522,7 +566,6 @@ def applica_tabella(payload: ApplicaTabella, user=Depends(get_current_user)):
             data_str = data_cur.isoformat()
             ore = calcola_ore(turno, None, None, data_str)
             tipo_rep = ""
-            # Salva gli orari standard del turno per mostrare Inizio/Fine nel calendario
             std = TURNO_ORARI.get(turno)
             if std:
                 def mins_to_hhmm(m):
@@ -566,7 +609,6 @@ def applica_tabella(payload: ApplicaTabella, user=Depends(get_current_user)):
                     ore["strao_fest_diurno"],ore["strao_fest_notturno"],tipo_rep or None,None))
             inseriti += 1
 
-        # Avanza al giorno successivo
         cur_giorno += 1
         if cur_giorno >= 7:
             cur_giorno = 0
@@ -686,7 +728,6 @@ def get_riepilogo(anno: int, user=Depends(get_current_user)):
         if rep=="feriale": m["reperibilita_feriale"]+=1
         elif rep=="semifestiva": m["reperibilita_semifestiva"]+=1
         elif rep=="festiva": m["reperibilita_festiva"]+=1
-        # Festività in giorno di riposo (R o RC in giorno festivo da calendario)
         if t in ("R", "RC") and d_str in FESTIVITA:
             m["fest_riposo"] += 1
     return mesi
@@ -744,7 +785,6 @@ def get_busta_paga(anno: int, mese: int, user=Depends(get_current_user)):
         elif rep=="semifestiva": tot["rep_semifestiva"]+=1
         elif rep=="festiva": tot["rep_festiva"]+=1
         if t in NOTTE_ASSENZA: tot["notte_assenza"] += NOTTE_ASSENZA[t]
-        # Festività in giorno di riposo
         if t in ("R", "RC") and d_str in FESTIVITA:
             tot["fest_riposo"] += 1
 
