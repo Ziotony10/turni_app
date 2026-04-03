@@ -1352,7 +1352,7 @@ window.fetch = function(url, opts={}) {
 // Controlla login all'avvio
 
 (async function() {
-  if (!getToken()) { window.location.href='/'; return; }
+  if (!getToken()) { window.location.href='/login.html'; return; }
   try {
     const me = await fetch('/api/auth/me').then(r => r.json());
     if (!me || !me.id) { logout(); return; }
