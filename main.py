@@ -315,28 +315,32 @@ async def log_page_visit(request: Request):
     bot_keywords = ["bot", "crawler", "spider", "ping", "monitor", "uptime"]
     is_bot = any(kw in user_agent.lower() for kw in bot_keywords)
     try:
-        supabase.table("login_page_visits").insert({
-            "ip_address": ip,
-            "user_agent": user_agent,
-            "referrer": referrer,
-            "is_bot": is_bot,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }).execute()
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO login_page_visits (ip_address, user_agent, referrer, is_bot) VALUES (%s, %s, %s, %s)",
+            (ip, user_agent, referrer, is_bot)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
     except Exception as e:
         print(f"Errore log visita: {e}")
     return {"status": "ok"}
-
-# ─── Read admin endpoints ───────────────────────────────────────────────────────────
+# ─── Access page endpoints ───────────────────────────────────────────────────────────
 
 @app.get("/api/admin/page-visits")
 async def get_page_visits(current_user: dict = Depends(get_current_user)):
-    result = supabase.table("login_page_visits") \
-        .select("*") \
-        .order("timestamp", desc=True) \
-        .limit(200) \
-        .execute()
-    return result.data
-
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM login_page_visits ORDER BY timestamp DESC LIMIT 200")
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return rows
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ─── Auth endpoints ───────────────────────────────────────────────────────────
 @app.post("/api/auth/register")
