@@ -315,33 +315,25 @@ async def log_page_visit(request: Request):
     bot_keywords = ["bot", "crawler", "spider", "ping", "monitor", "uptime"]
     is_bot = any(kw in user_agent.lower() for kw in bot_keywords)
     try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO login_page_visits (ip_address, user_agent, referrer, is_bot) VALUES (%s, %s, %s, %s)",
-            (ip, user_agent, referrer, is_bot)
-        )
+        conn = get_db()
+        ex(conn, "INSERT INTO login_page_visits (ip_address, user_agent, referrer, is_bot) VALUES (?, ?, ?, ?)",
+           (ip, user_agent, referrer, is_bot))
         conn.commit()
-        cur.close()
         conn.close()
     except Exception as e:
         print(f"Errore log visita: {e}")
     return {"status": "ok"}
-# ─── Access page endpoints ───────────────────────────────────────────────────────────
+
 
 @app.get("/api/admin/page-visits")
 async def get_page_visits(current_user: dict = Depends(get_current_user)):
     try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM login_page_visits ORDER BY timestamp DESC LIMIT 200")
-        rows = cur.fetchall()
-        cur.close()
+        conn = get_db()
+        rows = fetchall(conn, "SELECT * FROM login_page_visits ORDER BY timestamp DESC LIMIT 200")
         conn.close()
         return rows
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 # ─── Auth endpoints ───────────────────────────────────────────────────────────
 @app.post("/api/auth/register")
 def register(payload: RegisterInput):
