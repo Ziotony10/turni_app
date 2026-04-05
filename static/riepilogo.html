@@ -91,9 +91,7 @@
 
   .loading { text-align:center; padding:80px; color:var(--muted); font-size:1rem; }
 
-  @media (max-width: 768px) {}
-    
-
+  @media (max-width: 768px) {
     /* Riepilogo tabella mobile */
     .riepilogo-table { font-size: 0.65rem; }
     .riepilogo-table th, .riepilogo-table td { padding: 6px 4px; }
@@ -105,79 +103,31 @@
     .riepilogo-table td.tot-col { min-width: 44px; }
   }
 
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  @media (max-width: 768px) {
-    
-  }
-  
-  
-  
-  
-  @media (max-width:768px) {  }
-
-  
-  
   /* Titolo in contenitore a larghezza fissa: nessuno spostamento al cambio pagina */
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  @media (max-width: 768px) {
-    
-    
-    
-    
-    
-  }
-
 
   /* ── BOTTOM NAV MOBILE ── */
   .bottom-nav {
     display: none;
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     background: var(--card); border-top: 1px solid var(--border);
-    padding: 6px 0 env(safe-area-inset-bottom, 6px);
+    padding: 6px 0 env(safe-area-inset-bottom, 8px);
   }
   .bottom-nav-inner {
     display: flex; justify-content: space-around; align-items: stretch;
   }
   .bottom-nav a {
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-    color: var(--muted); text-decoration: none; font-size: 0.6rem;
-    font-weight: 600; padding: 4px 6px; border-radius: 6px; flex: 1;
-    text-align: center; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--muted); text-decoration: none; font-size: 0.65rem;
+    font-weight: 600; padding: 6px 4px; border-radius: 8px; flex: 1;
+    text-align: center; min-width: 0; margin: 0 2px; transition: color .15s;
   }
   .bottom-nav a.active { color: var(--accent); }
-  .bottom-nav a span.icon { font-size: 1.2rem; line-height: 1; }
+  .bottom-nav a span.icon { font-size: 1.35rem; line-height: 1.2; }
   #adminMobileBtn { display: none; color: #F59E0B !important; }
   @media (max-width: 768px) {
     .bottom-nav { display: block; }
-    body { padding-bottom: 64px; }
+    body { padding-bottom: 72px; }
   }
-
 
   /* ── HEADER ── */
   header {
@@ -703,6 +653,6 @@ async function doChangePwd() {
 </script>
 
 
-<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"  class="active"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="#" onclick="openAccModal();return false"><span class="icon">👤</span><span>Account</span></a><a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
+<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"  class="active"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a><a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
 </body>
 </html>

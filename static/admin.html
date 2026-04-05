@@ -240,9 +240,71 @@
   .log-scroll::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
   .log-scroll::-webkit-scrollbar-track { background:transparent; }
 
-  @media(max-width:600px) {
-    .status-grid { grid-template-columns:1fr; }
+  /* ── BOTTOM NAV MOBILE ── */
+  .bottom-nav {
+    display:none; position:fixed; bottom:0; left:0; right:0; z-index:50;
+    background:var(--card); border-top:1px solid var(--border);
+    padding:6px 0 env(safe-area-inset-bottom,8px);
+  }
+  .bottom-nav-inner { display:flex; justify-content:space-around; align-items:stretch; }
+  .bottom-nav a {
+    display:flex; flex-direction:column; align-items:center; gap:3px;
+    color:var(--muted); text-decoration:none; font-size:0.65rem;
+    font-weight:600; padding:6px 4px; flex:1; text-align:center; min-width:0;
+    border-radius:8px; margin:0 2px; transition:color .15s;
+  }
+  .bottom-nav a.active { color:var(--accent); }
+  .bottom-nav a.admin-link { color:#F59E0B !important; }
+  .bottom-nav a span.icon { font-size:1.35rem; line-height:1.2; }
+
+  /* ── MOBILE RESPONSIVE ── */
+  @media(max-width:768px) {
+    body { padding-bottom:72px; }
+    .bottom-nav { display:block; }
+    .container { padding:0 12px; margin:16px auto; gap:16px; }
+    .section-body { padding:12px; }
+    .section-head { padding:10px 14px; font-size:0.75rem; }
+
+    /* Status grid: 3 colonne → 1 col su mobile */
+    .status-grid { grid-template-columns:1fr; gap:10px; }
+    .status-item { padding:14px 12px; display:flex; align-items:center; gap:12px; text-align:left; }
+    .status-label { margin-bottom:2px; font-size:0.68rem; }
+    .status-row { justify-content:flex-start; margin-bottom:2px; }
+
+    /* Log accessi: nascondi colonne extra, scroll orizzontale */
+    .log-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .log-table { min-width:480px; }
+    .log-table th, .log-table td { padding:8px 10px; font-size:0.78rem; }
+
+    /* Tabella utenti su mobile */
+    table th, table td { padding:8px 10px; font-size:0.8rem; }
+    .btn-sm { padding:5px 8px; font-size:0.75rem; }
+
+    /* Form tabelle: 3 col → 1 col */
+    .form-row { grid-template-columns:1fr; gap:10px; }
+
+    /* Week grid: scroll orizzontale invece di comprimere */
+    .week-block { overflow-x:auto; -webkit-overflow-scrolling:touch; padding:10px; }
+    .week-grid { min-width:360px; }
+    .week-label { min-width:360px; }
+    .day-cell { min-height:44px; padding:4px 1px; }
+    .day-cell .dc-turno { font-size:0.72rem; }
+    .day-cell .dc-label { font-size:0.58rem; }
+
+    /* Turno picker: full-width dal basso su mobile */
+    .turno-picker {
+      position:fixed !important; bottom:72px !important; top:auto !important;
+      left:12px !important; right:12px !important; max-width:none !important;
+      width:auto !important;
+    }
+
+    /* Tabelle nascondi colonne non essenziali */
+    .log-table th:nth-child(4), .log-table td:nth-child(4),
     .log-table th:nth-child(5), .log-table td:nth-child(5) { display:none; }
+  }
+
+  @media(max-width:480px) {
+    table th:nth-child(3), table td:nth-child(3) { display:none; }
   }
 </style>
 </head>
@@ -870,6 +932,9 @@ async function deleteTabella(id, nome) {
   await loadAll();
 }
 
+// ── BOTTOM NAV: mostra Admin solo per admin ────────────────────────────────
+// (il link Admin è sempre visibile nella bottom-nav di questa pagina)
+
 // ── USER MENU ────────────────────────────────────────────────────────────────
 function toggleUserMenu(e) {
   e.stopPropagation();
@@ -913,5 +978,13 @@ async function doChangePwd() {
   }
 }
 </script>
+
+<nav class="bottom-nav"><div class="bottom-nav-inner">
+  <a href="/"><span class="icon">🗓</span><span>Turni</span></a>
+  <a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a>
+  <a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a>
+  <a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a>
+  <a href="/admin.html" class="active admin-link"><span class="icon">🔧</span><span>Admin</span></a>
+</div></nav>
 </body>
 </html>
