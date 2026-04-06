@@ -237,12 +237,6 @@ flex: 1; gap: 2px;
 .msb-accent { color: var(–accent); }
 .msb-sep   { width: 1px; height: 28px; background: var(–border); flex-shrink: 0; }
 
-@media (max-width: 768px) {
-.mobile-stats-bar { display: flex !important; }
-/* Su mobile la sidebar diventa griglia 2×2 e va dopo il calendario,
-NON sticky — l’utente la vede scorrendo */
-}
-
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -257,11 +251,15 @@ NON sticky — l’utente la vede scorrendo */
 @media (max-width: 768px) {
 
 ```
-/* ── LAYOUT BASE ── */
-body { height: auto; overflow: auto; }
-.main {
-  flex-direction: column; flex: none;
-  overflow: visible; min-height: 0;
+/* ── LAYOUT BASE: !important per battere #mainContent (id specificity) ── */
+body { height: auto !important; overflow: auto !important; }
+
+#mainContent, .main {
+  flex-direction: column !important;
+  flex: none !important;
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 0 !important;
 }
 
 /* ── MONTH TABS ── */
@@ -271,14 +269,16 @@ body { height: auto; overflow: auto; }
 /* ── CALENDARIO: solo 4 colonne → Data, Giorno, Turno, Ore ── */
 .cal-wrap {
   order: 1;
-  overflow-x: hidden;   /* niente scroll orizz. con 4 colonne */
+  flex: none !important;
+  height: auto !important;
+  overflow: visible !important;
   width: 100%;
 }
-table { table-layout: fixed; width: 100%; min-width: 0 !important; }
+table { table-layout: fixed !important; width: 100% !important; min-width: 0 !important; }
 th, td { font-size: 0.8rem; padding: 0; }
 
-/* Righe: target touch 48px */
-tr.day-row td { padding: 12px 10px; min-height: 48px; }
+/* Righe: target touch */
+tr.day-row td { padding: 11px 10px; }
 th { padding: 8px 10px; }
 
 /* Nascondi: Inizio(4), Fine(5), Diurne(7), Nott.(8), Str.D(9), Str.N(10), Rep(11), Note(12) */
@@ -293,26 +293,21 @@ th:nth-child(12), td:nth-child(12)
 { display: none !important; }
 
 /* Larghezze colonne mobili */
-th:nth-child(1), td:nth-child(1) { width: 68px; }   /* Data */
-th:nth-child(2), td:nth-child(2) { width: 42px; }   /* Giorno */
-th:nth-child(3), td:nth-child(3) { width: auto; }   /* Turno */
-th:nth-child(6), td:nth-child(6) { width: 52px; }   /* Ore tot */
+th:nth-child(1), td:nth-child(1) { width: 64px; }
+th:nth-child(2), td:nth-child(2) { width: 40px; }
+th:nth-child(3), td:nth-child(3) { width: auto; }
+th:nth-child(6), td:nth-child(6) { width: 54px; }
 
-/* Data: evidenzia di più */
-td.cell-data { font-size: 0.88rem; font-weight: 700; color: var(--text); }
-/* Giorno: compatto */
-td.cell-giorno { font-size: 0.75rem; }
-/* Turno badge: centrato e leggibile */
+/* Celle */
+td.cell-data { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+td.cell-giorno { font-size: 0.73rem; }
 td.cell-turno { text-align: center; }
-/* Ore: accent color */
-td:nth-child(6) { font-size: 0.85rem; font-weight: 700; color: var(--accent); text-align: center; }
-
-/* Today: più visibile */
+td:nth-child(6) { font-size: 0.83rem; font-weight: 700; color: var(--accent); text-align: center; }
 tr.today td { background: rgba(59,130,246,0.12) !important; }
 tr.is-festivo td.cell-data { color: #EF4444; }
 tr.is-sabato  td.cell-data { color: #F59E0B; }
 
-/* ── SIDEBAR → griglia 2×2 sotto il calendario ── */
+/* ── SIDEBAR: griglia 2x2 sotto il calendario ── */
 .sidebar {
   order: 2;
   width: 100%; min-width: 0;
@@ -321,51 +316,41 @@ tr.is-sabato  td.cell-data { color: #F59E0B; }
   overflow: visible;
   padding: 12px 10px; gap: 8px;
 }
-/* Header mese: full width */
 .sidebar > div:first-child {
   width: 100%;
   padding-bottom: 4px;
   border-bottom: 1px solid var(--border);
   margin-bottom: 2px;
 }
-/* Stat cards: 2 per riga */
-.stat-card {
-  flex: 1 1 calc(50% - 4px);
-  min-width: 140px;
-  padding: 10px 12px;
-}
+.stat-card { flex: 1 1 calc(50% - 4px); min-width: 140px; padding: 10px 12px; }
 .stat-row { padding: 3px 0; }
 .stat-row span:first-child { font-size: 0.75rem; }
 .stat-row span:last-child  { font-size: 0.82rem; }
 .sidebar h3 { font-size: 0.68rem; }
 
-/* ── MODAL: sale dal basso, full width ── */
-.overlay { align-items: flex-end; padding: 0; }
+/* ── MODAL: sale dal basso ── */
+.overlay { align-items: flex-end !important; padding: 0; }
 .modal {
   width: 100%; max-width: 100%;
   border-radius: 20px 20px 0 0;
   padding: 20px 16px calc(24px + env(safe-area-inset-bottom, 0px));
   max-height: 92vh; overflow-y: auto;
 }
-/* Titolo modal più compatto */
 .modal h2 { font-size: 1rem; margin-bottom: 14px; }
-
-/* Turno buttons: 5 per riga su mobile */
 .turno-grid { grid-template-columns: repeat(5, 1fr); gap: 5px; }
 .turno-btn { padding: 8px 2px; font-size: 0.72rem; border-radius: 8px; min-height: 40px; }
-
-/* Time picker: verticale invece di fianco-a-fianco */
 .time-row { flex-direction: column; gap: 12px; }
 .time-arrow { transform: rotate(90deg); text-align: center; font-size: 1.2rem; margin: -4px 0; }
 .time-block { flex: none; width: 100%; }
 .time-display { font-size: 2rem; }
 .time-btns { gap: 4px; }
 .time-adj { padding: 7px 4px; font-size: 0.7rem; flex: 1; }
-
-/* Form note + smart working */
 .form-grid { grid-template-columns: 1fr; gap: 10px; }
 .modal-actions { gap: 8px; margin-top: 16px; }
 .modal-actions button { padding: 12px; font-size: 0.9rem; }
+
+/* ── QUICK STATS BAR ── */
+.mobile-stats-bar { display: flex !important; }
 ```
 
 }
@@ -676,7 +661,7 @@ font-size:0.9rem; font-weight:600; cursor:pointer;
 
 <div id="mainContent" class="main">
   <!-- Quick stats strip: visibile solo su mobile, sopra la tabella -->
-  <div class="mobile-stats-bar" id="mobileStatsBar" style="display:none">
+  <div class="mobile-stats-bar" id="mobileStatsBar">
     <div class="msb-item"><span class="msb-label">Ore lav.</span><span class="msb-val" id="msbOreOrd">—</span></div>
     <div class="msb-sep"></div>
     <div class="msb-item"><span class="msb-label">Straordinari</span><span class="msb-val msb-accent" id="msbStrao">—</span></div>
