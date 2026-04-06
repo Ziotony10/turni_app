@@ -156,6 +156,13 @@ text-align: center; transition: transform 0.1s, box-shadow 0.1s;
 /* ── LOADING ── */
 .loading { text-align: center; padding: 60px; color: var(–muted); }
 
+/* Su mobile il loading è compatto e la sidebar dash invisibile */
+@media (max-width: 768px) {
+.loading { padding: 28px 20px; font-size: 0.85rem; }
+/* Nasconde il placeholder — della sidebar fino al caricamento dati */
+.sidebar > .loading { display: none; }
+}
+
 .rep-toggle {
 display: flex; align-items: center; gap: 10px;
 background: var(–card2); border: 1px solid var(–border);
@@ -217,25 +224,29 @@ td.cell-turno .cell-orario-hint { display: block; }
 
 /* ── MOBILE QUICK-STATS BAR ── */
 .mobile-stats-bar {
-display: none; /* mostrata via JS solo su mobile */
+display: none;
 order: 0;
 width: 100%;
 background: var(–card);
 border-bottom: 1px solid var(–border);
-padding: 10px 12px;
+padding: 8px 10px;
 flex-direction: row;
 align-items: center;
 gap: 0;
-position: sticky; top: 0; z-index: 5;
 }
 .msb-item {
 display: flex; flex-direction: column; align-items: center;
-flex: 1; gap: 2px;
+flex: 1; gap: 3px; min-width: 0;
 }
-.msb-label { font-size: 0.6rem; color: var(–muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-.msb-val   { font-size: 0.9rem; font-weight: 800; color: var(–text); }
+.msb-label {
+font-size: 0.56rem; color: var(–muted); font-weight: 700;
+text-transform: uppercase; letter-spacing: .03em;
+white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+max-width: 100%;
+}
+.msb-val   { font-size: 0.88rem; font-weight: 800; color: var(–text); white-space: nowrap; }
 .msb-accent { color: var(–accent); }
-.msb-sep   { width: 1px; height: 28px; background: var(–border); flex-shrink: 0; }
+.msb-sep   { width: 1px; height: 26px; background: var(–border); flex-shrink: 0; margin: 0 2px; }
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
@@ -265,6 +276,8 @@ body { height: auto !important; overflow: auto !important; }
 /* ── MONTH TABS ── */
 .month-tabs { padding: 8px 10px; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .month-tab { padding: 6px 11px; font-size: 0.76rem; flex-shrink: 0; }
+/* Nascondi cancella e importa su mobile — troppo ingombranti */
+#cancellaBtn, #importaBtn { display: none !important; }
 
 /* ── CALENDARIO: solo 4 colonne → Data, Giorno, Turno, Ore ── */
 .cal-wrap {
@@ -426,12 +439,20 @@ height: 32px; white-space: nowrap;
 .btn-logout:hover { background: #EF4444; color: white; }
 .user-label { font-size: 0.8rem; color: var(–muted); white-space: nowrap; }
 @media (max-width: 768px) {
-header { height: 48px; padding: 0 12px; gap: 8px; }
-.page-title { width: auto; min-width: 0; max-width: 160px; font-size: 0.9rem; }
+header { height: 48px; padding: 0 12px; gap: 8px; overflow: hidden; }
+.page-title {
+width: auto; min-width: 0; flex-shrink: 1;
+font-size: 0.88rem; max-width: 140px;
+}
 .top-nav { display: none !important; }
 .user-label { display: none; }
-.header-controls select { display: none; }
-.header-controls button { padding: 4px 8px; font-size: 0.78rem; }
+/* Nascondi i pulsanti anno e select su mobile — l’anno si cambia dal select compatto */
+.header-controls > button { display: none; }
+.header-controls select {
+display: inline-block !important;
+width: 70px; padding: 4px 6px;
+font-size: 0.8rem; height: 30px;
+}
 .btn-logout { padding: 4px 8px; font-size: 0.78rem; }
 }
 
