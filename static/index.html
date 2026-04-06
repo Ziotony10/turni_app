@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="it">
 <head>
 <meta charset="UTF-8">
@@ -22,512 +21,524 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 
-.nav-controls select,
+  
+  
+  
+  
 
-/* ── MONTH TABS ── */
-.month-tabs {
-display: flex; gap: 4px; padding: 12px 24px;
-background: var(–card); border-bottom: 1px solid var(–border);
-overflow-x: auto;
-}
-.month-tab {
-padding: 6px 14px; border-radius: 20px; cursor: pointer;
-font-size: 0.82rem; font-weight: 600; border: 1px solid transparent;
-transition: all 0.15s; white-space: nowrap; color: var(–muted);
-}
-.month-tab:hover { color: var(–text); background: var(–card2); }
-.month-tab.active { background: var(–accent); color: white; border-color: var(–accent); }
+  
+  .nav-controls select, 
+  
 
-/* ── MAIN LAYOUT ── */
-.main, #mainContent {
-display: flex; flex-direction: row; gap: 0;
-flex: 1;
-overflow: hidden;
-min-height: 0;
-}
+  /* ── MONTH TABS ── */
+  .month-tabs {
+    display: flex; gap: 4px; padding: 12px 24px;
+    background: var(--card); border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .month-tab {
+    padding: 6px 14px; border-radius: 20px; cursor: pointer;
+    font-size: 0.82rem; font-weight: 600; border: 1px solid transparent;
+    transition: all 0.15s; white-space: nowrap; color: var(--muted);
+  }
+  .month-tab:hover { color: var(--text); background: var(--card2); }
+  .month-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-/* ── CALENDAR TABLE ── */
-.cal-wrap { flex: 1; overflow-y: auto; overflow-x: auto; padding: 0; }
-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-th {
-background: var(–card2); color: var(–muted); font-size: 0.73rem;
-font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-padding: 10px 8px; text-align: center; position: sticky; top: 0; z-index: 2;
-white-space: nowrap; overflow: hidden;
-}
-th:first-child, th:nth-child(2) { text-align: left; }
-tr.day-row { cursor: pointer; transition: background 0.1s; }
-tr.day-row:hover td { background: rgba(255,255,255,0.04) !important; }
-td {
-padding: 8px 8px; border-bottom: 1px solid var(–border);
-font-size: 0.85rem; vertical-align: middle;
-text-align: center; white-space: nowrap; overflow: hidden;
-}
-td:first-child, td:nth-child(2) { text-align: left; }
+  /* ── MAIN LAYOUT ── */
+  .main, #mainContent {
+    display: flex; flex-direction: row; gap: 0;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+  }
 
-/* Larghezze colonne fisse */
-th:nth-child(1),  td:nth-child(1)  { width: 72px;  }  /* Data */
-th:nth-child(2),  td:nth-child(2)  { width: 52px;  }  /* Giorno */
-th:nth-child(3),  td:nth-child(3)  { width: 72px;  }  /* Turno */
-th:nth-child(4),  td:nth-child(4)  { width: 58px;  }  /* Inizio */
-th:nth-child(5),  td:nth-child(5)  { width: 58px;  }  /* Fine */
-th:nth-child(6),  td:nth-child(6)  { width: 58px;  }  /* Ore Tot */
-th:nth-child(7),  td:nth-child(7)  { width: 54px;  }  /* Diurne */
-th:nth-child(8),  td:nth-child(8)  { width: 54px;  }  /* Notturne */
-th:nth-child(9),  td:nth-child(9)  { width: 56px;  }  /* Strao D */
-th:nth-child(10), td:nth-child(10) { width: 56px;  }  /* Strao N */
-th:nth-child(11), td:nth-child(11) { width: 40px;  }  /* Rep */
-th:nth-child(12), td:nth-child(12) { width: auto; text-align: left; }  /* Note */
+  /* ── CALENDAR TABLE ── */
+  .cal-wrap { flex: 1; overflow-y: auto; overflow-x: auto; padding: 0; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  th {
+    background: var(--card2); color: var(--muted); font-size: 0.73rem;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 10px 8px; text-align: center; position: sticky; top: 0; z-index: 2;
+    white-space: nowrap; overflow: hidden;
+  }
+  th:first-child, th:nth-child(2) { text-align: left; }
+  tr.day-row { cursor: pointer; transition: background 0.1s; }
+  tr.day-row:hover td { background: rgba(255,255,255,0.04) !important; }
+  td {
+    padding: 8px 8px; border-bottom: 1px solid var(--border);
+    font-size: 0.85rem; vertical-align: middle;
+    text-align: center; white-space: nowrap; overflow: hidden;
+  }
+  td:first-child, td:nth-child(2) { text-align: left; }
 
-td.cell-data   { font-weight: 600; color: var(–muted); }
-td.cell-giorno { color: var(–muted); font-size: 0.78rem; }
-td.cell-note   { color: var(–muted); font-size: 0.8rem; text-align: left !important; }
+  /* Larghezze colonne fisse */
+  th:nth-child(1),  td:nth-child(1)  { width: 72px;  }  /* Data */
+  th:nth-child(2),  td:nth-child(2)  { width: 52px;  }  /* Giorno */
+  th:nth-child(3),  td:nth-child(3)  { width: 72px;  }  /* Turno */
+  th:nth-child(4),  td:nth-child(4)  { width: 58px;  }  /* Inizio */
+  th:nth-child(5),  td:nth-child(5)  { width: 58px;  }  /* Fine */
+  th:nth-child(6),  td:nth-child(6)  { width: 58px;  }  /* Ore Tot */
+  th:nth-child(7),  td:nth-child(7)  { width: 54px;  }  /* Diurne */
+  th:nth-child(8),  td:nth-child(8)  { width: 54px;  }  /* Notturne */
+  th:nth-child(9),  td:nth-child(9)  { width: 56px;  }  /* Strao D */
+  th:nth-child(10), td:nth-child(10) { width: 56px;  }  /* Strao N */
+  th:nth-child(11), td:nth-child(11) { width: 40px;  }  /* Rep */
+  th:nth-child(12), td:nth-child(12) { width: auto; text-align: left; }  /* Note */
 
-.badge {
-display: inline-block; padding: 3px 8px; border-radius: 20px;
-font-size: 0.78rem; font-weight: 700; color: white; letter-spacing: 0.02em;
-}
+  td.cell-data   { font-weight: 600; color: var(--muted); }
+  td.cell-giorno { color: var(--muted); font-size: 0.78rem; }
+  td.cell-note   { color: var(--muted); font-size: 0.8rem; text-align: left !important; }
 
-tr.is-festivo td.cell-data { color: #EF4444; }
-tr.is-sabato  td.cell-data { color: #F59E0B; }
-tr.today td { background: rgba(59,130,246,0.07); }
+  .badge {
+    display: inline-block; padding: 3px 8px; border-radius: 20px;
+    font-size: 0.78rem; font-weight: 700; color: white; letter-spacing: 0.02em;
+  }
 
-/* ── SIDEBAR ── */
-.sidebar {
-width: 260px; min-width: 260px; border-left: 1px solid var(–border);
-padding: 16px 14px; overflow-y: auto;
-display: flex; flex-direction: column; gap: 14px;
-flex-shrink: 0;
-}
-.sidebar h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(–muted); margin-bottom: 4px; }
-.stat-card {
-background: var(–card2); border-radius: var(–radius);
-padding: 12px 14px; border: 1px solid var(–border);
-}
-.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
-.stat-row span:first-child { font-size: 0.8rem; color: var(–muted); }
-.stat-row span:last-child  { font-size: 0.88rem; font-weight: 700; }
-.stat-row.highlight span:last-child { color: var(–accent); }
+  tr.is-festivo td.cell-data { color: #EF4444; }
+  tr.is-sabato  td.cell-data { color: #F59E0B; }
+  tr.today td { background: rgba(59,130,246,0.07); }
 
-/* ── MODAL ── */
-.overlay {
-display: none; position: fixed; inset: 0;
-background: rgba(0,0,0,0.6); z-index: 100;
-align-items: center; justify-content: center;
-}
-.overlay.open { display: flex; }
-.modal {
-background: var(–card); border: 1px solid var(–border);
-border-radius: 14px; padding: 28px; width: 420px; max-width: 95vw;
-}
-.modal h2 { font-size: 1.1rem; margin-bottom: 20px; }
-.modal h2 small { display: block; color: var(–muted); font-size: 0.8rem; font-weight: 400; margin-top: 2px; }
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 260px; min-width: 260px; border-left: 1px solid var(--border);
+    padding: 16px 14px; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 14px;
+    flex-shrink: 0;
+  }
+  .sidebar h3 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 4px; }
+  .stat-card {
+    background: var(--card2); border-radius: var(--radius);
+    padding: 12px 14px; border: 1px solid var(--border);
+  }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+  .stat-row span:first-child { font-size: 0.8rem; color: var(--muted); }
+  .stat-row span:last-child  { font-size: 0.88rem; font-weight: 700; }
+  .stat-row.highlight span:last-child { color: var(--accent); }
 
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.form-full { grid-column: 1 / -1; }
+  /* ── MODAL ── */
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6); z-index: 100;
+    align-items: center; justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px; width: 420px; max-width: 95vw;
+  }
+  .modal h2 { font-size: 1.1rem; margin-bottom: 20px; }
+  .modal h2 small { display: block; color: var(--muted); font-size: 0.8rem; font-weight: 400; margin-top: 2px; }
 
-label { display: block; font-size: 0.78rem; color: var(–muted); margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-select, input[type=number], input[type=text] {
-width: 100%; background: var(–card2); border: 1px solid var(–border);
-color: var(–text); border-radius: 8px; padding: 8px 10px;
-font-size: 0.9rem; outline: none; transition: border-color 0.15s;
-}
-select:focus, input:focus { border-color: var(–accent); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-full { grid-column: 1 / -1; }
 
-/* Turno picker */
-.turno-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.turno-btn {
-padding: 6px 4px; border-radius: 8px; border: 2px solid transparent;
-cursor: pointer; font-size: 0.8rem; font-weight: 700; color: white;
-text-align: center; transition: transform 0.1s, box-shadow 0.1s;
-}
-.turno-btn:hover { transform: scale(1.05); }
-.turno-btn.selected { border-color: white; box-shadow: 0 0 0 3px rgba(255,255,255,0.3); }
+  label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  select, input[type=number], input[type=text] {
+    width: 100%; background: var(--card2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 8px 10px;
+    font-size: 0.9rem; outline: none; transition: border-color 0.15s;
+  }
+  select:focus, input:focus { border-color: var(--accent); }
 
-.modal-actions { display: flex; gap: 10px; margin-top: 22px; }
-.btn { flex: 1; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; border: none; }
-.btn-primary { background: var(–accent); color: white; }
-.btn-primary:hover { background: #2563EB; }
-.btn-danger { background: #EF444420; color: #EF4444; border: 1px solid #EF444440; }
-.btn-danger:hover { background: #EF4444; color: white; }
-.btn-cancel { background: var(–card2); color: var(–muted); border: 1px solid var(–border); }
-.btn-cancel:hover { color: var(–text); }
+  /* Turno picker */
+  .turno-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .turno-btn {
+    padding: 6px 4px; border-radius: 8px; border: 2px solid transparent;
+    cursor: pointer; font-size: 0.8rem; font-weight: 700; color: white;
+    text-align: center; transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .turno-btn:hover { transform: scale(1.05); }
+  .turno-btn.selected { border-color: white; box-shadow: 0 0 0 3px rgba(255,255,255,0.3); }
 
-/* ── LOADING ── */
-.loading { text-align: center; padding: 60px; color: var(–muted); }
+  .modal-actions { display: flex; gap: 10px; margin-top: 22px; }
+  .btn { flex: 1; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 0.9rem; font-weight: 600; border: none; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #2563EB; }
+  .btn-danger { background: #EF444420; color: #EF4444; border: 1px solid #EF444440; }
+  .btn-danger:hover { background: #EF4444; color: white; }
+  .btn-cancel { background: var(--card2); color: var(--muted); border: 1px solid var(--border); }
+  .btn-cancel:hover { color: var(--text); }
 
-/* Su mobile il loading è compatto e la sidebar dash invisibile */
-@media (max-width: 768px) {
-.loading { padding: 28px 20px; font-size: 0.85rem; }
-/* Nasconde il placeholder — della sidebar fino al caricamento dati */
-.sidebar > .loading { display: none; }
-}
+  /* ── LOADING ── */
+  .loading { text-align: center; padding: 60px; color: var(--muted); }
 
-.rep-toggle {
-display: flex; align-items: center; gap: 10px;
-background: var(–card2); border: 1px solid var(–border);
-border-radius: 8px; padding: 10px 14px; cursor: pointer;
-transition: border-color 0.15s;
-}
-.rep-toggle:hover { border-color: var(–accent); }
-.rep-toggle.active { border-color: #F59E0B; background: rgba(245,158,11,0.08); }
-.rep-dot {
-width: 12px; height: 12px; border-radius: 50%;
-background: var(–border); transition: background 0.2s;
-flex-shrink: 0;
-}
-.rep-toggle.active .rep-dot { background: #F59E0B; }
-#repLabel { font-size: 0.9rem; font-weight: 600; }
-/* ── TIME PICKER ── */
-.time-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-.time-block {
-flex: 1; background: var(–card2); border: 2px solid var(–border);
-border-radius: 12px; padding: 12px; text-align: center; transition: border-color 0.2s, background 0.2s;
-}
-.time-block.modified-early { border-color: #F59E0B; background: rgba(245,158,11,0.06); }
-.time-block.modified-late  { border-color: #EF4444; background: rgba(239,68,68,0.06); }
-.time-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .06em; color: var(–muted); margin-bottom: 6px; }
-.time-display {
-font-size: 2rem; font-weight: 800; letter-spacing: .04em;
-color: var(–text); font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 2px;
-}
-.time-hint { font-size: 0.7rem; color: var(–muted); margin-bottom: 10px; min-height: 14px; }
-.time-btns { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; margin-bottom: 8px; }
-.time-adj {
-background: var(–bg); border: 1px solid var(–border); color: var(–muted);
-border-radius: 6px; padding: 5px 2px; font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: all 0.12s;
-}
-.time-adj:hover { background: var(–accent); border-color: var(–accent); color: white; }
-.time-reset { background: none; border: none; color: var(–border); font-size: 0.7rem; cursor: pointer; padding: 0; }
-.time-reset:hover { color: #EF4444; }
-.time-arrow { color: var(–muted); font-size: 1.4rem; flex-shrink: 0; }
-.time-display { cursor: pointer; }
-.time-display:hover { opacity: 0.75; }
-.time-edit-input {
-display: none;
-width: 100%; background: var(–bg); border: 2px solid var(–accent);
-color: var(–text); border-radius: 8px; padding: 4px 8px;
-font-size: 1.4rem; font-weight: 800; text-align: center;
-outline: none; margin-bottom: 4px;
-}
-.time-edit-input.visible { display: block; }
+  /* Su mobile il loading è compatto e la sidebar dash invisibile */
+  @media (max-width: 768px) {
+    .loading { padding: 28px 20px; font-size: 0.85rem; }
+    /* Nasconde il placeholder — della sidebar fino al caricamento dati */
+    .sidebar > .loading { display: none; }
+  }
 
-/* ── CELL ORARIO MOBILE: sotto il turno badge ── */
-td.cell-turno { vertical-align: middle; }
-td.cell-turno .cell-orario-hint {
-display: none; /* visibile solo su mobile via media query */
-font-size: 0.65rem; color: var(–muted); margin-top: 2px; white-space: nowrap;
-}
-@media (max-width: 768px) {
-td.cell-turno .cell-orario-hint { display: block; }
-}
+  .rep-toggle {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .rep-toggle:hover { border-color: var(--accent); }
+  .rep-toggle.active { border-color: #F59E0B; background: rgba(245,158,11,0.08); }
+  .rep-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--border); transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .rep-toggle.active .rep-dot { background: #F59E0B; }
+  #repLabel { font-size: 0.9rem; font-weight: 600; }
+  /* ── TIME PICKER ── */
+  .time-row { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .time-block {
+    flex: 1; background: var(--card2); border: 2px solid var(--border);
+    border-radius: 12px; padding: 12px; text-align: center; transition: border-color 0.2s, background 0.2s;
+  }
+  .time-block.modified-early { border-color: #F59E0B; background: rgba(245,158,11,0.06); }
+  .time-block.modified-late  { border-color: #EF4444; background: rgba(239,68,68,0.06); }
+  .time-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: 6px; }
+  .time-display {
+    font-size: 2rem; font-weight: 800; letter-spacing: .04em;
+    color: var(--text); font-variant-numeric: tabular-nums; line-height: 1; margin-bottom: 2px;
+  }
+  .time-hint { font-size: 0.7rem; color: var(--muted); margin-bottom: 10px; min-height: 14px; }
+  .time-btns { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; margin-bottom: 8px; }
+  .time-adj {
+    background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+    border-radius: 6px; padding: 5px 2px; font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: all 0.12s;
+  }
+  .time-adj:hover { background: var(--accent); border-color: var(--accent); color: white; }
+  .time-reset { background: none; border: none; color: var(--border); font-size: 0.7rem; cursor: pointer; padding: 0; }
+  .time-reset:hover { color: #EF4444; }
+  .time-arrow { color: var(--muted); font-size: 1.4rem; flex-shrink: 0; }
+  .time-display { cursor: pointer; }
+  .time-display:hover { opacity: 0.75; }
+  .time-edit-input {
+    display: none;
+    width: 100%; background: var(--bg); border: 2px solid var(--accent);
+    color: var(--text); border-radius: 8px; padding: 4px 8px;
+    font-size: 1.4rem; font-weight: 800; text-align: center;
+    outline: none; margin-bottom: 4px;
+  }
+  .time-edit-input.visible { display: block; }
 
-/* ── MOBILE QUICK-STATS BAR ── */
-.mobile-stats-bar {
-display: none;
-order: 0;
-width: 100%;
-background: var(–card);
-border-bottom: 1px solid var(–border);
-padding: 8px 10px;
-flex-direction: row;
-align-items: center;
-gap: 0;
-}
-.msb-item {
-display: flex; flex-direction: column; align-items: center;
-flex: 1; gap: 3px; min-width: 0;
-}
-.msb-label {
-font-size: 0.56rem; color: var(–muted); font-weight: 700;
-text-transform: uppercase; letter-spacing: .03em;
-white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-max-width: 100%;
-}
-.msb-val   { font-size: 0.88rem; font-weight: 800; color: var(–text); white-space: nowrap; }
-.msb-accent { color: var(–accent); }
-.msb-sep   { width: 1px; height: 26px; background: var(–border); flex-shrink: 0; margin: 0 2px; }
+  /* ── CELL ORARIO MOBILE: sotto il turno badge ── */
+  td.cell-turno { vertical-align: middle; }
+  td.cell-turno .cell-orario-hint {
+    display: none; /* visibile solo su mobile via media query */
+    font-size: 0.65rem; color: var(--muted); margin-top: 2px; white-space: nowrap;
+  }
+  @media (max-width: 768px) {
+    td.cell-turno .cell-orario-hint { display: block; }
+  }
 
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: var(–border); }
-.cal-wrap { scrollbar-width: thin; scrollbar-color: transparent transparent; }
-.cal-wrap:hover { scrollbar-color: var(–border) transparent; }
-.sidebar { scrollbar-width: thin; scrollbar-color: transparent transparent; }
-.sidebar:hover { scrollbar-color: var(–border) transparent; }
+    
+  
+  
+  
 
-/* ── MOBILE RESPONSIVE ── */
-@media (max-width: 768px) {
+  /* ── MOBILE QUICK-STATS BAR ── */
+  .mobile-stats-bar {
+    display: none;
+    order: 0;
+    width: 100%;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 10px;
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+  }
+  .msb-item {
+    display: flex; flex-direction: column; align-items: center;
+    flex: 1; gap: 3px; min-width: 0;
+  }
+  .msb-label {
+    font-size: 0.56rem; color: var(--muted); font-weight: 700;
+    text-transform: uppercase; letter-spacing: .03em;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  .msb-val   { font-size: 0.88rem; font-weight: 800; color: var(--text); white-space: nowrap; }
+  .msb-accent { color: var(--accent); }
+  .msb-sep   { width: 1px; height: 26px; background: var(--border); flex-shrink: 0; margin: 0 2px; }
 
-```
-/* ── LAYOUT BASE: !important per battere #mainContent (id specificity) ── */
-body { height: auto !important; overflow: auto !important; }
 
-#mainContent, .main {
-  flex-direction: column !important;
-  flex: none !important;
-  overflow: visible !important;
-  height: auto !important;
-  min-height: 0 !important;
-}
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border); }
+  .cal-wrap { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+  .cal-wrap:hover { scrollbar-color: var(--border) transparent; }
+  .sidebar { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+  .sidebar:hover { scrollbar-color: var(--border) transparent; }
 
-/* ── MONTH TABS ── */
-.month-tabs { padding: 8px 10px; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-.month-tab { padding: 6px 11px; font-size: 0.76rem; flex-shrink: 0; }
-/* Nascondi cancella e importa su mobile — troppo ingombranti */
-#cancellaBtn, #importaBtn { display: none !important; }
+  /* ── MOBILE RESPONSIVE ── */
+  @media (max-width: 768px) {
 
-/* ── CALENDARIO: solo 4 colonne → Data, Giorno, Turno, Ore ── */
-.cal-wrap {
-  order: 1;
-  flex: none !important;
-  height: auto !important;
-  overflow: visible !important;
-  width: 100%;
-}
-table { table-layout: fixed !important; width: 100% !important; min-width: 0 !important; }
-th, td { font-size: 0.8rem; padding: 0; }
+    /* ── LAYOUT BASE: !important per battere #mainContent (id specificity) ── */
+    body { height: auto !important; overflow: auto !important; }
 
-/* Righe: target touch */
-tr.day-row td { padding: 11px 10px; }
-th { padding: 8px 10px; }
+    #mainContent, .main {
+      flex-direction: column !important;
+      flex: none !important;
+      overflow: visible !important;
+      height: auto !important;
+      min-height: 0 !important;
+    }
 
-/* Nascondi: Inizio(4), Fine(5), Diurne(7), Nott.(8), Str.D(9), Str.N(10), Rep(11), Note(12) */
-th:nth-child(4),  td:nth-child(4),
-th:nth-child(5),  td:nth-child(5),
-th:nth-child(7),  td:nth-child(7),
-th:nth-child(8),  td:nth-child(8),
-th:nth-child(9),  td:nth-child(9),
-th:nth-child(10), td:nth-child(10),
-th:nth-child(11), td:nth-child(11),
-th:nth-child(12), td:nth-child(12)
-{ display: none !important; }
+    /* ── MONTH TABS ── */
+    .month-tabs { padding: 8px 10px; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .month-tab { padding: 6px 11px; font-size: 0.76rem; flex-shrink: 0; }
+    /* Nascondi cancella e importa su mobile — troppo ingombranti */
+    #cancellaBtn, #importaBtn { display: none !important; }
 
-/* Larghezze colonne mobili */
-th:nth-child(1), td:nth-child(1) { width: 64px; }
-th:nth-child(2), td:nth-child(2) { width: 40px; }
-th:nth-child(3), td:nth-child(3) { width: auto; }
-th:nth-child(6), td:nth-child(6) { width: 54px; }
+    /* ── CALENDARIO: solo 4 colonne → Data, Giorno, Turno, Ore ── */
+    .cal-wrap {
+      order: 1;
+      flex: none !important;
+      height: auto !important;
+      overflow: visible !important;
+      width: 100%;
+    }
+    table { table-layout: fixed !important; width: 100% !important; min-width: 0 !important; }
+    th, td { font-size: 0.8rem; padding: 0; }
 
-/* Celle */
-td.cell-data { font-size: 0.85rem; font-weight: 700; color: var(--text); }
-td.cell-giorno { font-size: 0.73rem; }
-td.cell-turno { text-align: center; }
-td:nth-child(6) { font-size: 0.83rem; font-weight: 700; color: var(--accent); text-align: center; }
-tr.today td { background: rgba(59,130,246,0.12) !important; }
-tr.is-festivo td.cell-data { color: #EF4444; }
-tr.is-sabato  td.cell-data { color: #F59E0B; }
+    /* Righe: target touch */
+    tr.day-row td { padding: 11px 10px; }
+    th { padding: 8px 10px; }
 
-/* ── SIDEBAR: griglia 2x2 sotto il calendario ── */
-.sidebar {
-  order: 2;
-  width: 100%; min-width: 0;
-  border-left: none; border-top: 1px solid var(--border);
-  flex-direction: row; flex-wrap: wrap;
-  overflow: visible;
-  padding: 12px 10px; gap: 8px;
-}
-.sidebar > div:first-child {
-  width: 100%;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 2px;
-}
-.stat-card { flex: 1 1 calc(50% - 4px); min-width: 140px; padding: 10px 12px; }
-.stat-row { padding: 3px 0; }
-.stat-row span:first-child { font-size: 0.75rem; }
-.stat-row span:last-child  { font-size: 0.82rem; }
-.sidebar h3 { font-size: 0.68rem; }
+    /* Nascondi: Inizio(4), Fine(5), Diurne(7), Nott.(8), Str.D(9), Str.N(10), Rep(11), Note(12) */
+    th:nth-child(4),  td:nth-child(4),
+    th:nth-child(5),  td:nth-child(5),
+    th:nth-child(7),  td:nth-child(7),
+    th:nth-child(8),  td:nth-child(8),
+    th:nth-child(9),  td:nth-child(9),
+    th:nth-child(10), td:nth-child(10),
+    th:nth-child(11), td:nth-child(11),
+    th:nth-child(12), td:nth-child(12)
+    { display: none !important; }
 
-/* ── MODAL: sale dal basso ── */
-.overlay { align-items: flex-end !important; padding: 0; }
-.modal {
-  width: 100%; max-width: 100%;
-  border-radius: 20px 20px 0 0;
-  padding: 20px 16px calc(24px + env(safe-area-inset-bottom, 0px));
-  max-height: 92vh; overflow-y: auto;
-}
-.modal h2 { font-size: 1rem; margin-bottom: 14px; }
-.turno-grid { grid-template-columns: repeat(5, 1fr); gap: 5px; }
-.turno-btn { padding: 8px 2px; font-size: 0.72rem; border-radius: 8px; min-height: 40px; }
-.time-row { flex-direction: column; gap: 12px; }
-.time-arrow { transform: rotate(90deg); text-align: center; font-size: 1.2rem; margin: -4px 0; }
-.time-block { flex: none; width: 100%; }
-.time-display { font-size: 2rem; }
-.time-btns { gap: 4px; }
-.time-adj { padding: 7px 4px; font-size: 0.7rem; flex: 1; }
-.form-grid { grid-template-columns: 1fr; gap: 10px; }
-.modal-actions { gap: 8px; margin-top: 16px; }
-.modal-actions button { padding: 12px; font-size: 0.9rem; }
+    /* Larghezze colonne mobili */
+    th:nth-child(1), td:nth-child(1) { width: 64px; }
+    th:nth-child(2), td:nth-child(2) { width: 40px; }
+    th:nth-child(3), td:nth-child(3) { width: auto; }
+    th:nth-child(6), td:nth-child(6) { width: 54px; }
 
-/* ── QUICK STATS BAR ── */
-.mobile-stats-bar { display: flex !important; }
-```
+    /* Celle */
+    td.cell-data { font-size: 0.85rem; font-weight: 700; color: var(--text); }
+    td.cell-giorno { font-size: 0.73rem; }
+    td.cell-turno { text-align: center; }
+    td:nth-child(6) { font-size: 0.83rem; font-weight: 700; color: var(--accent); text-align: center; }
+    tr.today td { background: rgba(59,130,246,0.12) !important; }
+    tr.is-festivo td.cell-data { color: #EF4444; }
+    tr.is-sabato  td.cell-data { color: #F59E0B; }
 
-}
+    /* ── SIDEBAR: griglia 2x2 sotto il calendario ── */
+    .sidebar {
+      order: 2;
+      width: 100%; min-width: 0;
+      border-left: none; border-top: 1px solid var(--border);
+      flex-direction: row; flex-wrap: wrap;
+      overflow: visible;
+      padding: 12px 10px; gap: 8px;
+    }
+    .sidebar > div:first-child {
+      width: 100%;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2px;
+    }
+    .stat-card { flex: 1 1 calc(50% - 4px); min-width: 140px; padding: 10px 12px; }
+    .stat-row { padding: 3px 0; }
+    .stat-row span:first-child { font-size: 0.75rem; }
+    .stat-row span:last-child  { font-size: 0.82rem; }
+    .sidebar h3 { font-size: 0.68rem; }
 
-/* Titolo in contenitore a larghezza fissa */
+    /* ── MODAL: sale dal basso ── */
+    .overlay { align-items: flex-end !important; padding: 0; }
+    .modal {
+      width: 100%; max-width: 100%;
+      border-radius: 20px 20px 0 0;
+      padding: 20px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+      max-height: 92vh; overflow-y: auto;
+    }
+    .modal h2 { font-size: 1rem; margin-bottom: 14px; }
+    .turno-grid { grid-template-columns: repeat(5, 1fr); gap: 5px; }
+    .turno-btn { padding: 8px 2px; font-size: 0.72rem; border-radius: 8px; min-height: 40px; }
+    .time-row { flex-direction: column; gap: 12px; }
+    .time-arrow { transform: rotate(90deg); text-align: center; font-size: 1.2rem; margin: -4px 0; }
+    .time-block { flex: none; width: 100%; }
+    .time-display { font-size: 2rem; }
+    .time-btns { gap: 4px; }
+    .time-adj { padding: 7px 4px; font-size: 0.7rem; flex: 1; }
+    .form-grid { grid-template-columns: 1fr; gap: 10px; }
+    .modal-actions { gap: 8px; margin-top: 16px; }
+    .modal-actions button { padding: 12px; font-size: 0.9rem; }
 
-/* ── BOTTOM NAV MOBILE ── */
-.bottom-nav {
-display: none;
-position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-background: var(–card); border-top: 1px solid var(–border);
-padding: 6px 0 env(safe-area-inset-bottom, 8px);
-}
-.bottom-nav-inner {
-display: flex; justify-content: space-around; align-items: stretch;
-}
-.bottom-nav a {
-display: flex; flex-direction: column; align-items: center; gap: 3px;
-color: var(–muted); text-decoration: none; font-size: 0.65rem;
-font-weight: 600; padding: 6px 4px; border-radius: 8px; flex: 1;
-text-align: center; min-width: 0; margin: 0 2px; transition: color .15s;
-}
-.bottom-nav a.active { color: var(–accent); }
-.bottom-nav a span.icon { font-size: 1.35rem; line-height: 1.2; }
-#adminMobileBtn { display: none; color: #F59E0B !important; }
-@media (max-width: 768px) {
-.bottom-nav { display: block; }
-body { padding-bottom: 72px; }
-}
+    /* ── QUICK STATS BAR ── */
+    .mobile-stats-bar { display: flex !important; }
+  }
 
-/* ── HEADER ── */
-header {
-background: var(–card);
-border-bottom: 1px solid var(–border);
-height: 56px;
-padding: 0 20px;
-display: flex; align-items: center; gap: 12px;
-position: sticky; top: 0; z-index: 20;
-flex-shrink: 0;
-}
-.page-title {
-width: 230px; min-width: 230px; max-width: 230px;
-font-size: 1.05rem; font-weight: 700; color: var(–text);
-white-space: nowrap; overflow: hidden; flex-shrink: 0;
-}
-.page-title span { color: var(–accent); }
-.top-nav { display: flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
-.top-nav a {
-color: var(–muted); text-decoration: none; font-size: 0.82rem;
-padding: 5px 10px; border-radius: 8px; background: var(–card2);
-white-space: nowrap; line-height: 1; transition: color .15s, background .15s;
-}
-.top-nav a:hover { color: var(–text); background: #2d3f55; }
-.top-nav a.nav-active {
-color: var(–text); background: #2d3f55;
-cursor: default; opacity: 0.85;
-box-shadow: inset 0 0 0 1px var(–border);
-}
-.top-nav a#adminNavLink { display: none; color: #F59E0B; }
-.header-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
-.header-controls select, .header-controls button {
-background: var(–card2); border: 1px solid var(–border);
-color: var(–text); border-radius: 8px; padding: 5px 10px;
-font-size: 0.82rem; cursor: pointer; height: 32px;
-}
-.header-controls button:hover { background: var(–accent); border-color: var(–accent); }
-.btn-logout {
-background: rgba(239,68,68,.15); color: #FCA5A5;
-border: 1px solid rgba(239,68,68,.3); border-radius: 8px;
-padding: 5px 12px; font-size: 0.82rem; cursor: pointer;
-height: 32px; white-space: nowrap;
-}
-.btn-logout:hover { background: #EF4444; color: white; }
-.user-label { font-size: 0.8rem; color: var(–muted); white-space: nowrap; }
-@media (max-width: 768px) {
-header { height: 48px; padding: 0 12px; gap: 8px; overflow: hidden; }
-.page-title {
-width: auto; min-width: 0; flex-shrink: 1;
-font-size: 0.88rem; max-width: 140px;
-}
-.top-nav { display: none !important; }
-.user-label { display: none; }
-/* Nascondi i pulsanti anno e select su mobile — l’anno si cambia dal select compatto */
-.header-controls > button { display: none; }
-.header-controls select {
-display: inline-block !important;
-width: 70px; padding: 4px 6px;
-font-size: 0.8rem; height: 30px;
-}
-.btn-logout { padding: 4px 8px; font-size: 0.78rem; }
-}
+  /* Titolo in contenitore a larghezza fissa */
 
-/* ── USER DROPDOWN ── */
-.user-menu { position:relative; }
-.user-btn {
-display:flex; align-items:center; gap:6px;
-background:var(–card2); border:1px solid var(–border);
-color:var(–text); border-radius:8px; padding:5px 10px;
-font-size:0.82rem; cursor:pointer; height:32px;
-transition:background .15s;
-}
-.user-btn:hover { background:#2d3f55; }
-.user-btn .avatar {
-width:20px; height:20px; border-radius:50%;
-background:var(–accent); color:white;
-font-size:0.65rem; font-weight:700;
-display:flex; align-items:center; justify-content:center;
-flex-shrink:0;
-}
-.user-dropdown {
-display:none; position:absolute; right:0; top:calc(100% + 6px);
-background:var(–card); border:1px solid var(–border);
-border-radius:10px; min-width:200px; z-index:200;
-box-shadow:0 8px 24px rgba(0,0,0,.4); overflow:hidden;
-}
-.user-dropdown.open { display:block; }
-.ud-header {
-padding:12px 14px; background:var(–card2);
-border-bottom:1px solid var(–border);
-font-size:0.78rem; color:var(–muted);
-}
-.ud-header strong { display:block; color:var(–text); font-size:0.9rem; margin-bottom:2px; }
-.ud-item {
-display:flex; align-items:center; gap:8px;
-padding:10px 14px; font-size:0.85rem; cursor:pointer;
-color:var(–text); transition:background .1s;
-}
-.ud-item:hover { background:var(–card2); }
-.ud-item.danger { color:#FCA5A5; }
-.ud-item.danger:hover { background:rgba(239,68,68,.1); }
-.ud-sep { height:1px; background:var(–border); margin:2px 0; }
+  /* ── BOTTOM NAV MOBILE ── */
+  .bottom-nav {
+    display: none;
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+    background: var(--card); border-top: 1px solid var(--border);
+    padding: 6px 0 env(safe-area-inset-bottom, 8px);
+  }
+  .bottom-nav-inner {
+    display: flex; justify-content: space-around; align-items: stretch;
+  }
+  .bottom-nav a {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--muted); text-decoration: none; font-size: 0.65rem;
+    font-weight: 600; padding: 6px 4px; border-radius: 8px; flex: 1;
+    text-align: center; min-width: 0; margin: 0 2px; transition: color .15s;
+  }
+  .bottom-nav a.active { color: var(--accent); }
+  .bottom-nav a span.icon { font-size: 1.35rem; line-height: 1.2; }
+  #adminMobileBtn { display: none; color: #F59E0B !important; }
+  @media (max-width: 768px) {
+    .bottom-nav { display: block; }
+    body { padding-bottom: 72px; }
+  }
 
-/* ── MODAL ACCOUNT ── */
-.acc-overlay {
-display:none; position:fixed; inset:0;
-background:rgba(0,0,0,.6); z-index:300;
-align-items:center; justify-content:center;
-}
-.acc-overlay.open { display:flex; }
-.acc-modal {
-background:var(–card); border:1px solid var(–border);
-border-radius:14px; padding:28px; width:400px; max-width:95vw;
-}
-.acc-modal h2 { font-size:1rem; font-weight:700; margin-bottom:20px; }
-.acc-field { margin-bottom:14px; }
-.acc-field label {
-display:block; font-size:0.75rem; color:var(–muted);
-font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;
-}
-.acc-field input {
-width:100%; background:var(–card2); border:1px solid var(–border);
-color:var(–text); border-radius:8px; padding:10px 12px;
-font-size:0.9rem; outline:none; transition:border-color .15s;
-}
-.acc-field input:focus { border-color:var(–accent); box-shadow:0 0 0 2px rgba(59,130,246,.15); }
-.acc-msg { font-size:0.82rem; margin:10px 0; min-height:18px; }
-.acc-actions { display:flex; gap:10px; margin-top:20px; }
-.acc-btn {
-flex:1; padding:10px; border-radius:8px; border:none;
-font-size:0.9rem; font-weight:600; cursor:pointer;
-}
-.acc-btn-primary { background:var(–accent); color:white; }
-.acc-btn-primary:hover { background:#2563EB; }
-.acc-btn-cancel { background:var(–card2); color:var(–muted); border:1px solid var(–border); }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    height: 56px;
+    padding: 0 20px;
+    display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 20;
+    flex-shrink: 0;
+  }
+  .page-title {
+    width: 230px; min-width: 230px; max-width: 230px;
+    font-size: 1.05rem; font-weight: 700; color: var(--text);
+    white-space: nowrap; overflow: hidden; flex-shrink: 0;
+  }
+  .page-title span { color: var(--accent); }
+  .top-nav { display: flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
+  .top-nav a {
+    color: var(--muted); text-decoration: none; font-size: 0.82rem;
+    padding: 5px 10px; border-radius: 8px; background: var(--card2);
+    white-space: nowrap; line-height: 1; transition: color .15s, background .15s;
+  }
+  .top-nav a:hover { color: var(--text); background: #2d3f55; }
+  .top-nav a.nav-active {
+    color: var(--text); background: #2d3f55;
+    cursor: default; opacity: 0.85;
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .top-nav a#adminNavLink { display: none; color: #F59E0B; }
+  .header-controls { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  .header-controls select, .header-controls button {
+    background: var(--card2); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 5px 10px;
+    font-size: 0.82rem; cursor: pointer; height: 32px;
+  }
+  .header-controls button:hover { background: var(--accent); border-color: var(--accent); }
+  .btn-logout {
+    background: rgba(239,68,68,.15); color: #FCA5A5;
+    border: 1px solid rgba(239,68,68,.3); border-radius: 8px;
+    padding: 5px 12px; font-size: 0.82rem; cursor: pointer;
+    height: 32px; white-space: nowrap;
+  }
+  .btn-logout:hover { background: #EF4444; color: white; }
+  .user-label { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+  @media (max-width: 768px) {
+    header { height: 48px; padding: 0 12px; gap: 8px; overflow: hidden; }
+    .page-title {
+      width: auto; min-width: 0; flex-shrink: 1;
+      font-size: 0.88rem; max-width: 140px;
+    }
+    .top-nav { display: none !important; }
+    .user-label { display: none; }
+    /* Nascondi i pulsanti anno e select su mobile — l'anno si cambia dal select compatto */
+    .header-controls > button { display: none; }
+    .header-controls select {
+      display: inline-block !important;
+      width: 70px; padding: 4px 6px;
+      font-size: 0.8rem; height: 30px;
+    }
+    .btn-logout { padding: 4px 8px; font-size: 0.78rem; }
+  }
+
+
+  /* ── USER DROPDOWN ── */
+  .user-menu { position:relative; }
+  .user-btn {
+    display:flex; align-items:center; gap:6px;
+    background:var(--card2); border:1px solid var(--border);
+    color:var(--text); border-radius:8px; padding:5px 10px;
+    font-size:0.82rem; cursor:pointer; height:32px;
+    transition:background .15s;
+  }
+  .user-btn:hover { background:#2d3f55; }
+  .user-btn .avatar {
+    width:20px; height:20px; border-radius:50%;
+    background:var(--accent); color:white;
+    font-size:0.65rem; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0;
+  }
+  .user-dropdown {
+    display:none; position:absolute; right:0; top:calc(100% + 6px);
+    background:var(--card); border:1px solid var(--border);
+    border-radius:10px; min-width:200px; z-index:200;
+    box-shadow:0 8px 24px rgba(0,0,0,.4); overflow:hidden;
+  }
+  .user-dropdown.open { display:block; }
+  .ud-header {
+    padding:12px 14px; background:var(--card2);
+    border-bottom:1px solid var(--border);
+    font-size:0.78rem; color:var(--muted);
+  }
+  .ud-header strong { display:block; color:var(--text); font-size:0.9rem; margin-bottom:2px; }
+  .ud-item {
+    display:flex; align-items:center; gap:8px;
+    padding:10px 14px; font-size:0.85rem; cursor:pointer;
+    color:var(--text); transition:background .1s;
+  }
+  .ud-item:hover { background:var(--card2); }
+  .ud-item.danger { color:#FCA5A5; }
+  .ud-item.danger:hover { background:rgba(239,68,68,.1); }
+  .ud-sep { height:1px; background:var(--border); margin:2px 0; }
+
+  /* ── MODAL ACCOUNT ── */
+  .acc-overlay {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.6); z-index:300;
+    align-items:center; justify-content:center;
+  }
+  .acc-overlay.open { display:flex; }
+  .acc-modal {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:14px; padding:28px; width:400px; max-width:95vw;
+  }
+  .acc-modal h2 { font-size:1rem; font-weight:700; margin-bottom:20px; }
+  .acc-field { margin-bottom:14px; }
+  .acc-field label {
+    display:block; font-size:0.75rem; color:var(--muted);
+    font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;
+  }
+  .acc-field input {
+    width:100%; background:var(--card2); border:1px solid var(--border);
+    color:var(--text); border-radius:8px; padding:10px 12px;
+    font-size:0.9rem; outline:none; transition:border-color .15s;
+  }
+  .acc-field input:focus { border-color:var(--accent); box-shadow:0 0 0 2px rgba(59,130,246,.15); }
+  .acc-msg { font-size:0.82rem; margin:10px 0; min-height:18px; }
+  .acc-actions { display:flex; gap:10px; margin-top:20px; }
+  .acc-btn {
+    flex:1; padding:10px; border-radius:8px; border:none;
+    font-size:0.9rem; font-weight:600; cursor:pointer;
+  }
+  .acc-btn-primary { background:var(--accent); color:white; }
+  .acc-btn-primary:hover { background:#2563EB; }
+  .acc-btn-cancel { background:var(--card2); color:var(--muted); border:1px solid var(--border); }
 
 </style>
 </head>
@@ -562,32 +573,29 @@ font-size:0.9rem; font-weight:600; cursor:pointer;
       </div>
     </div>
 
-```
-<!-- Modal account / cambio password -->
-<div class="acc-overlay" id="accOverlay" onclick="if(event.target===this)closeAccModal()">
-  <div class="acc-modal">
-    <h2>🔑 Impostazioni account</h2>
-    <div class="acc-field">
-      <label>Password attuale</label>
-      <input type="password" id="accPwdOld" placeholder="••••••••">
+    <!-- Modal account / cambio password -->
+    <div class="acc-overlay" id="accOverlay" onclick="if(event.target===this)closeAccModal()">
+      <div class="acc-modal">
+        <h2>🔑 Impostazioni account</h2>
+        <div class="acc-field">
+          <label>Password attuale</label>
+          <input type="password" id="accPwdOld" placeholder="••••••••">
+        </div>
+        <div class="acc-field">
+          <label>Nuova password</label>
+          <input type="password" id="accPwdNew" placeholder="min 6 caratteri">
+        </div>
+        <div class="acc-field">
+          <label>Conferma nuova password</label>
+          <input type="password" id="accPwdConfirm" placeholder="ripeti la nuova password">
+        </div>
+        <div class="acc-msg" id="accMsg"></div>
+        <div class="acc-actions">
+          <button class="acc-btn acc-btn-cancel" onclick="closeAccModal()">Annulla</button>
+          <button class="acc-btn acc-btn-primary" onclick="doChangePwd()">Salva password</button>
+        </div>
+      </div>
     </div>
-    <div class="acc-field">
-      <label>Nuova password</label>
-      <input type="password" id="accPwdNew" placeholder="min 6 caratteri">
-    </div>
-    <div class="acc-field">
-      <label>Conferma nuova password</label>
-      <input type="password" id="accPwdConfirm" placeholder="ripeti la nuova password">
-    </div>
-    <div class="acc-msg" id="accMsg"></div>
-    <div class="acc-actions">
-      <button class="acc-btn acc-btn-cancel" onclick="closeAccModal()">Annulla</button>
-      <button class="acc-btn acc-btn-primary" onclick="doChangePwd()">Salva password</button>
-    </div>
-  </div>
-</div>
-```
-
   </div>
 </header>
 
@@ -607,75 +615,72 @@ font-size:0.9rem; font-weight:600; cursor:pointer;
 </div>
 
 <!-- PANNELLO IMPORTA TABELLA (full-page, nasconde calendario) -->
-
 <div id="importaDrawer" style="display:none;flex:1;flex-direction:column;overflow-y:auto;background:var(--bg);">
   <div style="max-width:860px;width:100%;margin:0 auto;padding:36px 28px;">
 
-```
-<!-- Intestazione -->
-<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px;gap:16px">
-  <div>
-    <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:8px">📋 Importa tabella turni</h2>
-    <p style="font-size:0.88rem;color:var(--muted);line-height:1.5">Seleziona la tabella, imposta il periodo e la settimana di partenza.<br>Il sistema compilerà automaticamente i tuoi turni nel calendario.</p>
-  </div>
-  <button onclick="toggleImportaDrawer()"
-    style="flex-shrink:0;background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 16px;cursor:pointer;font-size:0.85rem;transition:all .15s;white-space:nowrap"
-    onmouseover="this.style.background='#2d3f55';this.style.color='var(--text)'"
-    onmouseout="this.style.background='var(--card2)';this.style.color='var(--muted)'">← Torna al calendario</button>
-</div>
+    <!-- Intestazione -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:32px;gap:16px">
+      <div>
+        <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:8px">📋 Importa tabella turni</h2>
+        <p style="font-size:0.88rem;color:var(--muted);line-height:1.5">Seleziona la tabella, imposta il periodo e la settimana di partenza.<br>Il sistema compilerà automaticamente i tuoi turni nel calendario.</p>
+      </div>
+      <button onclick="toggleImportaDrawer()"
+        style="flex-shrink:0;background:var(--card2);border:1px solid var(--border);color:var(--muted);border-radius:8px;padding:8px 16px;cursor:pointer;font-size:0.85rem;transition:all .15s;white-space:nowrap"
+        onmouseover="this.style.background='#2d3f55';this.style.color='var(--text)'"
+        onmouseout="this.style.background='var(--card2)';this.style.color='var(--muted)'">← Torna al calendario</button>
+    </div>
 
-<!-- Filtro tipo -->
-<div style="margin-bottom:24px">
-  <div style="font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Tipo tabella</div>
-  <div style="display:flex;gap:8px" id="drawerTipoTabs">
-    <div class="month-tab active" onclick="drawerFilterTipo('tutti',this)" style="padding:6px 14px;font-size:0.82rem">Tutte</div>
-    <div class="month-tab" onclick="drawerFilterTipo('telefonisti',this)" style="padding:6px 14px;font-size:0.82rem">📞 Telefonisti</div>
-    <div class="month-tab" onclick="drawerFilterTipo('capisala',this)" style="padding:6px 14px;font-size:0.82rem">👔 Capisala</div>
-  </div>
-</div>
+    <!-- Filtro tipo -->
+    <div style="margin-bottom:24px">
+      <div style="font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Tipo tabella</div>
+      <div style="display:flex;gap:8px" id="drawerTipoTabs">
+        <div class="month-tab active" onclick="drawerFilterTipo('tutti',this)" style="padding:6px 14px;font-size:0.82rem">Tutte</div>
+        <div class="month-tab" onclick="drawerFilterTipo('telefonisti',this)" style="padding:6px 14px;font-size:0.82rem">📞 Telefonisti</div>
+        <div class="month-tab" onclick="drawerFilterTipo('capisala',this)" style="padding:6px 14px;font-size:0.82rem">👔 Capisala</div>
+      </div>
+    </div>
 
-<!-- Campi -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px">
-  <div>
-    <label style="display:block;font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Tabella</label>
-    <select id="drawerTabella" onchange="drawerOnTabChange()" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:0.88rem;outline:none">
-      <option value="">— Scegli tabella —</option>
-    </select>
-  </div>
-  <div>
-    <label style="display:block;font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Settimana di inizio</label>
-    <select id="drawerSettimana" onchange="drawerUpdatePreview()" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:0.88rem;outline:none">
-      <option value="1">Settimana 1</option>
-    </select>
-  </div>
-  <div>
-    <label style="display:block;font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Giorno di inizio</label>
-    <input type="date" id="drawerDataInizio" onchange="drawerOnDataChange()" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:0.88rem;outline:none">
-    <div id="drawerGiornoLabel" style="font-size:0.75rem;color:var(--accent);margin-top:6px;min-height:18px"></div>
-  </div>
-  <div>
-    <label style="display:block;font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Giorno di fine</label>
-    <input type="date" id="drawerDataFine" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:0.88rem;outline:none">
-  </div>
-</div>
+    <!-- Campi -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px">
+      <div>
+        <label style="display:block;font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Tabella</label>
+        <select id="drawerTabella" onchange="drawerOnTabChange()" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:0.88rem;outline:none">
+          <option value="">— Scegli tabella —</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Settimana di inizio</label>
+        <select id="drawerSettimana" onchange="drawerUpdatePreview()" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:0.88rem;outline:none">
+          <option value="1">Settimana 1</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Giorno di inizio</label>
+        <input type="date" id="drawerDataInizio" onchange="drawerOnDataChange()" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:0.88rem;outline:none">
+        <div id="drawerGiornoLabel" style="font-size:0.75rem;color:var(--accent);margin-top:6px;min-height:18px"></div>
+      </div>
+      <div>
+        <label style="display:block;font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Giorno di fine</label>
+        <input type="date" id="drawerDataFine" style="width:100%;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:10px 12px;font-size:0.88rem;outline:none">
+      </div>
+    </div>
 
-<!-- Anteprima -->
-<div id="drawerPreview" style="display:none;margin-bottom:28px">
-  <div style="font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">📅 Anteprima — prime 3 settimane</div>
-  <div id="drawerPreviewContent"></div>
-</div>
+    <!-- Anteprima -->
+    <div id="drawerPreview" style="display:none;margin-bottom:28px">
+      <div style="font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px">📅 Anteprima — prime 3 settimane</div>
+      <div id="drawerPreviewContent"></div>
+    </div>
 
-<!-- Bottone applica -->
-<div style="display:flex;align-items:center;gap:14px">
-  <button onclick="drawerApplica()" id="drawerBtn"
-    style="background:var(--accent);color:white;border:none;border-radius:10px;padding:13px 36px;font-size:1rem;font-weight:700;cursor:pointer;transition:background .15s"
-    onmouseover="this.style.background='#2563EB'"
-    onmouseout="this.style.background='var(--accent)'">
-    ✅ Applica al calendario
-  </button>
-  <div id="drawerResult" style="font-size:0.88rem;display:none"></div>
-</div>
-```
+    <!-- Bottone applica -->
+    <div style="display:flex;align-items:center;gap:14px">
+      <button onclick="drawerApplica()" id="drawerBtn"
+        style="background:var(--accent);color:white;border:none;border-radius:10px;padding:13px 36px;font-size:1rem;font-weight:700;cursor:pointer;transition:background .15s"
+        onmouseover="this.style.background='#2563EB'"
+        onmouseout="this.style.background='var(--accent)'">
+        ✅ Applica al calendario
+      </button>
+      <div id="drawerResult" style="font-size:0.88rem;display:none"></div>
+    </div>
 
   </div>
 </div>
@@ -700,83 +705,79 @@ font-size:0.9rem; font-weight:600; cursor:pointer;
 </div>
 
 <!-- MODAL -->
-
 <div class="overlay" id="overlay" onclick="closeModal(event)">
   <div class="modal">
     <h2 id="modalTitle">Modifica turno <small id="modalDate"></small></h2>
 
-```
-<div style="margin-bottom:14px">
-  <label>Turno</label>
-  <div class="turno-grid" id="turnoBtns"></div>
-</div>
-
-<!-- Time picker moderno -->
-<div class="time-row">
-  <div class="time-block" id="blockInizio">
-    <div class="time-label">🕐 Inizio</div>
-    <div class="time-display" id="dispInizio" onclick="openTimeEdit('oraInizio')" title="Clicca per modificare">—:—</div>
-    <input type="text" class="time-edit-input" id="editInizio" placeholder="HH:MM" maxlength="5"
-           oninput="formatTimeInput(this)" onblur="commitTimeEdit('oraInizio')">
-    <div class="time-hint" id="hintInizio">standard</div>
-    <div class="time-btns">
-      <button class="time-adj" onclick="adjTime('oraInizio',-60)">-1h</button>
-      <button class="time-adj" onclick="adjTime('oraInizio',-30)">-30'</button>
-      <button class="time-adj" onclick="adjTime('oraInizio',+30)">+30'</button>
-      <button class="time-adj" onclick="adjTime('oraInizio',+60)">+1h</button>
+    <div style="margin-bottom:14px">
+      <label>Turno</label>
+      <div class="turno-grid" id="turnoBtns"></div>
     </div>
-    <button class="time-reset" onclick="resetTime('oraInizio')">✕ reset</button>
-    <input type="hidden" id="oraInizio">
-  </div>
 
-  <div class="time-arrow">→</div>
+    <!-- Time picker moderno -->
+    <div class="time-row">
+      <div class="time-block" id="blockInizio">
+        <div class="time-label">🕐 Inizio</div>
+        <div class="time-display" id="dispInizio" onclick="openTimeEdit('oraInizio')" title="Clicca per modificare">—:—</div>
+        <input type="text" class="time-edit-input" id="editInizio" placeholder="HH:MM" maxlength="5"
+               oninput="formatTimeInput(this)" onblur="commitTimeEdit('oraInizio')">
+        <div class="time-hint" id="hintInizio">standard</div>
+        <div class="time-btns">
+          <button class="time-adj" onclick="adjTime('oraInizio',-60)">-1h</button>
+          <button class="time-adj" onclick="adjTime('oraInizio',-30)">-30'</button>
+          <button class="time-adj" onclick="adjTime('oraInizio',+30)">+30'</button>
+          <button class="time-adj" onclick="adjTime('oraInizio',+60)">+1h</button>
+        </div>
+        <button class="time-reset" onclick="resetTime('oraInizio')">✕ reset</button>
+        <input type="hidden" id="oraInizio">
+      </div>
 
-  <div class="time-block" id="blockFine">
-    <div class="time-label">🕗 Fine</div>
-    <div class="time-display" id="dispFine" onclick="openTimeEdit('oraFine')" title="Clicca per modificare">—:—</div>
-    <input type="text" class="time-edit-input" id="editFine" placeholder="HH:MM" maxlength="5"
-           oninput="formatTimeInput(this)" onblur="commitTimeEdit('oraFine')">
-    <div class="time-hint" id="hintFine">standard</div>
-    <div class="time-btns">
-      <button class="time-adj" onclick="adjTime('oraFine',-60)">-1h</button>
-      <button class="time-adj" onclick="adjTime('oraFine',-30)">-30'</button>
-      <button class="time-adj" onclick="adjTime('oraFine',+30)">+30'</button>
-      <button class="time-adj" onclick="adjTime('oraFine',+60)">+1h</button>
+      <div class="time-arrow">→</div>
+
+      <div class="time-block" id="blockFine">
+        <div class="time-label">🕗 Fine</div>
+        <div class="time-display" id="dispFine" onclick="openTimeEdit('oraFine')" title="Clicca per modificare">—:—</div>
+        <input type="text" class="time-edit-input" id="editFine" placeholder="HH:MM" maxlength="5"
+               oninput="formatTimeInput(this)" onblur="commitTimeEdit('oraFine')">
+        <div class="time-hint" id="hintFine">standard</div>
+        <div class="time-btns">
+          <button class="time-adj" onclick="adjTime('oraFine',-60)">-1h</button>
+          <button class="time-adj" onclick="adjTime('oraFine',-30)">-30'</button>
+          <button class="time-adj" onclick="adjTime('oraFine',+30)">+30'</button>
+          <button class="time-adj" onclick="adjTime('oraFine',+60)">+1h</button>
+        </div>
+        <button class="time-reset" onclick="resetTime('oraFine')">✕ reset</button>
+        <input type="hidden" id="oraFine">
+      </div>
     </div>
-    <button class="time-reset" onclick="resetTime('oraFine')">✕ reset</button>
-    <input type="hidden" id="oraFine">
-  </div>
-</div>
 
-<!-- Anteprima calcolo automatico -->
-<div id="previstaBox" style="display:none; margin:12px 0; background:var(--card2); border:1px solid var(--border); border-radius:8px; padding:10px 14px;">
-  <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;">📊 Calcolo automatico</div>
-  <div id="previstaContent" style="font-size:0.82rem;display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;"></div>
-</div>
-
-<div class="form-grid" style="margin-top:4px">
-  <div class="form-full">
-    <label>Reperibilità</label>
-    <div class="rep-toggle" onclick="toggleRep()">
-      <div class="rep-dot" id="repDot"></div>
-      <span id="repLabel">No</span>
-      <span id="repTipo" style="margin-left:auto;font-size:0.8rem;color:var(--muted)"></span>
+    <!-- Anteprima calcolo automatico -->
+    <div id="previstaBox" style="display:none; margin:12px 0; background:var(--card2); border:1px solid var(--border); border-radius:8px; padding:10px 14px;">
+      <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px;">📊 Calcolo automatico</div>
+      <div id="previstaContent" style="font-size:0.82rem;display:grid;grid-template-columns:1fr 1fr;gap:2px 16px;"></div>
     </div>
-    <input type="hidden" id="reperibilita" value="false">
-  </div>
-  <div class="form-full">
-    <label>Note</label>
-    <input type="text" id="note" placeholder="Note opzionali…">
-  </div>
-</div>
 
-<div class="modal-actions">
-  <button class="btn btn-cancel" onclick="closeModal()">Annulla</button>
-  <button class="btn btn-danger" onclick="deleteTurno()">Elimina</button>
-  <button class="btn btn-primary" onclick="saveTurno()">Salva</button>
-</div>
-```
+    <div class="form-grid" style="margin-top:4px">
+      <div class="form-full">
+        <label>Reperibilità</label>
+        <div class="rep-toggle" onclick="toggleRep()">
+          <div class="rep-dot" id="repDot"></div>
+          <span id="repLabel">No</span>
+          <span id="repTipo" style="margin-left:auto;font-size:0.8rem;color:var(--muted)"></span>
+        </div>
+        <input type="hidden" id="reperibilita" value="false">
+      </div>
+      <div class="form-full">
+        <label>Note</label>
+        <input type="text" id="note" placeholder="Note opzionali…">
+      </div>
+    </div>
 
+    <div class="modal-actions">
+      <button class="btn btn-cancel" onclick="closeModal()">Annulla</button>
+      <button class="btn btn-danger" onclick="deleteTurno()">Elimina</button>
+      <button class="btn btn-primary" onclick="saveTurno()">Salva</button>
+    </div>
   </div>
 </div>
 
@@ -1412,7 +1413,6 @@ async function doChangePwd() {
   }
 }
 </script>
-
 <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
 // ── AUTH ─────────────────────────────────────────────────────────────────────
 function getToken() { return localStorage.getItem('token'); }
@@ -1638,7 +1638,6 @@ setInterval(async () => {
 }, 5 * 60 * 1000);
 
 </script>
-
 <!-- BOTTOM NAV MOBILE -->
 
 <nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"  class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a><a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
