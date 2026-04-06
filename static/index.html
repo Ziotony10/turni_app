@@ -906,10 +906,6 @@ function renderCalendario() {
       isOggi ? 'today' : ''
     ].filter(Boolean).join(' ');
 
-    const badgeHtml = t
-      ? `<span class="badge" style="background:${cfg.colore || '#555'}">${t}</span><span class="cell-orario-hint">${showIni !== '—' ? showIni+'→'+showFin : ''}</span>`
-      : `<span style="color:var(--border)">—</span>`;
-
     // Orari da mostrare: effettivi se inseriti, altrimenti standard del turno
     const stdIni = cfg.std_ini != null ? minToHHMM(cfg.std_ini) : null;
     const stdFin = cfg.std_fin != null ? minToHHMM(cfg.std_fin) : null;
@@ -918,6 +914,10 @@ function renderCalendario() {
     // Evidenzia in giallo se l'orario è modificato rispetto allo standard
     const iniStyle = row.ora_inizio && row.ora_inizio !== stdIni ? 'color:#F59E0B;font-weight:700' : 'color:var(--muted)';
     const finStyle = row.ora_fine   && row.ora_fine   !== stdFin ? 'color:#EF4444;font-weight:700' : 'color:var(--muted)';
+
+    const badgeHtml = t
+      ? `<span class="badge" style="background:${cfg.colore || '#555'}">${t}</span><span class="cell-orario-hint">${showIni !== '—' ? showIni+'→'+showFin : ''}</span>`
+      : `<span style="color:var(--border)">—</span>`;
 
     const repIcon = rep ? { feriale:'🔵', semifestiva:'🟡', festiva:'🔴' }[rep] || '●' : '';
     const straoColor = isFestStrao ? '#EC4899' : '#F59E0B';
