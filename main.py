@@ -503,8 +503,8 @@ def require_editor(user=Depends(get_current_user)):
     return user
 
 def require_team_editor(user=Depends(get_current_user)):
-    if not user.get("is_team_editor") and not user.get("is_admin"):
-        raise HTTPException(403, "Accesso riservato agli editor team")
+    if not user.get("is_editor") and not user.get("is_admin"):
+        raise HTTPException(403, "Accesso riservato agli editor")
     return user
 
 def get_user_settings(user_id, conn):
@@ -1367,7 +1367,7 @@ def team_me(user=Depends(get_current_user)):
     """)
     conn.close()
     return {
-        "is_editor": bool(user.get("is_team_editor")) or bool(user.get("is_admin")),
+        "is_editor": bool(user.get("is_editor")) or bool(user.get("is_admin")),
         "is_admin": bool(user.get("is_admin")),
         "linked_operatore_id": op["id"] if op else None,
         "linked_operatore_nome": op["nome"] if op else None,
@@ -1529,7 +1529,7 @@ def get_team_turni(anno: int, mese: int,
             LEFT JOIN team_operatori o ON o.id = r.operatore_id
             WHERE r.data >= ? AND r.data <= ? AND r.stato IN ('pending','approved')
         """
-        linked_op = get_team_operator_for_user(conn, user["id"]) if not (user.get("is_team_editor") or user.get("is_admin")) else None
+        linked_op = get_team_operator_for_user(conn, user["id"]) if not (user.get("is_editor") or user.get("is_admin")) else None
         if linked_op:
             ferie_sql += " AND r.operatore_id = ?"
             ferie_params.append(linked_op["id"])
@@ -1739,7 +1739,7 @@ def save_team_ferie_request(payload: TeamFerieBatchInput, user=Depends(get_curre
     for data_turno in add_dates:
         row = fetchone(conn, "SELECT id, stato, user_id FROM team_ferie_requests WHERE operatore_id=? AND data=?",
                        (op["id"], data_turno))
-        if row and row["user_id"] != user["id"] and not (user.get("is_team_editor") or user.get("is_admin")):
+        if row and row["user_id"] != user["id"] and not (user.get("is_editor") or user.get("is_admin")):
             conn.close()
             raise HTTPException(403, "Richiesta ferie già presente per questo giorno")
         if row:
@@ -1763,7 +1763,7 @@ def save_team_ferie_request(payload: TeamFerieBatchInput, user=Depends(get_curre
                        (op["id"], data_turno))
         if not row:
             continue
-        if row["user_id"] != user["id"] and not (user.get("is_team_editor") or user.get("is_admin")):
+        if row["user_id"] != user["id"] and not (user.get("is_editor") or user.get("is_admin")):
             conn.close()
             raise HTTPException(403, "Non puoi rimuovere questa richiesta")
         ex(conn, "DELETE FROM team_ferie_requests WHERE id=?", (row["id"],))
@@ -1811,7 +1811,7 @@ def review_team_ferie(payload: TeamFerieReviewInput, user=Depends(require_team_e
 @app.get("/api/team/ferie/dashboard")
 def get_team_ferie_dashboard(user=Depends(get_current_user)):
     conn = get_db()
-    is_editor = bool(user.get("is_team_editor")) or bool(user.get("is_admin"))
+    is_editor = bool(user.get("is_editor")) or bool(user.get("is_admin"))
     linked_op = get_team_operator_for_user(conn, user["id"])
     pending_rows = fetchall(conn, """
         SELECT r.operatore_id, o.nome AS operatore_nome, u.username, u.nome,
