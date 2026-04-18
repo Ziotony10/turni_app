@@ -962,7 +962,14 @@ function renderCella(turno, flags, data, opId, col, turnoVar) {
 function applySpecialTurnoStyles(root = document) {
   const festTurns = new Set(['F', 'RF', 'EX FEST', 'EX F.', 'LUTTO']);
   root.querySelectorAll('.cella.filled, .cella-base-sbarrata, .tpl-cella.filled').forEach(el => {
-    const raw = (el.textContent || '').trim().toUpperCase();
+    // Legge solo i text node diretti della cella, ignorando span figli
+    // (ferie-marker, mf-inline, cella-rep-icon, smart-inline) per evitare falsi match
+    // es: cella "R" + ferie-marker "F" non deve diventare "RF" = special-fest
+    let rawText = '';
+    el.childNodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) rawText += node.textContent;
+    });
+    const raw = rawText.trim().toUpperCase();
     const turno = raw.split(/\s+/)[0] || '';
     el.classList.remove('special-fest', 'special-mal');
     if (raw.startsWith('EX FEST') || raw.startsWith('EX F.') || festTurns.has(turno)) {
@@ -1601,10 +1608,12 @@ async function submitFerieRequest() {
   await load();
 }
 
-function renderFerieMarker(request, dataStr) {
-  if (!request && !ferieAdds.has(dataStr) && !ferieRemovals.has(dataStr)) return '';
-  if (ferieRemovals.has(dataStr)) return '<span class="ferie-marker rejected" title="Richiesta ferie da rimuovere">F-</span>';
-  if (ferieAdds.has(dataStr)) return '<span class="ferie-marker pending" title="Richiesta ferie da inviare">F+</span>';
+function renderFerieMarker(request, dataStr, opId) {
+  // L'anteprima ferie (ferieAdds/ferieRemovals) si mostra solo sulla colonna dell'utente corrente
+  const isOwnColumn = opId === teamContext?.linked_operatore_id;
+  if (isOwnColumn && ferieRemovals.has(dataStr)) return '<span class="ferie-marker rejected" title="Richiesta ferie da rimuovere">F-</span>';
+  if (isOwnColumn && ferieAdds.has(dataStr)) return '<span class="ferie-marker pending" title="Richiesta ferie da inviare">F+</span>';
+  if (!request) return '';
   const status = (request?.stato || 'pending').toLowerCase();
   const title = status === 'approved' ? 'Ferie approvate' : status === 'rejected' ? 'Ferie respinte' : 'Richiesta ferie pendente';
   return `<span class="ferie-marker ${status}" title="${title}">F</span>`;
@@ -1832,7 +1841,7 @@ renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const edClass = isEditor ? ' editable' : '';
   const ferieClass = ownFerieCell ? ' ferie-cell-selectable' : '';
   const selectedClass = ownFerieCell && (ferieAdds.has(data) || ferieRemovals.has(data)) ? ' ferie-cell-selected' : '';
-  const marker = col === 'base' ? renderFerieMarker(ferieRequest, data) : '';
+  const marker = col === 'base' ? renderFerieMarker(ferieRequest, data, opId) : '';
   const colClass = col === 'var' ? ' var-cell' : '';
   const value = isEmpty ? '' : turno;
   if (col === 'base' && turnoVar) {
