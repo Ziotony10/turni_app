@@ -21,6 +21,12 @@
 
   .badge-admin { background:rgba(59,130,246,.15); color:#60A5FA; padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:700; }
   .badge-user  { background:var(--card2); color:var(--muted); padding:2px 8px; border-radius:4px; font-size:0.75rem; }
+  .badge-team-editor { background:rgba(16,185,129,.15); color:#34D399; border:1px solid rgba(16,185,129,.3); padding:2px 8px; border-radius:999px; font-size:0.75rem; font-weight:700; }
+  .role-group { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .user-actions { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  .btn-role { border:1px solid transparent; }
+  .btn-team-role { background:rgba(16,185,129,.15); color:#34D399; border-color:rgba(16,185,129,.3); }
+  .btn-team-role:hover { background:#10B981; color:#fff; }
 
   .btn { padding:6px 14px; border-radius:8px; border:none; cursor:pointer; font-size:0.82rem; font-weight:600; }
   .btn-sm { padding:4px 10px; font-size:0.78rem; }
@@ -30,6 +36,15 @@
   .btn-warn:hover { background:#F59E0B; color:white; }
   .btn-danger { background:rgba(239,68,68,.15); color:#FCA5A5; border:1px solid rgba(239,68,68,.3); }
   .btn-danger:hover { background:#EF4444; color:white; }
+  .link-select { min-width:220px; }
+  .operator-link-grid { display:grid; gap:12px; }
+  .operator-link-card { display:grid; grid-template-columns:90px 1fr auto; gap:12px; align-items:center; padding:14px; border:1px solid var(--border); border-radius:12px; background:var(--card2); }
+  .operator-badge { display:inline-flex; align-items:center; justify-content:center; width:54px; height:54px; border-radius:14px; background:rgba(59,130,246,.16); color:#93c5fd; font-weight:800; font-size:1rem; }
+  .soft-note { font-size:0.78rem; color:var(--muted); }
+  .pending-box { border:1px solid rgba(16,185,129,.24); border-radius:12px; padding:14px; background:rgba(15,23,42,.34); }
+  .pending-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .mini-log { font-size:0.78rem; color:var(--muted); display:flex; flex-direction:column; gap:8px; }
+  .mini-log-item { padding:10px 0; border-bottom:1px solid var(--border); }
 
   /* Tabella editor */
   .tab-editor { display:none; }
@@ -315,6 +330,7 @@
     <a href="/">📅 Calendario</a>
     <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
+    <a href="/turni-team.html">👥 Team</a>
     <a href="#" onclick="return false;" class="nav-active" id="adminNavLink">🔧 Admin</a>
   </nav>
   <div class="header-controls">
@@ -368,7 +384,13 @@
 function getToken()  { return localStorage.getItem('token'); }
 function getNome()   { return localStorage.getItem('nome') || ''; }
 function isAdmin()   { return localStorage.getItem('is_admin') === 'true'; }
-function logout()    { localStorage.clear(); window.location.href='/login.html'; }
+function logout()    {
+  localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  localStorage.removeItem('nome');
+  localStorage.removeItem('is_admin');
+  window.location.href='/login.html';
+}
 
 const _origFetch = window.fetch.bind(window);
 window.fetch = function(url, opts={}) {
@@ -556,7 +578,7 @@ async function loadLoginLogs() {
 
   let logs;
   try {
-    logs = await fetch('/api/admin/login-logs?limit=100').then(r => r.json());
+    logs = await fetch('/api/admin/log-accessi?limit=100').then(r => r.json());
   } catch(e) {
     logs = [];
   }
@@ -574,7 +596,7 @@ async function loadLoginLogs() {
       <td style="color:var(--muted);font-size:0.8rem;white-space:nowrap">${ts}</td>
       <td><strong>${l.username || '—'}</strong></td>
       <td style="${ipStyle}">${l.ip || '—'}</td>
-      <td>${l.success ? '<span class="badge-ok">✓ Successo</span>' : '<span class="badge-fail">✗ Fallito</span>'}</td>
+      <td>${(l.esito === 'ok' || l.success) ? '<span class="badge-ok">✓ Successo</span>' : '<span class="badge-fail">✗ Fallito</span>'}</td>
       <td style="color:var(--muted);font-size:0.75rem">${ua}</td>
     </tr>`;
   }).join('');
@@ -675,12 +697,16 @@ function renderUtenti(utenti) {
   <div class="section-card" id="sec-utenti">
     <div class="section-head"><span>👥 Utenti registrati</span></div>
     <table>
-      <thead><tr><th>Username</th><th>Nome</th><th>Ruolo</th><th>Registrato</th><th>Azioni</th></tr></thead>
+      <thead><tr><th>Username</th><th>Nome</th><th>Ruoli</th><th>Registrato</th><th>Azioni</th></tr></thead>
       <tbody>
         ${utenti.map(u=>`<tr>
           <td><strong>${u.username}</strong></td>
           <td>${u.nome||'—'}</td>
-          <td>${u.is_admin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-user">Utente</span>'}</td>
+          <td style="display:flex;gap:6px;flex-wrap:wrap">
+            ${u.is_admin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-user">Utente</span>'}
+            ${u.is_editor ? '<span class="badge-user" style="background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.3)">Editor</span>' : ''}
+            ${u.is_team_editor ? '<span class="badge-user" style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3)">Editor Team</span>' : ''}
+          </td>
           <td style="color:var(--muted);font-size:0.8rem">${u.created_at?.slice(0,10)||'—'}</td>
           <td style="display:flex;gap:6px;flex-wrap:wrap">
             <button class="btn btn-sm btn-warn" onclick="toggleAdmin(${u.id},'${u.username}',${u.is_admin})">${u.is_admin?'Rimuovi admin':'Rendi admin'}</button>
@@ -726,6 +752,92 @@ async function deleteUser(id, username) {
   if (!confirm(`Ultima conferma: eliminare definitivamente "${username}"?`)) return;
   await fetch(`/api/admin/utenti/${id}`, {method:'DELETE'});
   await loadAll();
+}
+
+async function toggleEditor(id, username, isEd) {
+  if (!confirm(`${isEd?'Rimuovere':'Rendere'} editor "${username}"?`)) return;
+  await fetch(`/api/admin/utenti/${id}/editor`, {method:'POST'});
+  await loadAll();
+}
+
+async function toggleTeamEditor(id, username, isTeamEd) {
+  if (!confirm(`${isTeamEd?'Rimuovere':'Rendere'} editor team "${username}"?`)) return;
+  await fetch(`/api/admin/utenti/${id}/team-editor`, {method:'POST'});
+  await loadAll();
+}
+
+function renderUtenti(utenti) {
+  const existing = document.getElementById('sec-utenti');
+  const html = `
+  <div class="section-card" id="sec-utenti">
+    <div class="section-head"><span>Utenti registrati</span></div>
+    <table>
+      <thead><tr><th>Username</th><th>Nome</th><th>Ruoli</th><th>Registrato</th><th>Azioni</th></tr></thead>
+      <tbody>
+        ${utenti.map(u=>`<tr>
+          <td><strong>${u.username}</strong></td>
+          <td>${u.nome||'-'}</td>
+          <td style="display:flex;gap:6px;flex-wrap:wrap">
+            ${u.is_admin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-user">Utente</span>'}
+            ${u.is_editor ? '<span class="badge-user" style="background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.3)">Editor</span>' : ''}
+            ${u.is_team_editor ? '<span class="badge-user" style="background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3)">Editor Team</span>' : ''}
+          </td>
+          <td style="color:var(--muted);font-size:0.8rem">${u.created_at?.slice(0,10)||'-'}</td>
+          <td style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="btn btn-sm btn-warn" onclick="toggleAdmin(${u.id},'${u.username}',${u.is_admin})">${u.is_admin?'Rimuovi admin':'Rendi admin'}</button>
+            <button class="btn btn-sm" style="background:rgba(99,102,241,.15);color:#A5B4FC;border:1px solid rgba(99,102,241,.3)" onclick="toggleEditor(${u.id},'${u.username}',${u.is_editor})">${u.is_editor?'Rimuovi editor':'Rendi editor'}</button>
+            <button class="btn btn-sm" style="background:rgba(16,185,129,.15);color:#34D399;border:1px solid rgba(16,185,129,.3)" onclick="toggleTeamEditor(${u.id},'${u.username}',${u.is_team_editor})">${u.is_team_editor?'Rimuovi editor team':'Rendi editor team'}</button>
+            <button class="btn btn-sm" style="background:rgba(99,102,241,.15);color:#A5B4FC;border:1px solid rgba(99,102,241,.3)" onclick="resetPassword(${u.id},'${u.username}')">Reset pwd</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteUser(${u.id},'${u.username}')">Elimina</button>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+  const container = document.getElementById('container');
+  if (existing) existing.outerHTML = html;
+  else {
+    const secLogs = document.getElementById('sec-logs');
+    if (secLogs) secLogs.insertAdjacentHTML('beforebegin', html);
+    else container.insertAdjacentHTML('beforeend', html);
+  }
+}
+
+function renderUtenti(utenti) {
+  const existing = document.getElementById('sec-utenti');
+  const html = `
+  <div class="section-card" id="sec-utenti">
+    <div class="section-head"><span>Utenti registrati</span></div>
+    <div class="section-body" style="padding:0">
+      <table>
+        <thead><tr><th>Username</th><th>Nome</th><th>Ruoli</th><th>Registrato</th><th>Azioni</th></tr></thead>
+        <tbody>
+          ${utenti.map(u=>`<tr>
+            <td><strong>${u.username}</strong></td>
+            <td>${u.nome||'-'}</td>
+            <td><div class="role-group">
+              ${u.is_admin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-user">Utente</span>'}
+              ${u.is_team_editor ? '<span class="badge-team-editor">Editor Team</span>' : ''}
+            </div></td>
+            <td style="color:var(--muted);font-size:0.8rem">${u.created_at?.slice(0,10)||'-'}</td>
+            <td><div class="user-actions">
+              <button class="btn btn-sm btn-warn btn-role" onclick="toggleAdmin(${u.id},'${u.username}',${u.is_admin})">${u.is_admin?'Rimuovi admin':'Rendi admin'}</button>
+              <button class="btn btn-sm btn-role btn-team-role" onclick="toggleTeamEditor(${u.id},'${u.username}',${u.is_team_editor})">${u.is_team_editor?'Rimuovi editor team':'Rendi editor team'}</button>
+              <button class="btn btn-sm btn-role" style="background:rgba(99,102,241,.15);color:#A5B4FC;border-color:rgba(99,102,241,.3)" onclick="resetPassword(${u.id},'${u.username}')">Reset pwd</button>
+              <button class="btn btn-sm btn-danger btn-role" onclick="deleteUser(${u.id},'${u.username}')">Elimina</button>
+            </div></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+  const container = document.getElementById('container');
+  if (existing) existing.outerHTML = html;
+  else {
+    const secLogs = document.getElementById('sec-logs');
+    if (secLogs) secLogs.insertAdjacentHTML('beforebegin', html);
+    else container.insertAdjacentHTML('beforeend', html);
+  }
 }
 
 // ── TABELLE TURNI ─────────────────────────────────────────────────────────────
@@ -977,12 +1089,187 @@ async function doChangePwd() {
     msg.textContent='❌ ' + (res.detail||'Password attuale non corretta'); msg.style.color='#EF4444';
   }
 }
+
+loadAll = async function() {
+  const container = document.getElementById('container');
+  container.innerHTML = '';
+  renderStatusCard();
+  renderLogsCard();
+  renderVisitsCard();
+
+  const [utenti, tabs, operatoriLinks, feriePending, ferieLog] = await Promise.all([
+    fetch('/api/admin/utenti').then(r=>r.json()),
+    fetch('/api/admin/tabelle').then(r=>r.json()),
+    fetch('/api/admin/team/operatori-links').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/admin/team/ferie/pending').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/admin/team/ferie/log?limit=120').then(r=>r.json()).catch(()=>[]),
+  ]);
+  tabelle = tabs;
+  renderUtenti(utenti);
+  renderOperatorLinks(operatoriLinks, utenti);
+  renderFerieRequests(feriePending, ferieLog);
+  renderTabelle(tabs);
+  loadStatus();
+  loadLoginLogs();
+  loadPageVisits();
+};
+
+renderUtenti = function(utenti) {
+  const existing = document.getElementById('sec-utenti');
+  const html = `
+  <div class="section-card" id="sec-utenti">
+    <div class="section-head"><span>Utenti registrati</span></div>
+    <div class="section-body" style="padding:0">
+      <table>
+        <thead><tr><th>Username</th><th>Nome</th><th>Ruoli</th><th>Operatore Team</th><th>Azioni</th></tr></thead>
+        <tbody>
+          ${utenti.map(u=>`<tr>
+            <td><strong>${u.username}</strong></td>
+            <td>${u.nome||'-'}</td>
+            <td><div class="role-group">
+              ${u.is_admin ? '<span class="badge-admin">Admin</span>' : '<span class="badge-user">Utente</span>'}
+              ${u.is_editor ? '<span class="badge-user" style="background:rgba(99,102,241,.15);color:#a5b4fc;border:1px solid rgba(99,102,241,.3)">Editor</span>' : ''}
+              ${u.is_team_editor ? '<span class="badge-team-editor">Editor Team</span>' : ''}
+            </div></td>
+            <td>${u.linked_operatore_nome ? `<span class="badge-user" style="background:rgba(16,185,129,.14);color:#99f6e4;border:1px solid rgba(20,184,166,.22)">${u.linked_operatore_posizione} · ${u.linked_operatore_nome}</span>` : '<span class="soft-note">Non associato</span>'}</td>
+            <td><div class="user-actions">
+              <button class="btn btn-sm btn-warn btn-role" onclick="toggleAdmin(${u.id},'${u.username}',${u.is_admin})">${u.is_admin?'Rimuovi admin':'Rendi admin'}</button>
+              <button class="btn btn-sm btn-role btn-team-role" onclick="toggleTeamEditor(${u.id},'${u.username}',${u.is_team_editor})">${u.is_team_editor?'Rimuovi editor team':'Rendi editor team'}</button>
+              <button class="btn btn-sm btn-role" style="background:rgba(99,102,241,.15);color:#A5B4FC;border-color:rgba(99,102,241,.3)" onclick="toggleEditor(${u.id},'${u.username}',${u.is_editor})">${u.is_editor?'Rimuovi editor':'Rendi editor'}</button>
+              <button class="btn btn-sm btn-role" style="background:rgba(99,102,241,.15);color:#A5B4FC;border-color:rgba(99,102,241,.3)" onclick="resetPassword(${u.id},'${u.username}')">Reset pwd</button>
+              <button class="btn btn-sm btn-danger btn-role" onclick="deleteUser(${u.id},'${u.username}')">Elimina</button>
+            </div></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+  const container = document.getElementById('container');
+  if (existing) existing.outerHTML = html;
+  else {
+    const secLogs = document.getElementById('sec-logs');
+    if (secLogs) secLogs.insertAdjacentHTML('beforebegin', html);
+    else container.insertAdjacentHTML('beforeend', html);
+  }
+};
+
+function renderOperatorLinks(operatori, utenti) {
+  const existing = document.getElementById('sec-team-links');
+  const assignableUsers = utenti.filter(u => !u.is_admin);
+  const html = `
+  <div class="section-card" id="sec-team-links">
+    <div class="section-head"><span>Associazione account-operatore</span></div>
+    <div class="section-body">
+      <p class="soft-note" style="margin-bottom:14px">Ogni account collegato può aprire richieste ferie solo sulla propria colonna team.</p>
+      <div class="operator-link-grid">
+        ${operatori.map(op => `
+          <div class="operator-link-card">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span class="operator-badge">${op.posizione}</span>
+            </div>
+            <div>
+              <div style="font-weight:800;color:var(--text)">${op.nome}</div>
+              <div class="soft-note">${op.linked_username ? `Associato a ${op.linked_username}` : 'Nessun account associato'}</div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+              <select id="link_op_${op.id}" class="link-select">
+                <option value="">Nessuna associazione</option>
+                ${assignableUsers.map(u => `<option value="${u.id}" ${Number(op.linked_user_id)===Number(u.id)?'selected':''}>${u.username}${u.nome ? ` · ${u.nome}` : ''}</option>`).join('')}
+              </select>
+              <button class="btn btn-sm btn-primary" onclick="saveOperatorLink(${op.id})">Salva</button>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+  const container = document.getElementById('container');
+  if (existing) existing.outerHTML = html;
+  else {
+    const secTabelle = document.getElementById('sec-tabelle');
+    if (secTabelle) secTabelle.insertAdjacentHTML('beforebegin', html);
+    else container.insertAdjacentHTML('beforeend', html);
+  }
+}
+
+async function saveOperatorLink(opId) {
+  const userId = document.getElementById(`link_op_${opId}`)?.value || '';
+  const res = await fetch(`/api/admin/team/operatori/${opId}/link`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ user_id: userId ? Number(userId) : null })
+  }).then(r=>r.json()).catch(()=>({ok:false}));
+  if (!res.ok) {
+    alert(res.detail || 'Errore nel salvataggio dell\'associazione.');
+    return;
+  }
+  await loadAll();
+}
+
+function renderFerieRequests(pending, ferieLog) {
+  const existing = document.getElementById('sec-ferie');
+  const html = `
+  <div class="section-card" id="sec-ferie">
+    <div class="section-head"><span>Richieste ferie team</span></div>
+    <div class="section-body">
+      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:18px">
+        <div>
+          <div style="font-size:0.8rem;font-weight:800;color:#ccfbf1;margin-bottom:10px">In attesa di revisione</div>
+          ${pending.length ? pending.map(p => `
+            <div class="pending-box" style="margin-bottom:12px">
+              <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
+              <div class="soft-note">${p.username || '-'} · ${p.giorni || 0} giorni</div>
+              <div style="font-size:0.74rem;color:#bfdbfe;margin-top:8px">${(p.dates || []).join(', ')}</div>
+              <div class="pending-actions">
+                <button class="btn btn-sm btn-primary" onclick='reviewAdminFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>Approva</button>
+                <button class="btn btn-sm btn-danger" onclick='reviewAdminFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>Rifiuta</button>
+              </div>
+            </div>`).join('') : '<div class="soft-note">Nessuna richiesta ferie in attesa.</div>'}
+        </div>
+        <div>
+          <div style="font-size:0.8rem;font-weight:800;color:#cbd5e1;margin-bottom:10px">Storico ferie</div>
+          <div class="mini-log">
+            ${ferieLog.length ? ferieLog.map(l => `
+              <div class="mini-log-item">
+                <div style="display:flex;justify-content:space-between;gap:10px">
+                  <strong style="color:var(--text)">${l.operatore_nome || '-'}</strong>
+                  <span class="soft-note">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
+                </div>
+                <div style="font-size:0.76rem;color:#dbeafe;margin-top:3px">${l.action || '-'} · ${l.data_turno || '-'}</div>
+                <div class="soft-note">${l.username || '-'} · ${l.status_from || 'vuoto'} → ${l.status_to || 'vuoto'} · da ${l.actor_username || '?'}</div>
+              </div>`).join('') : '<div class="soft-note">Nessun movimento ferie registrato.</div>'}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  const container = document.getElementById('container');
+  if (existing) existing.outerHTML = html;
+  else {
+    const secTabelle = document.getElementById('sec-tabelle');
+    if (secTabelle) secTabelle.insertAdjacentHTML('beforebegin', html);
+    else container.insertAdjacentHTML('beforeend', html);
+  }
+}
+
+async function reviewAdminFerie(operatoreId, dates, status) {
+  const res = await fetch('/api/team/ferie/review', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ operatore_id: operatoreId, dates, status })
+  }).then(r=>r.json()).catch(()=>({ok:false}));
+  if (!res.ok) {
+    alert(res.detail || 'Errore durante la revisione delle ferie.');
+    return;
+  }
+  await loadAll();
+}
 </script>
 
 <nav class="bottom-nav"><div class="bottom-nav-inner">
   <a href="/"><span class="icon">🗓</span><span>Turni</span></a>
   <a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a>
   <a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a>
+  <a href="/turni-team.html"><span class="icon">👥</span><span>Team</span></a>
   <a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a>
   <a href="/admin.html" class="active admin-link"><span class="icon">🔧</span><span>Admin</span></a>
 </div></nav>

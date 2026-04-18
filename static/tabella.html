@@ -233,6 +233,7 @@
     <a href="/">📅 Calendario</a>
     <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
+    <a href="/turni-team.html">👥 Team</a>
     <a href="/admin.html" id="adminNavLink">🔧 Admin</a>
   </nav>
   <div class="header-controls">
@@ -346,7 +347,13 @@ let tipoFiltro = 'tutti';
 
 function getToken() { return localStorage.getItem('token'); }
 function getNome()  { return localStorage.getItem('nome') || ''; }
-function logout()   { localStorage.clear(); window.location.href='/login.html'; }
+function logout()   {
+  localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  localStorage.removeItem('nome');
+  localStorage.removeItem('is_admin');
+  window.location.href='/login.html';
+}
 
 const _origFetch = window.fetch.bind(window);
 window.fetch = function(url, opts={}) {
@@ -604,6 +611,6 @@ async function doChangePwd() {
 
 </script>
 
-<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"  class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a><a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
+<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"  class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/turni-team.html"><span class="icon">👥</span><span>Team</span></a><a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a><a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
 </body>
 </html>

@@ -162,13 +162,6 @@
   /* ── LOADING ── */
   .loading { text-align: center; padding: 60px; color: var(--muted); }
 
-  /* Su mobile il loading è compatto e la sidebar dash invisibile */
-  @media (max-width: 768px) {
-    .loading { padding: 28px 20px; font-size: 0.85rem; }
-    /* Nasconde il placeholder — della sidebar fino al caricamento dati */
-    .sidebar > .loading { display: none; }
-  }
-
   .rep-toggle {
     display: flex; align-items: center; gap: 10px;
     background: var(--card2); border: 1px solid var(--border);
@@ -218,189 +211,135 @@
   }
   .time-edit-input.visible { display: block; }
 
-  /* ── CELL ORARIO MOBILE: sotto il turno badge ── */
-  td.cell-turno { vertical-align: middle; }
-  td.cell-turno .cell-orario-hint {
-    display: none; /* visibile solo su mobile via media query */
-    font-size: 0.65rem; color: var(--muted); margin-top: 2px; white-space: nowrap;
-  }
-  @media (max-width: 768px) {
-    td.cell-turno .cell-orario-hint { display: block; }
-  }
-
-    
   
   
   
-
-  /* ── MOBILE QUICK-STATS BAR ── */
-  .mobile-stats-bar {
-    display: none;
-    order: 0;
-    width: 100%;
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
-    padding: 8px 10px;
-    flex-direction: row;
-    align-items: center;
-    gap: 0;
-  }
-  .msb-item {
-    display: flex; flex-direction: column; align-items: center;
-    flex: 1; gap: 3px; min-width: 0;
-  }
-  .msb-label {
-    font-size: 0.56rem; color: var(--muted); font-weight: 700;
-    text-transform: uppercase; letter-spacing: .03em;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    max-width: 100%;
-  }
-  .msb-val   { font-size: 0.88rem; font-weight: 800; color: var(--text); white-space: nowrap; }
-  .msb-accent { color: var(--accent); }
-  .msb-sep   { width: 1px; height: 26px; background: var(--border); flex-shrink: 0; margin: 0 2px; }
-
-
-  /* ── SCROLLBAR ── */
-  ::-webkit-scrollbar { width: 4px; height: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--border); }
-  .cal-wrap { scrollbar-width: thin; scrollbar-color: transparent transparent; }
-  .cal-wrap:hover { scrollbar-color: var(--border) transparent; }
-  .sidebar { scrollbar-width: thin; scrollbar-color: transparent transparent; }
-  .sidebar:hover { scrollbar-color: var(--border) transparent; }
+  
+  
+  
 
   /* ── MOBILE RESPONSIVE ── */
   @media (max-width: 768px) {
+    .nav-controls select,
+    [onclick="logout()"] { padding: 5px 10px; font-size: 0.78rem; }
 
-    /* ── LAYOUT BASE: !important per battere #mainContent (id specificity) ── */
-    body { height: auto !important; overflow: auto !important; }
+    /* Tab mesi */
+    .month-tabs { padding: 8px 8px; gap: 3px; }
+    .month-tab { padding: 5px 9px; font-size: 0.74rem; }
 
-    #mainContent, .main {
-      flex-direction: column !important;
-      flex: none !important;
-      overflow: visible !important;
-      height: auto !important;
-      min-height: 0 !important;
-    }
+    /* Layout mobile */
+    body { height: auto; overflow: auto; }
+    .main { flex-direction: column; flex: none; overflow: visible; min-height: 0; height: auto; }
 
-    /* ── MONTH TABS ── */
-    .month-tabs { padding: 8px 10px; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .month-tab { padding: 6px 11px; font-size: 0.76rem; flex-shrink: 0; }
-    /* Nascondi cancella e importa su mobile — troppo ingombranti */
-    #cancellaBtn, #importaBtn { display: none !important; }
+    /* Calendario scroll orizzontale */
+    .cal-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0; }
+    table { table-layout: auto; min-width: 520px; }
+    th, td { padding: 7px 5px; font-size: 0.7rem; }
 
-    /* ── CALENDARIO: solo 4 colonne → Data, Giorno, Turno, Ore ── */
-    .cal-wrap {
-      order: 1;
-      flex: none !important;
-      height: auto !important;
-      overflow: visible !important;
-      width: 100%;
-    }
-    table { table-layout: fixed !important; width: 100% !important; min-width: 0 !important; }
-    th, td { font-size: 0.8rem; padding: 0; }
-
-    /* Righe: target touch */
-    tr.day-row td { padding: 11px 10px; }
-    th { padding: 8px 10px; }
-
-    /* Nascondi: Inizio(4), Fine(5), Diurne(7), Nott.(8), Str.D(9), Str.N(10), Rep(11), Note(12) */
-    th:nth-child(4),  td:nth-child(4),
+    /* Nascondi colonne secondarie su mobile */
     th:nth-child(5),  td:nth-child(5),
     th:nth-child(7),  td:nth-child(7),
     th:nth-child(8),  td:nth-child(8),
-    th:nth-child(9),  td:nth-child(9),
-    th:nth-child(10), td:nth-child(10),
-    th:nth-child(11), td:nth-child(11),
     th:nth-child(12), td:nth-child(12)
-    { display: none !important; }
+    { display: none; }
 
-    /* Larghezze colonne mobili */
-    th:nth-child(1), td:nth-child(1) { width: 64px; }
-    th:nth-child(2), td:nth-child(2) { width: 40px; }
-    th:nth-child(3), td:nth-child(3) { width: auto; }
-    th:nth-child(6), td:nth-child(6) { width: 54px; }
-
-    /* Celle */
-    td.cell-data { font-size: 0.85rem; font-weight: 700; color: var(--text); }
-    td.cell-giorno { font-size: 0.73rem; }
-    td.cell-turno { text-align: center; }
-    td:nth-child(6) { font-size: 0.83rem; font-weight: 700; color: var(--accent); text-align: center; }
-    tr.today td { background: rgba(59,130,246,0.12) !important; }
-    tr.is-festivo td.cell-data { color: #EF4444; }
-    tr.is-sabato  td.cell-data { color: #F59E0B; }
-
-    /* ── SIDEBAR: griglia 2x2 sotto il calendario ── */
+    /* Sidebar orizzontale scorrevole */
     .sidebar {
-      order: 2;
-      width: 100%; min-width: 0;
-      border-left: none; border-top: 1px solid var(--border);
-      flex-direction: row; flex-wrap: wrap;
-      overflow: visible;
-      padding: 12px 10px; gap: 8px;
+      width: 100%; min-width: 0; border-left: none; border-top: 1px solid var(--border);
+      flex-direction: row; overflow-x: auto; overflow-y: hidden;
+      padding: 8px; gap: 8px; flex-wrap: nowrap; flex-shrink: 0;
+      height: auto; min-height: 0;
     }
-    .sidebar > div:first-child {
-      width: 100%;
-      padding-bottom: 4px;
-      border-bottom: 1px solid var(--border);
-      margin-bottom: 2px;
-    }
-    .stat-card { flex: 1 1 calc(50% - 4px); min-width: 140px; padding: 10px 12px; }
-    .stat-row { padding: 3px 0; }
-    .stat-row span:first-child { font-size: 0.75rem; }
-    .stat-row span:last-child  { font-size: 0.82rem; }
-    .sidebar h3 { font-size: 0.68rem; }
+    .stat-card { min-width: 140px; flex-shrink: 0; padding: 8px 10px; }
+    .sidebar h3 { white-space: nowrap; font-size: 0.65rem; }
+    .stat-row span:first-child { font-size: 0.72rem; }
+    .stat-row span:last-child { font-size: 0.8rem; }
 
-    /* ── MODAL: sale dal basso ── */
-    .overlay { align-items: flex-end !important; padding: 0; }
+    /* Modal dal basso full width */
+    .overlay { align-items: flex-end; padding: 0; }
     .modal {
       width: 100%; max-width: 100%;
       border-radius: 20px 20px 0 0;
-      padding: 20px 16px calc(24px + env(safe-area-inset-bottom, 0px));
-      max-height: 92vh; overflow-y: auto;
+      padding: 20px 16px 30px;
+      max-height: 88vh; overflow-y: auto;
     }
-    .modal h2 { font-size: 1rem; margin-bottom: 14px; }
-    .turno-grid { grid-template-columns: repeat(5, 1fr); gap: 5px; }
-    .turno-btn { padding: 8px 2px; font-size: 0.72rem; border-radius: 8px; min-height: 40px; }
-    .time-row { flex-direction: column; gap: 12px; }
-    .time-arrow { transform: rotate(90deg); text-align: center; font-size: 1.2rem; margin: -4px 0; }
-    .time-block { flex: none; width: 100%; }
-    .time-display { font-size: 2rem; }
-    .time-btns { gap: 4px; }
-    .time-adj { padding: 7px 4px; font-size: 0.7rem; flex: 1; }
+    .turno-grid { grid-template-columns: repeat(5, 1fr); gap: 4px; }
+    .turno-btn { padding: 6px 2px; font-size: 0.7rem; }
+    .time-row { gap: 8px; }
+    .time-display { font-size: 1.6rem; }
+    .time-btns { gap: 3px; }
+    .time-adj { padding: 5px 2px; font-size: 0.66rem; }
     .form-grid { grid-template-columns: 1fr; gap: 10px; }
     .modal-actions { gap: 8px; margin-top: 16px; }
-    .modal-actions button { padding: 12px; font-size: 0.9rem; }
-
-    /* ── QUICK STATS BAR ── */
-    .mobile-stats-bar { display: flex !important; }
   }
 
-  /* Titolo in contenitore a larghezza fissa */
+    /* Mostra bottom nav */
+    
+  }
+
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  @media (max-width: 768px) {
+    
+  }
+  
+  
+  
+  
+  @media (max-width:768px) {  }
+
+  
+  
+  /* Titolo in contenitore a larghezza fissa: nessuno spostamento al cambio pagina */
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  @media (max-width: 768px) {
+    
+    
+    
+    
+    
+  }
+
 
   /* ── BOTTOM NAV MOBILE ── */
   .bottom-nav {
     display: none;
     position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
     background: var(--card); border-top: 1px solid var(--border);
-    padding: 6px 0 env(safe-area-inset-bottom, 8px);
+    padding: 6px 0 env(safe-area-inset-bottom, 6px);
   }
   .bottom-nav-inner {
     display: flex; justify-content: space-around; align-items: stretch;
   }
   .bottom-nav a {
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    color: var(--muted); text-decoration: none; font-size: 0.65rem;
-    font-weight: 600; padding: 6px 4px; border-radius: 8px; flex: 1;
-    text-align: center; min-width: 0; margin: 0 2px; transition: color .15s;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    color: var(--muted); text-decoration: none; font-size: 0.6rem;
+    font-weight: 600; padding: 4px 6px; border-radius: 6px; flex: 1;
+    text-align: center; min-width: 0;
   }
   .bottom-nav a.active { color: var(--accent); }
-  .bottom-nav a span.icon { font-size: 1.35rem; line-height: 1.2; }
+  .bottom-nav a span.icon { font-size: 1.2rem; line-height: 1; }
   #adminMobileBtn { display: none; color: #F59E0B !important; }
   @media (max-width: 768px) {
     .bottom-nav { display: block; }
-    body { padding-bottom: 72px; }
+    body { padding-bottom: 64px; }
   }
 
 
@@ -449,20 +388,12 @@
   .btn-logout:hover { background: #EF4444; color: white; }
   .user-label { font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
   @media (max-width: 768px) {
-    header { height: 48px; padding: 0 12px; gap: 8px; overflow: hidden; }
-    .page-title {
-      width: auto; min-width: 0; flex-shrink: 1;
-      font-size: 0.88rem; max-width: 140px;
-    }
+    header { height: 48px; padding: 0 12px; gap: 8px; }
+    .page-title { width: auto; min-width: 0; max-width: 160px; font-size: 0.9rem; }
     .top-nav { display: none !important; }
     .user-label { display: none; }
-    /* Nascondi i pulsanti anno e select su mobile — l'anno si cambia dal select compatto */
-    .header-controls > button { display: none; }
-    .header-controls select {
-      display: inline-block !important;
-      width: 70px; padding: 4px 6px;
-      font-size: 0.8rem; height: 30px;
-    }
+    .header-controls select { display: none; }
+    .header-controls button { padding: 4px 8px; font-size: 0.78rem; }
     .btn-logout { padding: 4px 8px; font-size: 0.78rem; }
   }
 
@@ -540,16 +471,25 @@
   .acc-btn-primary:hover { background:#2563EB; }
   .acc-btn-cancel { background:var(--card2); color:var(--muted); border:1px solid var(--border); }
 
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: transparent; border-radius: 10px; transition: background .2s; }
+  * { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+  :hover::-webkit-scrollbar-thumb { background: var(--border); }
+  html:hover { scrollbar-color: var(--border) transparent; }
 </style>
 </head>
 <body>
 
 <header>
   <div class="page-title">🗓 Gestione <span>Turni</span></div>
-        <nav class="top-nav">
+          <nav class="top-nav">
     <a href="#" onclick="return false;" class="nav-active">📅 Calendario</a>
     <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
+    <a href="/turni-team.html">👥 Team</a>
     <a href="/admin.html" id="adminNavLink">🔧 Admin</a>
   </nav>
   <div class="header-controls">
@@ -686,16 +626,6 @@
 </div>
 
 <div id="mainContent" class="main">
-  <!-- Quick stats strip: visibile solo su mobile, sopra la tabella -->
-  <div class="mobile-stats-bar" id="mobileStatsBar">
-    <div class="msb-item"><span class="msb-label">Ore lav.</span><span class="msb-val" id="msbOreOrd">—</span></div>
-    <div class="msb-sep"></div>
-    <div class="msb-item"><span class="msb-label">Straordinari</span><span class="msb-val msb-accent" id="msbStrao">—</span></div>
-    <div class="msb-sep"></div>
-    <div class="msb-item"><span class="msb-label">Assenze</span><span class="msb-val" id="msbAssenze">—</span></div>
-    <div class="msb-sep"></div>
-    <div class="msb-item"><span class="msb-label">Reperibilità</span><span class="msb-val" id="msbRep">—</span></div>
-  </div>
   <div class="cal-wrap">
     <div id="calBody" class="loading">Caricamento…</div>
   </div>
@@ -906,6 +836,10 @@ function renderCalendario() {
       isOggi ? 'today' : ''
     ].filter(Boolean).join(' ');
 
+    const badgeHtml = t
+      ? `<span class="badge" style="background:${cfg.colore || '#555'}">${t}</span>`
+      : `<span style="color:var(--border)">—</span>`;
+
     // Orari da mostrare: effettivi se inseriti, altrimenti standard del turno
     const stdIni = cfg.std_ini != null ? minToHHMM(cfg.std_ini) : null;
     const stdFin = cfg.std_fin != null ? minToHHMM(cfg.std_fin) : null;
@@ -914,10 +848,6 @@ function renderCalendario() {
     // Evidenzia in giallo se l'orario è modificato rispetto allo standard
     const iniStyle = row.ora_inizio && row.ora_inizio !== stdIni ? 'color:#F59E0B;font-weight:700' : 'color:var(--muted)';
     const finStyle = row.ora_fine   && row.ora_fine   !== stdFin ? 'color:#EF4444;font-weight:700' : 'color:var(--muted)';
-
-    const badgeHtml = t
-      ? `<span class="badge" style="background:${cfg.colore || '#555'}">${t}</span><span class="cell-orario-hint">${showIni !== '—' ? showIni+'→'+showFin : ''}</span>`
-      : `<span style="color:var(--border)">—</span>`;
 
     const repIcon = rep ? { feriale:'🔵', semifestiva:'🟡', festiva:'🔴' }[rep] || '●' : '';
     const straoColor = isFestStrao ? '#EC4899' : '#F59E0B';
@@ -947,7 +877,9 @@ async function loadRiepilogo() {
   const m = data[mese] || {};
 
   const oreOrd = (m.ore_diurne || 0) + (m.ore_notturne || 0);
-  const straoTot = (m.strao_diurno || 0) + (m.strao_notturno || 0);
+  const straoDiurni = (m.strao_diurno || 0) + (m.strao_fest_diurno || 0);
+  const straoNotturni = (m.strao_notturno || 0) + (m.strao_fest_notturno || 0);
+  const straoTot = straoDiurni + straoNotturni;
   const repTot = (m.reperibilita_feriale||0) + (m.reperibilita_semifestiva||0) + (m.reperibilita_festiva||0);
 
   document.getElementById('sidebar').innerHTML = `
@@ -965,8 +897,8 @@ async function loadRiepilogo() {
     <div class="stat-card">
       <h3>Straordinari</h3>
       <div class="stat-row highlight"><span>Totale strao</span><span>${fmtH(straoTot)}</span></div>
-      <div class="stat-row"><span>↳ Diurni</span><span>${fmtH(m.strao_diurno||0)}</span></div>
-      <div class="stat-row"><span>↳ Notturni</span><span>${fmtH(m.strao_notturno||0)}</span></div>
+      <div class="stat-row"><span>↳ Diurni</span><span>${fmtH(straoDiurni)}</span></div>
+      <div class="stat-row"><span>↳ Notturni</span><span>${fmtH(straoNotturni)}</span></div>
     </div>
 
     <div class="stat-card">
@@ -986,19 +918,6 @@ async function loadRiepilogo() {
       <div class="stat-row"><span>🔴 Festiva</span><span>${m.reperibilita_festiva||0}</span></div>
     </div>
   `;
-
-  // ── Popola la quick-stats bar mobile ──────────────────────────────────────
-  const assenzeGg = (m.mal||0) + (m.ferie||0) + (m.rc||0) + (m.r||0) + (m.rot||0);
-  const elOreOrd  = document.getElementById('msbOreOrd');
-  const elStrao   = document.getElementById('msbStrao');
-  const elAss     = document.getElementById('msbAssenze');
-  const elRep     = document.getElementById('msbRep');
-  if (elOreOrd) elOreOrd.textContent = oreOrd   ? fmtH(oreOrd)   : '0:00';
-  if (elStrao)  elStrao.textContent  = straoTot  ? '+'+fmtH(straoTot) : '—';
-  if (elAss)    elAss.textContent    = assenzeGg ? assenzeGg+' gg' : '—';
-  if (elRep)    elRep.textContent    = repTot    ? repTot          : '—';
-  // colora strao se > 0
-  if (elStrao) elStrao.style.color = straoTot ? '#F59E0B' : 'var(--muted)';
 }
 
 // ── MODAL ────────────────────────────────────────────────────────────────────
@@ -1412,12 +1331,127 @@ async function doChangePwd() {
     msg.textContent = '❌ ' + (res.detail || 'Password attuale non corretta'); msg.style.color='#EF4444';
   }
 }
+
+function renderCalendarRowHtml(dataStr) {
+  const d = new Date(dataStr + 'T12:00:00');
+  const dow = d.getDay();
+  const isFest = festivita.has(dataStr) || dow === 0;
+  const isSab = dow === 6;
+  const isOggi = dataStr === new Date().toISOString().slice(0,10);
+  const row = turniMese[dataStr] || {};
+  const t = row.turno || '';
+  const cfg = config[t] || {};
+
+  const oreDiurne = row.ore_diurne || 0;
+  const oreNott = row.ore_notturne || 0;
+  const oreTot = oreDiurne + oreNott;
+  const straoD = (row.strao_diurno||0) + (row.strao_fest_diurno||0);
+  const straoN = (row.strao_notturno||0) + (row.strao_fest_notturno||0);
+  const isFestStrao = (row.strao_fest_diurno||0) + (row.strao_fest_notturno||0) > 0;
+  const rep = row.reperibilita || '';
+
+  const cls = [
+    'day-row',
+    isFest ? 'is-festivo' : '',
+    isSab ? 'is-sabato' : '',
+    isOggi ? 'today' : ''
+  ].filter(Boolean).join(' ');
+
+  const badgeHtml = t
+    ? `<span class="badge" style="background:${cfg.colore || '#555'}">${t}</span>`
+    : `<span style="color:var(--border)">â€”</span>`;
+
+  const stdIni = cfg.std_ini != null ? minToHHMM(cfg.std_ini) : null;
+  const stdFin = cfg.std_fin != null ? minToHHMM(cfg.std_fin) : null;
+  const showIni = row.ora_inizio || stdIni || 'â€”';
+  const showFin = row.ora_fine || stdFin || 'â€”';
+  const iniStyle = row.ora_inizio && row.ora_inizio !== stdIni ? 'color:#F59E0B;font-weight:700' : 'color:var(--muted)';
+  const finStyle = row.ora_fine && row.ora_fine !== stdFin ? 'color:#EF4444;font-weight:700' : 'color:var(--muted)';
+  const repIcon = rep ? { feriale:'ðŸ”µ', semifestiva:'ðŸŸ¡', festiva:'ðŸ”´' }[rep] || 'â—' : '';
+  const straoColor = isFestStrao ? '#EC4899' : '#F59E0B';
+
+  return `<tr class="${cls}" data-data="${dataStr}" onclick="openModal('${dataStr}')">
+      <td class="cell-data">${d.getDate()} ${MESI_IT[mese-1].slice(0,3)}</td>
+      <td class="cell-giorno">${GIORNI_IT[dow]}</td>
+      <td class="cell-turno">${badgeHtml}</td>
+      <td class="cell-ore" style="font-size:0.8rem;${iniStyle}">${showIni}</td>
+      <td class="cell-ore" style="font-size:0.8rem;${finStyle}">${showFin}</td>
+      <td class="cell-ore">${oreTot ? fmtH(oreTot) : 'â€”'}</td>
+      <td class="cell-ore">${oreDiurne ? fmtH(oreDiurne) : 'â€”'}</td>
+      <td class="cell-ore">${oreNott ? fmtH(oreNott) : 'â€”'}</td>
+      <td class="cell-ore">${straoD ? '<span style="color:'+straoColor+'">+'+fmtH(straoD)+'</span>' : 'â€”'}</td>
+      <td class="cell-ore">${straoN ? '<span style="color:'+straoColor+'">+'+fmtH(straoN)+'</span>' : 'â€”'}</td>
+      <td class="cell-ore">${repIcon || 'â€”'}</td>
+      <td class="cell-note">${row.note || ''}</td>
+    </tr>`;
+}
+
+function refreshCalendarRow(dataStr) {
+  const rowEl = document.querySelector(`#calBody tr[data-data="${dataStr}"]`);
+  if (!rowEl) {
+    renderCalendario();
+    return;
+  }
+  const tmp = document.createElement('tbody');
+  tmp.innerHTML = renderCalendarRowHtml(dataStr);
+  if (tmp.firstElementChild) rowEl.replaceWith(tmp.firstElementChild);
+}
+
+async function saveTurno() {
+  if (!editingData) return;
+  const dataStr = editingData;
+  const hasRep = document.getElementById('reperibilita').value === 'true';
+  const payload = {
+    turno: selectedTurno || null,
+    ora_inizio: document.getElementById('oraInizio').value || null,
+    ora_fine: document.getElementById('oraFine').value || null,
+    reperibilita: hasRep,
+    note: document.getElementById('note').value || null,
+  };
+  const prevRow = turniMese[dataStr] ? { ...turniMese[dataStr] } : null;
+  const res = await fetch(`${API}/api/turni/${dataStr}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(r => r.json()).catch(() => ({ok:false}));
+  if (!res.ok) return;
+
+  turniMese[dataStr] = {
+    ...(prevRow || {}),
+    data: dataStr,
+    turno: payload.turno,
+    ora_inizio: payload.ora_inizio,
+    ora_fine: payload.ora_fine,
+    reperibilita: res.tipo_reperibilita || '',
+    note: payload.note,
+    ore_diurne: res.ore_diurne || 0,
+    ore_notturne: res.ore_notturne || 0,
+    strao_diurno: res.strao_diurno || 0,
+    strao_notturno: res.strao_notturno || 0,
+    strao_fest_diurno: res.strao_fest_diurno || 0,
+    strao_fest_notturno: res.strao_fest_notturno || 0,
+  };
+  closeModal();
+  refreshCalendarRow(dataStr);
+  loadRiepilogo();
+}
+
+async function deleteTurno() {
+  if (!editingData) return;
+  const dataStr = editingData;
+  const res = await fetch(`${API}/api/turni/${dataStr}`, { method: 'DELETE' }).then(() => ({ok:true})).catch(() => ({ok:false}));
+  if (!res.ok) return;
+  delete turniMese[dataStr];
+  closeModal();
+  refreshCalendarRow(dataStr);
+  loadRiepilogo();
+}
 </script>
 <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js");
 // ── AUTH ─────────────────────────────────────────────────────────────────────
 function getToken() { return localStorage.getItem('token'); }
 function getNome()  { return localStorage.getItem('nome') || localStorage.getItem('username') || ''; }
-function logout()   { localStorage.removeItem('token'); localStorage.removeItem('username'); localStorage.removeItem('nome'); window.location.href='/login.html'; }
+function logout()   { localStorage.removeItem('token'); localStorage.removeItem('username'); localStorage.removeItem('nome'); localStorage.removeItem('is_admin'); window.location.href='/login.html'; }
 
 // Inietta token in ogni fetch API
 const _origFetch = window.fetch.bind(window);
@@ -1640,6 +1674,6 @@ setInterval(async () => {
 </script>
 <!-- BOTTOM NAV MOBILE -->
 
-<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"  class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a><a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
+<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"  class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/turni-team.html"><span class="icon">👥</span><span>Team</span></a><a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a><a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
 </body>
 </html>
