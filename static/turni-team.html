@@ -40,11 +40,25 @@
   .ud-item.danger:hover { background:rgba(239,68,68,.1); }
   .ud-sep { height:1px; background:var(--border); margin:2px 0; }
 
-  /* ── MONTH TABS ── */
-  .month-tabs { display:flex; gap:4px; padding:12px 24px; background:var(--card); border-bottom:1px solid var(--border); overflow-x:auto; flex-shrink:0; }
-  .month-tab { padding:6px 14px; border-radius:20px; cursor:pointer; font-size:0.82rem; font-weight:600; border:1px solid transparent; transition:all .15s; white-space:nowrap; color:var(--muted); }
+  /* ── MONTH TABS ROW ── */
+  .month-tabs-row { display:flex; align-items:center; background:var(--card); border-bottom:1px solid var(--border); flex-shrink:0; min-height:46px; }
+  .month-tabs { display:flex; gap:4px; padding:8px 16px; overflow-x:auto; flex:1; align-items:center; scrollbar-width:none; }
+  .month-tabs::-webkit-scrollbar { display:none; }
+  .month-tab { padding:5px 12px; border-radius:20px; cursor:pointer; font-size:0.82rem; font-weight:600; border:1px solid transparent; transition:all .15s; white-space:nowrap; color:var(--muted); }
   .month-tab:hover { color:var(--text); background:var(--card2); }
   .month-tab.active { background:var(--accent); color:white; border-color:var(--accent); }
+  /* ── FERIE INLINE ── */
+  .ferie-inline { display:flex; align-items:center; gap:7px; padding:0 14px 0 10px; border-left:1px solid var(--border); flex-shrink:0; }
+  .btn-ferie {
+    display:inline-flex; align-items:center; gap:5px;
+    background:linear-gradient(135deg,rgba(20,184,166,.18),rgba(59,130,246,.14));
+    color:#2dd4bf; border:1px solid rgba(45,212,191,.3);
+    border-radius:8px; padding:5px 11px; font-size:0.78rem; font-weight:700;
+    cursor:pointer; white-space:nowrap; transition:all .15s;
+  }
+  .btn-ferie:hover:not(:disabled) { background:linear-gradient(135deg,rgba(20,184,166,.3),rgba(59,130,246,.24)); border-color:rgba(45,212,191,.5); }
+  .btn-ferie:disabled { opacity:.45; cursor:not-allowed; filter:grayscale(.5); }
+  .ferie-inline-hint { font-size:0.72rem; color:#5eead4; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
 
   /* ── TABELLA TEAM ── */
   .table-wrap { flex:1; overflow:auto; position:relative; background:white; }
@@ -274,9 +288,6 @@
   .btn-editor.pending { position:relative; }
   .nav-badge { display:none; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#ef4444; color:#fff; font-size:0.68rem; font-weight:800; align-items:center; justify-content:center; line-height:1; }
   .nav-badge.show { display:inline-flex; }
-  .ferie-bar { display:none; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 20px; background:linear-gradient(90deg, rgba(20,184,166,.16), rgba(59,130,246,.10)); border-bottom:1px solid rgba(45,212,191,.18); color:#dffaf6; font-size:0.82rem; }
-  .ferie-bar.open { display:flex; }
-  .ferie-pill { display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:999px; background:rgba(15,23,42,.38); border:1px solid rgba(148,163,184,.22); color:#ccfbf1; font-size:0.76rem; font-weight:700; }
   .ferie-mini { font-size:0.72rem; color:#bfdbfe; }
   .ferie-marker { position:absolute; right:2px; top:2px; z-index:2; min-width:18px; height:18px; padding:0 5px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-size:0.66rem; font-weight:900; letter-spacing:.02em; border:1px solid rgba(15,23,42,.14); }
   .ferie-marker.pending { background:#ccfbf1; color:#115e59; }
@@ -349,8 +360,11 @@
     header { height:48px; padding:0 12px; gap:8px; }
     .page-title { min-width:0; max-width:140px; font-size:0.9rem; }
     .top-nav { display:none !important; }
-    .month-tabs { padding:8px; gap:3px; }
-    .month-tab { padding:5px 9px; font-size:0.74rem; }
+    .month-tabs { padding:6px 8px; gap:3px; }
+    .month-tab { padding:4px 8px; font-size:0.74rem; }
+    .ferie-inline { padding:0 8px; gap:5px; }
+    .ferie-inline-hint { display:none; }
+    .btn-ferie { padding:4px 8px; font-size:0.72rem; }
     .bottom-nav { display:block; }
     body { padding-bottom:64px; }
     .editor-bar { flex-wrap:wrap; gap:6px; }
@@ -392,7 +406,15 @@
   </div>
 </header>
 
-<div class="month-tabs" id="monthTabs"></div>
+<div class="month-tabs-row">
+  <div class="month-tabs" id="monthTabs"></div>
+  <div class="ferie-inline" id="ferieBar">
+    <span class="ferie-inline-hint" id="ferieModeHint"></span>
+    <button class="btn-ferie" id="ferieToggleBtn" style="display:none" onclick="toggleFerieMode()">📅 Ferie</button>
+    <button class="btn-editor primary" id="ferieSubmitBtn" style="display:none" onclick="submitFerieRequest()">Invia</button>
+    <button class="btn-editor" id="ferieCancelBtn" style="display:none" onclick="cancelFerieMode()">✕ Annulla</button>
+  </div>
+</div>
 
 <div class="editor-bar" id="editorBar" style="display:none">
   <span class="editor-badge">✏️ Modalità Editor</span>
@@ -400,14 +422,6 @@
   <button class="btn-editor primary" onclick="openTemplate()">📋 Carica template settimana</button>
   <button class="btn-editor pending" onclick="toggleLog()" id="logBtn">📋 Log modifiche <span id="ferieAlertBadge" class="nav-badge"></span></button>
   <span style="font-size:0.75rem;color:var(--muted)" id="lastSaveLabel"></span>
-</div>
-
-<div class="ferie-bar" id="ferieBar">
-  <span class="ferie-pill" id="ferieInfoPill">Richiesta ferie non disponibile</span>
-  <span class="ferie-mini" id="ferieModeHint"></span>
-  <button class="btn-editor warn" id="ferieToggleBtn" style="display:none" onclick="toggleFerieMode()">Richiesta ferie</button>
-  <button class="btn-editor primary" id="ferieSubmitBtn" style="display:none" onclick="submitFerieRequest()">Invia richiesta</button>
-  <button class="btn-editor" id="ferieCancelBtn" style="display:none" onclick="cancelFerieMode()">Annulla</button>
 </div>
 
 <div class="table-wrap" id="tableWrap">
@@ -564,11 +578,23 @@
 
 <!-- LOG PANEL -->
 <div id="logPanel">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-    <h3 style="font-size:0.9rem;font-weight:700">📋 Log modifiche team</h3>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <h3 style="font-size:0.9rem;font-weight:700">📋 Log</h3>
     <button onclick="toggleLog()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">✕</button>
   </div>
-  <div id="logContent" style="font-size:0.78rem;color:var(--muted)">Caricamento…</div>
+  <!-- Tab switcher -->
+  <div style="display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px">
+    <button id="logTabTurni" onclick="switchLogTab('turni')"
+      style="background:var(--accent);color:white;border:none;border-radius:6px;padding:5px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all .15s">
+      ✏️ Turni
+    </button>
+    <button id="logTabFerie" onclick="switchLogTab('ferie')"
+      style="background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all .15s">
+      📅 Ferie
+    </button>
+  </div>
+  <div id="logContentTurni" style="font-size:0.78rem;color:var(--muted)">Caricamento…</div>
+  <div id="logContentFerie" style="font-size:0.78rem;color:var(--muted);display:none">Caricamento…</div>
 </div>
 
 <nav class="bottom-nav">
@@ -1483,27 +1509,36 @@ function renderTplCella(dow, pos) {
 }
 
 function updateFerieUi() {
-  const bar = document.getElementById('ferieBar');
-  const pill = document.getElementById('ferieInfoPill');
-  const hint = document.getElementById('ferieModeHint');
+  const hint      = document.getElementById('ferieModeHint');
   const toggleBtn = document.getElementById('ferieToggleBtn');
   const submitBtn = document.getElementById('ferieSubmitBtn');
   const cancelBtn = document.getElementById('ferieCancelBtn');
-  const badge = document.getElementById('ferieAlertBadge');
-  if (!bar || !pill || !hint || !toggleBtn || !submitBtn || !cancelBtn || !badge) return;
-  const canRequest = !!teamContext?.can_request_ferie;
-  const linkedName = teamContext?.linked_operatore_nome || 'nessun operatore';
+  const badge     = document.getElementById('ferieAlertBadge');
+  if (!hint || !toggleBtn || !submitBtn || !cancelBtn || !badge) return;
+  const canRequest   = !!teamContext?.can_request_ferie;
+  const linkedName   = teamContext?.linked_operatore_nome || '';
   const pendingCount = Number(teamContext?.ferie_pending_count || 0);
-  bar.classList.add('open');
-  toggleBtn.style.display = canRequest ? 'inline-flex' : 'inline-flex';
-  submitBtn.style.display = ferieMode ? 'inline-flex' : 'none';
-  cancelBtn.style.display = ferieMode ? 'inline-flex' : 'none';
-  toggleBtn.disabled = !canRequest;
-  toggleBtn.textContent = ferieMode ? 'Modifica richiesta ferie' : 'Richiesta ferie';
-  pill.textContent = canRequest ? `Account associato a ${linkedName}` : 'Account non ancora associato a un operatore';
-  hint.textContent = ferieMode
-    ? `Seleziona i giorni nella colonna TAB assegnata. Da aggiungere: ${ferieAdds.size}, da rimuovere: ${ferieRemovals.size}.`
-    : (canRequest ? 'La richiesta compare come overlay F e non sostituisce il turno.' : 'Serve associazione account-operatore da admin.');
+
+  if (ferieMode) {
+    // In modalità ferie: solo hint contatore + Invia + Annulla
+    toggleBtn.style.display = 'none';
+    submitBtn.style.display = 'inline-flex';
+    cancelBtn.style.display = 'inline-flex';
+    hint.textContent = `${ferieAdds.size} da aggiungere · ${ferieRemovals.size} da rimuovere`;
+    hint.style.display = ferieAdds.size || ferieRemovals.size ? 'inline' : 'none';
+  } else {
+    // Fuori modalità: solo bottone "Ferie" (disabilitato se non associato)
+    toggleBtn.style.display = 'inline-flex';
+    toggleBtn.disabled = !canRequest;
+    toggleBtn.textContent = '📅 Ferie';
+    toggleBtn.title = canRequest
+      ? (linkedName ? `Colonna assegnata: ${linkedName}` : 'Richiesta ferie')
+      : 'Chiedi al tuo amministratore di associarti a un operatore del team';
+    submitBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+    hint.style.display = 'none';
+  }
+
   badge.textContent = pendingCount > 99 ? '99+' : String(pendingCount || '');
   badge.classList.toggle('show', pendingCount > 0);
 }
@@ -1641,8 +1676,7 @@ load = async function() {
   let html = '<table class="team-table"><thead><tr>';
   html += '<th class="col-data sticky-left">Data</th><th class="col-giorno">Gg</th>';
   data.operatori.forEach(op => {
-    const linked = op.linked_username ? `<div style="font-size:0.55rem;color:#14b8a6;font-weight:700;margin-top:1px">${op.linked_username}</div>` : '';
-    html += `<th colspan="2" class="col-op" title="${op.nome}"><div style="font-size:0.62rem;color:#6b7280;font-weight:800;background:#e5e7eb;border-radius:3px;padding:0 4px;display:inline-block;margin-bottom:1px">${op.posizione}</div><div class="th-op-nome">${op.nome}</div>${linked}<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:2px;font-size:0.55rem;color:#9ca3af"><span>TAB</span><span>VAR</span></div></th>`;
+    html += `<th colspan="2" class="col-op" title="${op.nome}"><div style="font-size:0.62rem;color:#6b7280;font-weight:800;background:#e5e7eb;border-radius:3px;padding:0 4px;display:inline-block;margin-bottom:1px">${op.posizione}</div><div class="th-op-nome">${op.nome}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:2px;font-size:0.55rem;color:#9ca3af"><span>TAB</span><span>VAR</span></div></th>`;
   });
   html += '<th class="td-sep-destra" style="width:2px;padding:0"></th><th class="col-destra" style="font-size:0.6rem">Rep<br>1°</th><th class="col-destra" style="font-size:0.6rem">Rep<br>2°</th><th class="col-destra" style="font-size:0.6rem">Rep<br>3°</th><th class="td-sep-destra" style="width:2px;padding:0"></th><th colspan="4" class="col-destra" style="text-align:center;font-size:0.6rem">FESTIVITA<br><span style="font-size:0.55rem;opacity:.7">M M P P</span></th></tr></thead><tbody>';
   data.giorni.forEach((g, idx) => { html += buildTeamRowHtml(g, idx, data.giorni.length); });
@@ -1656,21 +1690,84 @@ loadLog = async function() {
     fetch('/api/team/log?limit=120').then(r=>r.json()).catch(()=>[]),
     fetch('/api/team/ferie/dashboard').then(r=>r.json()).catch(()=>({pending:[], recent_log:[]})),
   ]);
-  const pending = ferieDash.pending || [];
-  const ferieLogs = ferieDash.recent_log || [];
-  const el = document.getElementById('logContent');
-  if (!el) return;
-  const sections = [];
-  if (isEditor && pending.length) {
-    sections.push(`<div style="margin-bottom:14px"><div style="font-size:0.78rem;color:#ccfbf1;font-weight:800;margin-bottom:8px">Richieste ferie in attesa</div>${pending.map(p => `<div class="ferie-pending-card"><div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div><div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} · ${p.giorni || 0} giorni</div><div style="font-size:0.72rem;color:#bfdbfe;margin-top:6px">${p.first_day || ''}${p.last_day && p.last_day !== p.first_day ? ` → ${p.last_day}` : ''}</div><div class="ferie-pending-actions"><button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>Approva</button><button class="btn-editor" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>Rifiuta</button></div></div>`).join('')}</div>`);
+  const pending   = ferieDash.pending     || [];
+  const ferieLogs = ferieDash.recent_log  || [];
+
+  // ── TAB TURNI ────────────────────────────────────────────
+  const elTurni = document.getElementById('logContentTurni');
+  if (elTurni) {
+    if (!logs.length) {
+      elTurni.innerHTML = '<p style="color:var(--muted)">Nessuna modifica ai turni registrata</p>';
+    } else {
+      elTurni.innerHTML = logs.slice(0, 80).map(l => {
+        const color = l.nuovo_valore ? '#34D399' : '#EF4444';
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-weight:700;color:var(--text)">${l.operatore_nome||''}</span>
+            <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
+          </div>
+          <div style="font-size:0.72rem">
+            📅 ${l.data_turno||''} &nbsp;·&nbsp; ${l.campo||''}
+            &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span>
+            → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
+          </div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente||'?'}</div>
+        </div>`;
+      }).join('');
+    }
   }
-  if (ferieLogs.length) {
-    sections.push(`<div style="margin-bottom:14px"><div style="font-size:0.78rem;color:#ccfbf1;font-weight:800;margin-bottom:8px">Storico ferie</div>${ferieLogs.slice(0, 40).map(l => `<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;gap:12px"><span style="font-weight:700;color:var(--text)">${l.operatore_nome || '-'}</span><span style="color:var(--muted);font-size:0.7rem">${(l.created_at || '').slice(0,16).replace('T',' ')}</span></div><div style="margin-top:4px;font-size:0.72rem;color:#dbeafe"><span class="ferie-log-type">${l.action || 'ferie'}</span> ${l.data_turno || ''}</div><div style="font-size:0.68rem;color:var(--muted);margin-top:2px">${l.username || '-'} · ${l.status_from || 'vuoto'} → ${l.status_to || 'vuoto'} · da ${l.actor_username || '?'}</div></div>`).join('')}</div>`);
+
+  // ── TAB FERIE ────────────────────────────────────────────
+  const elFerie = document.getElementById('logContentFerie');
+  if (elFerie) {
+    const sections = [];
+    if (isEditor && pending.length) {
+      sections.push(`
+        <div style="margin-bottom:14px">
+          <div style="font-size:0.78rem;color:#ccfbf1;font-weight:800;margin-bottom:8px">In attesa di revisione</div>
+          ${pending.map(p => `
+            <div class="ferie-pending-card">
+              <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
+              <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} · ${p.giorni || 0} giorni</div>
+              <div style="font-size:0.72rem;color:#bfdbfe;margin-top:6px">
+                ${p.first_day || ''}${p.last_day && p.last_day !== p.first_day ? ` → ${p.last_day}` : ''}
+              </div>
+              <div class="ferie-pending-actions">
+                <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>✅ Approva</button>
+                <button class="btn-editor" style="color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>✕ Rifiuta</button>
+              </div>
+            </div>`).join('')}
+        </div>`);
+    }
+    if (ferieLogs.length) {
+      sections.push(`
+        <div>
+          <div style="font-size:0.78rem;color:#cbd5e1;font-weight:800;margin-bottom:8px">Storico ferie</div>
+          ${ferieLogs.slice(0, 60).map(l => `
+            <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+              <div style="display:flex;justify-content:space-between;gap:12px">
+                <span style="font-weight:700;color:var(--text)">${l.operatore_nome || '-'}</span>
+                <span style="color:var(--muted);font-size:0.7rem">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
+              </div>
+              <div style="margin-top:4px;font-size:0.72rem;color:#dbeafe">
+                <span class="ferie-log-type">${l.action || 'ferie'}</span> ${l.data_turno || ''}
+              </div>
+              <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">
+                ${l.username || '-'} · ${l.status_from || 'vuoto'} → ${l.status_to || 'vuoto'} · da ${l.actor_username || '?'}
+              </div>
+            </div>`).join('')}
+        </div>`);
+    }
+    elFerie.innerHTML = sections.length
+      ? sections.join('')
+      : '<p style="color:var(--muted)">Nessuna richiesta ferie registrata</p>';
   }
-  if (logs.length) {
-    sections.push(`<div><div style="font-size:0.78rem;color:#cbd5e1;font-weight:800;margin-bottom:8px">Modifiche turni team</div>${logs.slice(0, 60).map(l => { const color = l.nuovo_valore ? '#34D399' : '#EF4444'; return `<div style="padding:8px 0;border-bottom:1px solid var(--border)"><div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="font-weight:700;color:var(--text)">${l.operatore_nome||''}</span><span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span></div><div style="font-size:0.72rem">${l.data_turno||''} · ${l.campo||''} <span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span> → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span></div><div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente||'?'}</div></div>`; }).join('')}</div>`);
+
+  // Badge contatore ferie pendenti nell'intestazione log btn
+  if (pending.length) {
+    const badge = document.getElementById('ferieAlertBadge');
+    if (badge) { badge.textContent = pending.length; badge.classList.add('show'); }
   }
-  el.innerHTML = sections.length ? sections.join('') : '<p style="color:var(--muted)">Nessun evento registrato</p>';
 };
 
 reviewPendingFerie = async function(operatoreId, dates, status) {
@@ -1697,6 +1794,23 @@ toggleLog = async function() {
   if (logOpen) await loadLog();
 };
 
+function switchLogTab(tab) {
+  const tTurni = document.getElementById('logContentTurni');
+  const tFerie = document.getElementById('logContentFerie');
+  const bTurni = document.getElementById('logTabTurni');
+  const bFerie = document.getElementById('logTabFerie');
+  if (!tTurni || !tFerie || !bTurni || !bFerie) return;
+  const isTurni = tab === 'turni';
+  tTurni.style.display = isTurni ? '' : 'none';
+  tFerie.style.display = isTurni ? 'none' : '';
+  bTurni.style.background = isTurni ? 'var(--accent)' : 'var(--card2)';
+  bTurni.style.color = isTurni ? 'white' : 'var(--muted)';
+  bTurni.style.border = isTurni ? 'none' : '1px solid var(--border)';
+  bFerie.style.background = isTurni ? 'var(--card2)' : 'var(--accent)';
+  bFerie.style.color = isTurni ? 'var(--muted)' : 'white';
+  bFerie.style.border = isTurni ? '1px solid var(--border)' : 'none';
+}
+
 renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const isEmpty = !turno;
   const turnoNorm = (turno || '').trim().toUpperCase();
@@ -1717,7 +1831,7 @@ renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const clickEvt = isEditor ? `onclick="openPicker('${data}',${opId},'${col}',event)"` : (ownFerieCell ? `onclick="toggleFerieDate('${data}')"` : '');
   const edClass = isEditor ? ' editable' : '';
   const ferieClass = ownFerieCell ? ' ferie-cell-selectable' : '';
-  const selectedClass = (ferieAdds.has(data) || ferieRemovals.has(data)) ? ' ferie-cell-selected' : '';
+  const selectedClass = ownFerieCell && (ferieAdds.has(data) || ferieRemovals.has(data)) ? ' ferie-cell-selected' : '';
   const marker = col === 'base' ? renderFerieMarker(ferieRequest, data) : '';
   const colClass = col === 'var' ? ' var-cell' : '';
   const value = isEmpty ? '' : turno;
