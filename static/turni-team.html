@@ -267,12 +267,14 @@
   .mod-chip.chip-M     { color:#34d399; border-color:rgba(52,211,153,0.5); background:rgba(52,211,153,0.08); }
 
   /* Action buttons */
-  .picker-actions { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  .picker-actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
   .picker-btn {
     padding:10px 8px; border-radius:10px; border:none;
     cursor:pointer; font-size:0.8rem; font-weight:700;
     transition:all 0.15s; letter-spacing:.01em;
   }
+  .picker-btn-secondary { background:rgba(148,163,184,0.12); color:#cbd5e1; border:1px solid rgba(148,163,184,0.24); }
+  .picker-btn-secondary:hover { background:rgba(148,163,184,0.2); border-color:rgba(148,163,184,0.42); }
   .picker-btn-confirm { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:white; }
   .picker-btn-confirm:hover { background:linear-gradient(135deg,#3b82f6,#2563eb); box-shadow:0 4px 14px rgba(37,99,235,0.4); }
   .picker-btn-cancel { background:rgba(239,68,68,0.08); color:#f87171; border:1px solid rgba(239,68,68,0.25); }
@@ -508,6 +510,7 @@
 
   <!-- Azioni -->
   <div class="picker-actions">
+    <button class="picker-btn picker-btn-secondary" onclick="pickerAnnulla()">Annulla</button>
     <button class="picker-btn picker-btn-confirm" onclick="pickerConferma()">✅ Conferma</button>
     <button class="picker-btn picker-btn-cancel"  onclick="pickerCancella()">✕ Cancella</button>
   </div>
@@ -1088,6 +1091,10 @@ function pickerSetTurno(turno, btn) {
     preview.style.color = turno ? '#ffffff' : '#64748b';
   }
   if (event) event.stopPropagation();
+}
+
+function pickerAnnulla() {
+  closePicker();
 }
 
 function pickerCancella() {
@@ -2143,6 +2150,54 @@ renderTplCella = function(dow, pos) {
   const repIcon = isRep ? '<span class="cella-rep-icon">&reg;</span>' : '';
   const smartHtml = isSmart ? '<span class="smart-inline">#</span>' : '';
   return `<div class="cella tpl-cella${repClass}${smartClass}${specialClass}${stateClass}" onclick="openPickerForTemplate(${dow},${pos},event)">${turno || ''}${mfHtml}${repIcon}${smartHtml}</div>`;
+};
+
+loadLog = async function() {
+  const [logs, ferieDash] = await Promise.all([
+    fetch('/api/team/log?limit=120').then(r => r.json()).catch(() => []),
+    fetch('/api/team/ferie/dashboard').then(r => r.json()).catch(() => ({pending: [], recent_log: []})),
+  ]);
+  const pending = ferieDash.pending || [];
+  const ferieLogs = ferieDash.recent_log || [];
+
+  const elTurni = document.getElementById('logContentTurni');
+  if (elTurni) {
+    if (!logs.length) {
+      elTurni.innerHTML = '<p style="color:var(--muted)">Nessuna modifica ai turni registrata</p>';
+    } else {
+      elTurni.innerHTML = logs.slice(0, 80).map(l => {
+        const color = l.nuovo_valore ? '#34D399' : '#EF4444';
+        const oldValue = l.vecchio_valore || '-';
+        const newValue = l.nuovo_valore || '(vuoto)';
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-weight:700;color:var(--text)">${l.operatore_nome || ''}</span>
+            <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica || '').slice(0,10)}</span>
+          </div>
+          <div style="font-size:0.72rem">
+            ${l.data_turno || ''} - ${l.campo || ''}
+            <span style="text-decoration:line-through;color:#EF4444">${oldValue}</span>
+            -> <span style="color:${color};font-weight:700">${newValue}</span>
+          </div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente || '?'}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  teamFerieLogData = { pending, logs: ferieLogs };
+  renderTeamFerieLogContent();
+
+  const badge = document.getElementById('ferieAlertBadge');
+  if (badge) {
+    if (pending.length) {
+      badge.textContent = pending.length;
+      badge.classList.add('show');
+    } else {
+      badge.textContent = '';
+      badge.classList.remove('show');
+    }
+  }
 };
 
 </script>

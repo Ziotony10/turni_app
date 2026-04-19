@@ -115,10 +115,13 @@ function showTab(t) {
 
 
 (async () => {
-    try {
-      await fetch('/api/log-page-visit', { method: 'POST' });
-    } catch (e) {}
-  })();
+  const visitKey = 'login_page_visit_logged';
+  if (sessionStorage.getItem(visitKey)) return;
+  try {
+    await fetch('/api/log-page-visit', { method: 'POST' });
+    sessionStorage.setItem(visitKey, '1');
+  } catch (e) {}
+})();
 
 function showErr(msg) {
   const el = document.getElementById('errMsg');

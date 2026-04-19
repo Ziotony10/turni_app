@@ -420,15 +420,15 @@
         <h2>🔑 Impostazioni account</h2>
         <div class="acc-field">
           <label>Password attuale</label>
-          <input type="password" id="accPwdOld" placeholder="••••••••">
+          <input type="password" id="accPwdOld" placeholder="••••••••" autocomplete="current-password">
         </div>
         <div class="acc-field">
           <label>Nuova password</label>
-          <input type="password" id="accPwdNew" placeholder="min 6 caratteri">
+          <input type="password" id="accPwdNew" placeholder="min 6 caratteri" autocomplete="new-password">
         </div>
         <div class="acc-field">
           <label>Conferma nuova password</label>
-          <input type="password" id="accPwdConfirm" placeholder="ripeti la nuova password">
+          <input type="password" id="accPwdConfirm" placeholder="ripeti la nuova password" autocomplete="new-password">
         </div>
         <div class="acc-msg" id="accMsg"></div>
         <div class="acc-actions">
@@ -975,6 +975,35 @@ async function deleteUser(id, username) {
   await loadAll();
 }
 
+function escapeHtmlAttr(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function toggleAdminFromBtn(btn, id, isAdm) {
+  return toggleAdmin(id, btn?.dataset?.username || '', isAdm);
+}
+
+function toggleEditorFromBtn(btn, id, isEd) {
+  return toggleEditor(id, btn?.dataset?.username || '', isEd);
+}
+
+function resetPasswordFromBtn(btn, id) {
+  return resetPassword(id, btn?.dataset?.username || '');
+}
+
+function deleteUserFromBtn(btn, id) {
+  return deleteUser(id, btn?.dataset?.username || '');
+}
+
+function deleteTabellaFromBtn(btn, id) {
+  return deleteTabella(id, btn?.dataset?.nome || '');
+}
+
 async function toggleEditor(id, username, isEd) {
   if (!confirm(`${isEd?'Rimuovere':'Rendere'} editor "${username}"?`)) return;
   await fetch(`/api/admin/utenti/${id}/editor`, {method:'POST'});
@@ -996,7 +1025,7 @@ function renderTabelle(tabs) {
     <td>${t.num_settimane} sett.</td>
     <td style="display:flex;gap:6px">
       <button class="btn btn-sm btn-primary" onclick="editTabella(${t.id})">Modifica</button>
-      <button class="btn btn-sm btn-danger" onclick="deleteTabella(${t.id},'${t.nome}')">Elimina</button>
+      <button class="btn btn-sm btn-danger" data-nome="${escapeHtmlAttr(t.nome)}" onclick="deleteTabellaFromBtn(this, ${t.id})">Elimina</button>
     </td>
   </tr>`).join('');
 
@@ -1244,6 +1273,7 @@ loadAll = async function() {
   renderStatusCard();
   renderLogsCard();
   renderVisitsCard();
+  renderCleanupCard();
 
   const [utenti, tabs, operatoriLinks, feriePending, ferieLog] = await Promise.all([
     fetch('/api/admin/utenti').then(r=>r.json()),
@@ -1287,10 +1317,10 @@ renderUtenti = function(utenti) {
               ? `<span class="op-team-badge">${u.linked_operatore_posizione}&nbsp;·&nbsp;${u.linked_operatore_nome}</span>`
               : '<span class="soft-note">—</span>'}</td>
             <td><div class="user-actions">
-              <button class="btn btn-sm btn-warn btn-role" onclick="toggleAdmin(${u.id},'${u.username}',${u.is_admin})">${u.is_admin?'Rimuovi admin':'Rendi admin'}</button>
-              <button class="btn btn-sm btn-role" style="background:rgba(99,102,241,.15);color:#A5B4FC;border-color:rgba(99,102,241,.3)" onclick="toggleEditor(${u.id},'${u.username}',${u.is_editor})">${u.is_editor?'Rimuovi editor':'Rendi editor'}</button>
-              <button class="btn btn-sm btn-role" style="background:rgba(245,158,11,.15);color:#FCD34D;border-color:rgba(245,158,11,.3)" onclick="resetPassword(${u.id},'${u.username}')">Reset pwd</button>
-              <button class="btn btn-sm btn-danger btn-role" onclick="deleteUser(${u.id},'${u.username}')">Elimina</button>
+              <button class="btn btn-sm btn-warn btn-role" data-username="${escapeHtmlAttr(u.username)}" onclick="toggleAdminFromBtn(this, ${u.id}, ${u.is_admin})">${u.is_admin?'Rimuovi admin':'Rendi admin'}</button>
+              <button class="btn btn-sm btn-role" style="background:rgba(99,102,241,.15);color:#A5B4FC;border-color:rgba(99,102,241,.3)" data-username="${escapeHtmlAttr(u.username)}" onclick="toggleEditorFromBtn(this, ${u.id}, ${u.is_editor})">${u.is_editor?'Rimuovi editor':'Rendi editor'}</button>
+              <button class="btn btn-sm btn-role" style="background:rgba(245,158,11,.15);color:#FCD34D;border-color:rgba(245,158,11,.3)" data-username="${escapeHtmlAttr(u.username)}" onclick="resetPasswordFromBtn(this, ${u.id})">Reset pwd</button>
+              <button class="btn btn-sm btn-danger btn-role" data-username="${escapeHtmlAttr(u.username)}" onclick="deleteUserFromBtn(this, ${u.id})">Elimina</button>
             </div></td>
           </tr>`).join('')}
         </tbody>
@@ -1596,6 +1626,283 @@ async function reviewAdminFerie(operatoreId, dates, status) {
   }
   await loadAll();
 }
+
+let pageVisitsLoaded = false;
+
+parseUA = function(ua) {
+  if (!ua) return '-';
+  let browser = '-';
+  let os = '-';
+  if (/Chrome\/(\d+)/.test(ua) && !/Edg/.test(ua) && !/OPR/.test(ua)) browser = `Chrome ${RegExp.$1}`;
+  else if (/Edg\/(\d+)/.test(ua)) browser = `Edge ${RegExp.$1}`;
+  else if (/OPR\/(\d+)/.test(ua)) browser = `Opera ${RegExp.$1}`;
+  else if (/Firefox\/(\d+)/.test(ua)) browser = `Firefox ${RegExp.$1}`;
+  else if (/Safari\//.test(ua) && /Version\/(\d+)/.test(ua)) browser = `Safari ${RegExp.$1}`;
+  else browser = ua.slice(0, 30) || '-';
+
+  if (/Windows NT/.test(ua)) os = 'Windows';
+  else if (/Mac OS X/.test(ua)) os = 'macOS';
+  else if (/iPhone|iPad/.test(ua)) os = 'iOS';
+  else if (/Android/.test(ua)) os = 'Android';
+  else if (/Linux/.test(ua)) os = 'Linux';
+
+  return `${browser} - ${os}`;
+};
+
+renderVisitsCard = function() {
+  const container = document.getElementById('container');
+  container.insertAdjacentHTML('beforeend', `
+  <div class="section-card" id="sec-visits">
+    <div class="section-head">
+      <span>Visite pagina login</span>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <label style="font-size:0.75rem;color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0;display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input type="checkbox" id="nascondi-bot" checked onchange="if (pageVisitsLoaded) loadPageVisits()"> Nascondi bot/ping
+        </label>
+        <button class="refresh-btn" onclick="loadPageVisits()">Aggiorna</button>
+      </div>
+    </div>
+    <div class="log-scroll">
+      <table class="log-table">
+        <thead><tr>
+          <th>Data / Ora</th>
+          <th>IP</th>
+          <th>Referrer</th>
+          <th>Browser</th>
+          <th style="text-align:center">Bot</th>
+        </tr></thead>
+        <tbody id="visitsTableBody">
+          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Premi Aggiorna per caricare le visite.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>`);
+};
+
+loadPageVisits = async function() {
+  const tbody = document.getElementById('visitsTableBody');
+  if (!tbody) return;
+  pageVisitsLoaded = true;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Caricamento...</td></tr>';
+
+  let data;
+  try {
+    data = await fetch('/api/admin/page-visits').then(r => r.json());
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#FCA5A5;padding:24px">Errore nel caricamento</td></tr>';
+    return;
+  }
+
+  const nascondiBot = document.getElementById('nascondi-bot')?.checked;
+  const filtered = nascondiBot ? data.filter(v => !v.is_bot) : data;
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Nessuna visita registrata</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(v => {
+    const ts = (v.timestamp || '').toString().replace('T', ' ').slice(0, 19);
+    const ua = parseUA(v.user_agent || '');
+    const referrer = v.referrer
+      ? `<span style="font-size:0.78rem;color:var(--muted)">${v.referrer.slice(0,40)}</span>`
+      : '<span style="color:var(--border)">diretto</span>';
+    const bot = v.is_bot
+      ? '<span style="color:#F59E0B;font-size:0.8rem">si</span>'
+      : '<span style="color:var(--border)">-</span>';
+    return `<tr>
+      <td style="color:var(--muted);font-size:0.8rem;white-space:nowrap">${ts}</td>
+      <td style="font-family:monospace;font-size:0.78rem;color:var(--muted)">${v.ip_address || '-'}</td>
+      <td>${referrer}</td>
+      <td style="color:var(--muted);font-size:0.75rem">${ua}</td>
+      <td style="text-align:center">${bot}</td>
+    </tr>`;
+  }).join('');
+};
+
+function setCleanupButtonState(target, enabled) {
+  const btn = document.querySelector(`[data-cleanup-target="${target}"]`);
+  if (!btn) return;
+  btn.disabled = !enabled;
+  btn.style.opacity = enabled ? '1' : '0.55';
+  btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+}
+
+async function refreshCleanupViews(target) {
+  const tasks = [loadDbStats()];
+  if (target === 'login_visits' && pageVisitsLoaded) tasks.push(loadPageVisits());
+  if (target.startsWith('ferie_')) {
+    tasks.push(
+      Promise.all([
+        fetch('/api/admin/team/ferie/pending').then(r => r.json()).catch(() => []),
+        fetch('/api/admin/team/ferie/log?limit=120').then(r => r.json()).catch(() => []),
+      ]).then(([pending, log]) => renderFerieRequests(pending, log))
+    );
+  }
+  await Promise.all(tasks);
+}
+
+renderCleanupCard = function() {
+  const container = document.getElementById('container');
+  container.insertAdjacentHTML('beforeend', `
+  <div class="section-card" id="sec-cleanup">
+    <div class="section-head">
+      <span>Manutenzione DB</span>
+      <button class="refresh-btn" onclick="loadDbStats()">Aggiorna contatori</button>
+    </div>
+    <div class="section-body">
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:16px;line-height:1.55">
+        Usa questa sezione solo per pulire dati storici o ripartire da uno stato pulito. Le richieste ferie e lo storico azioni sono cose diverse:
+        le richieste servono allo stato operativo, il log serve solo come cronologia.
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" id="cleanup-stats">
+        <div class="status-item" style="text-align:center">
+          <div class="status-label">Ferie pendenti</div>
+          <div class="status-value" id="stat-ferie-pending">-</div>
+        </div>
+        <div class="status-item" style="text-align:center">
+          <div class="status-label">Ferie processate</div>
+          <div class="status-value" id="stat-ferie-processed">-</div>
+        </div>
+        <div class="status-item" style="text-align:center">
+          <div class="status-label">Log ferie</div>
+          <div class="status-value" id="stat-ferie-log">-</div>
+        </div>
+        <div class="status-item" style="text-align:center">
+          <div class="status-label">Visite login</div>
+          <div class="status-value" id="stat-login-visits">-</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(37,99,235,0.12);border:1px solid rgba(59,130,246,0.28);border-radius:10px;padding:12px 16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:0.85rem;font-weight:700;color:#dbeafe">Pulizia consigliata ferie concluse</div>
+            <div style="font-size:0.75rem;color:#bfdbfe;margin-top:2px">Rimuove insieme richieste gia' approvate/rifiutate e relativo storico ferie. Le richieste pendenti restano intatte.</div>
+          </div>
+          <button class="btn btn-primary btn-sm" data-cleanup-target="ferie_closed_history" onclick="doCleanup('ferie_closed_history','Ripulire lo storico delle ferie concluse mantenendo intatte le richieste pendenti?')">Pulisci ferie concluse</button>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:0.85rem;font-weight:700;color:var(--text)">Rimuovi solo richieste ferie gia' processate</div>
+            <div style="font-size:0.75rem;color:var(--muted);margin-top:2px">Cancella solo le richieste approvate e rifiutate, ma lascia visibile il log storico delle azioni.</div>
+          </div>
+          <button class="btn btn-warn btn-sm" data-cleanup-target="ferie_requests_processed" onclick="doCleanup('ferie_requests_processed','Cancellare le richieste ferie gia' processate?')">Rimuovi processate</button>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:0.85rem;font-weight:700;color:var(--text)">Rimuovi tutte le richieste ferie</div>
+            <div style="font-size:0.75rem;color:var(--muted);margin-top:2px">Azione distruttiva: elimina anche le richieste ancora pendenti.</div>
+          </div>
+          <button class="btn btn-danger btn-sm" data-cleanup-target="ferie_requests_all" onclick="doCleanup('ferie_requests_all','Confermi la cancellazione di tutte le richieste ferie, comprese quelle pendenti?')">Rimuovi tutto</button>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:0.85rem;font-weight:700;color:var(--text)">Svuota solo storico azioni ferie</div>
+            <div style="font-size:0.75rem;color:var(--muted);margin-top:2px">Pulisce solo la cronologia delle azioni sulle ferie. Le richieste presenti restano nel database.</div>
+          </div>
+          <button class="btn btn-warn btn-sm" data-cleanup-target="ferie_log" onclick="doCleanup('ferie_log','Cancellare il log ferie?')">Svuota log ferie</button>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:0.85rem;font-weight:700;color:var(--text)">Svuota storico visite login</div>
+            <div style="font-size:0.75rem;color:var(--muted);margin-top:2px">Azzera solo il log delle visite alla pagina di login.</div>
+          </div>
+          <button class="btn btn-warn btn-sm" data-cleanup-target="login_visits" onclick="doCleanup('login_visits','Cancellare il log delle visite alla pagina login?')">Svuota visite login</button>
+        </div>
+      </div>
+      <div id="cleanup-msg" style="margin-top:14px;font-size:0.84rem;min-height:20px"></div>
+    </div>
+  </div>`);
+};
+
+loadDbStats = async function() {
+  try {
+    const s = await fetch('/api/admin/db-stats').then(r => r.json());
+    const set = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    };
+    set('stat-ferie-pending', s.ferie_requests_pending ?? 0);
+    set('stat-ferie-processed', s.ferie_requests_processed ?? 0);
+    set('stat-ferie-log', s.ferie_log_total ?? 0);
+    set('stat-login-visits', s.login_visits_total ?? 0);
+
+    setCleanupButtonState('ferie_closed_history', Number(s.ferie_requests_processed || 0) > 0 || Number(s.ferie_log_total || 0) > 0);
+    setCleanupButtonState('ferie_requests_processed', Number(s.ferie_requests_processed || 0) > 0);
+    setCleanupButtonState('ferie_requests_all', Number(s.ferie_requests_total || 0) > 0);
+    setCleanupButtonState('ferie_log', Number(s.ferie_log_total || 0) > 0);
+    setCleanupButtonState('login_visits', Number(s.login_visits_total || 0) > 0);
+  } catch (e) {}
+};
+
+doCleanup = async function(target, confirmMsg) {
+  const btn = document.querySelector(`[data-cleanup-target="${target}"]`);
+  if (btn?.disabled) return;
+  if (!confirm(confirmMsg)) return;
+
+  const msg = document.getElementById('cleanup-msg');
+  if (msg) {
+    msg.textContent = 'Pulizia in corso...';
+    msg.style.color = 'var(--muted)';
+  }
+  if (btn) btn.disabled = true;
+
+  const res = await fetch('/api/admin/db-cleanup', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ target })
+  }).then(r => r.json()).catch(() => ({ok:false, msg:'Errore di rete'}));
+
+  if (res.ok) {
+    if (msg) {
+      msg.textContent = res.msg || 'Pulizia completata';
+      msg.style.color = '#34D399';
+    }
+    await refreshCleanupViews(target);
+  } else {
+    if (msg) {
+      msg.textContent = res.detail || res.msg || 'Errore';
+      msg.style.color = '#FCA5A5';
+    }
+    await loadDbStats();
+  }
+
+  if (msg) {
+    setTimeout(() => { msg.textContent = ''; }, 5000);
+  }
+};
+
+loadAll = async function() {
+  const container = document.getElementById('container');
+  container.innerHTML = '';
+  pageVisitsLoaded = false;
+
+  renderStatusCard();
+  renderLogsCard();
+  renderVisitsCard();
+  renderCleanupCard();
+
+  const [utenti, tabs, operatoriLinks, feriePending, ferieLog] = await Promise.all([
+    fetch('/api/admin/utenti').then(r=>r.json()),
+    fetch('/api/admin/tabelle').then(r=>r.json()),
+    fetch('/api/admin/team/operatori-links').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/admin/team/ferie/pending').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/admin/team/ferie/log?limit=120').then(r=>r.json()).catch(()=>[]),
+  ]);
+  tabelle = tabs;
+  renderUtenti(utenti);
+  renderOperatorLinks(operatoriLinks, utenti);
+  renderFerieRequests(feriePending, ferieLog);
+  renderTabelle(tabs);
+  loadStatus();
+  loadLoginLogs();
+  loadDbStats();
+};
 </script>
 
 <nav class="bottom-nav"><div class="bottom-nav-inner">
