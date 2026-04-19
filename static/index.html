@@ -230,10 +230,10 @@
 
     /* Layout mobile */
     body { height: auto; overflow: auto; }
-    .main { flex-direction: column; flex: none; overflow: visible; min-height: 0; height: auto; }
+    .main, #mainContent { flex-direction: column; flex: none; overflow: visible; min-height: 0; height: auto; }
 
     /* Calendario scroll orizzontale */
-    .cal-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0; }
+    .cal-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0; flex-shrink: 0; }
     table { table-layout: auto; min-width: 520px; }
     th, td { padding: 7px 5px; font-size: 0.7rem; }
 

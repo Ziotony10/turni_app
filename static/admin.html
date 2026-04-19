@@ -508,6 +508,13 @@ function getFerieActionLabel(action, statusTo) {
   return 'Aggiornamento richiesta';
 }
 
+function renderLogText(text) {
+  if (!text) return '-';
+  // ~~testo~~ → <del>testo</del> (strikethrough)
+  let html = String(text).replace(/~~([^~]+)~~/g, '<del style="color:#94A3B8;text-decoration:line-through">$1</del>');
+  return html;
+}
+
 function getFerieHistoryLine(row) {
   const fromMeta = getFerieStatusMeta(row.status_from);
   const toMeta = getFerieStatusMeta(row.status_to);
@@ -572,6 +579,7 @@ async function loadAll() {
   renderStatusCard();
   renderLogsCard();
   renderVisitsCard(); // ← AGGIUNGI
+  renderCleanupCard();
 
   const [utenti, tabs] = await Promise.all([
     fetch('/api/admin/utenti').then(r=>r.json()),
@@ -585,6 +593,7 @@ async function loadAll() {
   loadStatus();
   loadLoginLogs();
   loadPageVisits(); // ← AGGIUNGI
+  loadDbStats();
 }
 
 // ── STATUS SISTEMA ────────────────────────────────────────────────────────────
@@ -801,7 +810,122 @@ async function loadPageVisits() {
     </tr>`;
   }).join('');
 }
- // ──────────────────────────────────────────────────────────────────── 
+ // ────────────────────────────────────────────────────────────────────
+
+// ── PULIZIA DB ────────────────────────────────────────────────────────────────
+function renderCleanupCard() {
+  const container = document.getElementById('container');
+  container.insertAdjacentHTML('beforeend', `
+  <div class="section-card" id="sec-cleanup">
+    <div class="section-head">
+      <span>🗑️ Pulizia DB – Richieste operatori</span>
+      <button class="refresh-btn" onclick="loadDbStats()">↻ Aggiorna contatori</button>
+    </div>
+    <div class="section-body">
+      <div style="font-size:0.82rem;color:var(--muted);margin-bottom:16px;line-height:1.5">
+        Elimina i record storici dal database per liberare spazio. Le operazioni sono irreversibili.
+      </div>
+
+      <!-- Contatori -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px" id="cleanup-stats">
+        <div class="status-item" style="text-align:center">
+          <div class="status-label">Richieste ferie in attesa</div>
+          <div class="status-value" id="stat-ferie-pending">—</div>
+        </div>
+        <div class="status-item" style="text-align:center">
+          <div class="status-label">Richieste ferie processate</div>
+          <div class="status-value" id="stat-ferie-processed">—</div>
+        </div>
+        <div class="status-item" style="text-align:center">
+          <div class="status-label">Log storico ferie</div>
+          <div class="status-value" id="stat-ferie-log">—</div>
+        </div>
+        <div class="status-item" style="text-align:center" style="grid-column:span 3">
+          <div class="status-label">Visite pagina login</div>
+          <div class="status-value" id="stat-login-visits">—</div>
+        </div>
+      </div>
+
+      <!-- Azioni -->
+      <div style="display:flex;flex-direction:column;gap:10px">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:0.85rem;font-weight:700;color:var(--text)">Ferie approvate / rifiutate</div>
+            <div style="font-size:0.75rem;color:var(--muted);margin-top:2px">Rimuove solo le richieste già processate (approvate o rifiutate). Le richieste in attesa restano intatte.</div>
+          </div>
+          <button class="btn btn-warn btn-sm" onclick="doCleanup('ferie_requests_processed','Cancellare le richieste ferie già processate?')">
+            🗑 Cancella processate
+          </button>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:0.85rem;font-weight:700;color:var(--text)">Tutte le richieste ferie</div>
+            <div style="font-size:0.75rem;color:var(--muted);margin-top:2px">Rimuove <strong style="color:#FCA5A5">tutte</strong> le richieste ferie incluse quelle in attesa. Usare con cautela.</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="doCleanup('ferie_requests_all','⚠️ ATTENZIONE: cancellare TUTTE le richieste ferie, comprese quelle in attesa?')">
+            🗑 Cancella tutto
+          </button>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:0.85rem;font-weight:700;color:var(--text)">Log storico ferie</div>
+            <div style="font-size:0.75rem;color:var(--muted);margin-top:2px">Cancella la cronologia delle azioni sulle ferie (approvazioni, rifiuti, richieste). Non tocca i turni.</div>
+          </div>
+          <button class="btn btn-warn btn-sm" onclick="doCleanup('ferie_log','Cancellare il log storico delle ferie?')">
+            🗑 Cancella log ferie
+          </button>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:0.85rem;font-weight:700;color:var(--text)">Log visite pagina login</div>
+            <div style="font-size:0.75rem;color:var(--muted);margin-top:2px">Azzera il registro degli accessi alla pagina di login (IP, user agent, bot).</div>
+          </div>
+          <button class="btn btn-warn btn-sm" onclick="doCleanup('login_visits','Cancellare il log delle visite alla pagina login?')">
+            🗑 Cancella log accessi
+          </button>
+        </div>
+
+      </div>
+      <div id="cleanup-msg" style="margin-top:14px;font-size:0.84rem;min-height:20px"></div>
+    </div>
+  </div>`);
+}
+
+async function loadDbStats() {
+  try {
+    const s = await fetch('/api/admin/db-stats').then(r=>r.json());
+    const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+    set('stat-ferie-pending',   s.ferie_requests_pending);
+    set('stat-ferie-processed', s.ferie_requests_processed);
+    set('stat-ferie-log',       s.ferie_log_total);
+    set('stat-login-visits',    s.login_visits_total);
+  } catch(e) { /* silenzioso */ }
+}
+
+async function doCleanup(target, confirmMsg) {
+  if (!confirm(confirmMsg)) return;
+  const msg = document.getElementById('cleanup-msg');
+  msg.textContent = '⏳ Eliminazione in corso...';
+  msg.style.color = 'var(--muted)';
+  const res = await fetch('/api/admin/db-cleanup', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ target })
+  }).then(r=>r.json()).catch(()=>({ok:false, msg:'Errore di rete'}));
+  if (res.ok) {
+    msg.textContent = '✅ ' + res.msg;
+    msg.style.color = '#34D399';
+    loadDbStats();
+  } else {
+    msg.textContent = '❌ ' + (res.detail || res.msg || 'Errore');
+    msg.style.color = '#FCA5A5';
+  }
+  setTimeout(() => { msg.textContent = ''; }, 5000);
+}
 
 function parseUA(ua) {
   if (!ua) return '—';
@@ -1136,6 +1260,7 @@ loadAll = async function() {
   loadStatus();
   loadLoginLogs();
   loadPageVisits();
+  loadDbStats();
 };
 
 renderUtenti = function(utenti) {
@@ -1288,7 +1413,7 @@ function renderFerieRequests(pending, ferieLog) {
                   <strong style="color:var(--text)">${l.operatore_nome || '-'}</strong>
                   <span class="soft-note">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
                 </div>
-                <div style="font-size:0.76rem;color:#dbeafe;margin-top:3px">${l.action || '-'} · ${l.data_turno || '-'}</div>
+                <div style="font-size:0.76rem;color:#dbeafe;margin-top:3px">${renderLogText(l.action)} · ${l.data_turno || '-'}</div>
                 <div class="soft-note">${l.username || '-'} · ${l.status_from || 'vuoto'} → ${l.status_to || 'vuoto'} · da ${l.actor_username || '?'}</div>
               </div>`).join('') : '<div class="soft-note">Nessun movimento ferie registrato.</div>'}
           </div>
@@ -1323,7 +1448,7 @@ renderFerieRequests = function(pending, ferieLog) {
             ${filtered.pending.length ? filtered.pending.map(p => `
               <div class="pending-box" style="margin-bottom:12px">
                 <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
-                <div class="soft-note">${p.username || '-'} Â· ${p.giorni || 0} giorni</div>
+                <div class="soft-note">${p.username || '-'} · ${p.giorni || 0} giorni</div>
                 <div style="font-size:0.74rem;color:#bfdbfe;margin-top:8px">${(p.dates || []).join(', ')}</div>
                 <div class="pending-actions">
                   <button class="btn btn-sm btn-primary" onclick='reviewAdminFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>Approva</button>
@@ -1350,8 +1475,8 @@ renderFerieRequests = function(pending, ferieLog) {
                   <strong style="color:var(--text)">${l.operatore_nome || '-'}</strong>
                   <span class="soft-note">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
                 </div>
-                <div style="font-size:0.76rem;color:#dbeafe;margin-top:3px">${l.action || '-'} Â· ${l.data_turno || '-'}</div>
-                <div class="soft-note">${l.username || '-'} Â· ${l.status_from || 'vuoto'} â†’ ${l.status_to || 'vuoto'} Â· da ${l.actor_username || '?'}</div>
+                <div style="font-size:0.76rem;color:#dbeafe;margin-top:3px">${renderLogText(l.action)} · ${l.data_turno || '-'}</div>
+                <div class="soft-note">${l.username || '-'} · ${l.status_from || 'vuoto'} → ${l.status_to || 'vuoto'} · da ${l.actor_username || '?'}</div>
               </div>`).join('') : `<div class="soft-note">Nessun movimento ferie ${getFerieStatusLabel(adminFerieFilters.status)} per il filtro selezionato.</div>`}
           </div>
         </div>

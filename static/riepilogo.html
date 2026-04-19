@@ -116,18 +116,23 @@
   .loading { text-align:center; padding:80px; color:var(--muted); font-size:1rem; }
 
   @media (max-width: 768px) {
-    .container { padding:12px 12px 0; }
-    .riepilogo-shell { border-radius:14px; }
-    .riepilogo-scroll { border-radius:14px; }
-    /* Riepilogo tabella mobile */
-    .riepilogo-table { font-size: 0.65rem; }
-    .riepilogo-table th, .riepilogo-table td { padding: 6px 4px; }
-    .riepilogo-table th.label-col,
-    .riepilogo-table td.label-col { min-width: 118px; max-width: 118px; font-size: 0.65rem; }
-    .riepilogo-table th.mese-col,
-    .riepilogo-table td { min-width: 36px; }
-    .riepilogo-table th.tot-col,
-    .riepilogo-table td.tot-col { min-width: 44px; }
+    /* Contenitore a tutta larghezza, zero margini laterali */
+    .container { padding: 0; }
+    .riepilogo-shell {
+      border-radius: 0;
+      border-left: none;
+      border-right: none;
+      margin: 0;
+    }
+    .riepilogo-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      /* Forza la larghezza al 100% del viewport */
+      width: 100vw;
+      max-width: 100vw;
+    }
+    /* La tabella occupa almeno tutto lo schermo, poi scorre a destra se serve */
+    .riepilogo-table { min-width: max(900px, 100vw); }
   }
 
   /* Titolo in contenitore a larghezza fissa: nessuno spostamento al cambio pagina */
