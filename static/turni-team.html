@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#3B82F6">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <title>Turni Team – Gestione Turni</title>
 <style>
   :root {
@@ -61,7 +63,7 @@
   .ferie-inline-hint { font-size:0.72rem; color:#5eead4; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
 
   /* ── TABELLA TEAM ── */
-  .table-wrap { flex:1; overflow:auto; position:relative; background:white; }
+  .table-wrap { flex:1; overflow:auto; position:relative; background:white; overscroll-behavior:contain; }
   .team-table { border-collapse:collapse; font-size:0.82rem; white-space:nowrap; background:white; }
   .team-table th {
     background:#f1f5f9; color:#475569; font-weight:700;
@@ -299,6 +301,15 @@
   .ferie-pending-card { border:1px solid rgba(20,184,166,.2); border-radius:12px; background:rgba(15,23,42,.38); padding:12px; margin-bottom:10px; }
   .ferie-pending-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
   .ferie-log-type { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; font-size:0.68rem; font-weight:700; background:rgba(59,130,246,.16); color:#bfdbfe; }
+  .ferie-log-type.pending { background:rgba(250,204,21,.18); color:#fde68a; border:1px solid rgba(250,204,21,.35); }
+  .ferie-log-type.approved { background:rgba(34,197,94,.16); color:#86efac; border:1px solid rgba(34,197,94,.32); }
+  .ferie-log-type.rejected { background:rgba(239,68,68,.16); color:#fca5a5; border:1px solid rgba(239,68,68,.32); }
+  .ferie-log-type.neutral { background:rgba(148,163,184,.14); color:#cbd5e1; border:1px solid rgba(148,163,184,.24); }
+  .ferie-filter-bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .ferie-filter-bar input, .ferie-filter-bar select { background:var(--card2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:8px 10px; font-size:0.78rem; min-height:36px; }
+  .ferie-filter-bar input { flex:1 1 220px; }
+  .ferie-filter-bar select { flex:0 0 180px; }
+  .ferie-log-scroll { max-height:460px; overflow-y:auto; padding-right:4px; }
 
   /* ── SETUP OPERATORI ── */
   .setup-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:400; align-items:center; justify-content:center; }
@@ -346,7 +357,7 @@
   .template-actions .btn.primary:hover { background:#0284c7; }
 
   /* ── LOG PANEL ── */
-  #logPanel { display:none; position:fixed; right:0; top:56px; bottom:64px; width:380px; background:var(--card); border-left:1px solid var(--border); z-index:30; overflow-y:auto; padding:16px; }
+  #logPanel { display:none; position:fixed; right:0; top:56px; bottom:64px; width:380px; background:var(--card); border-left:1px solid var(--border); z-index:30; overflow-y:auto; padding:16px; box-shadow:-18px 0 40px rgba(0,0,0,.26); }
 
   /* ── BOTTOM NAV ── */
   .bottom-nav { display:none; position:fixed; bottom:0; left:0; right:0; z-index:50; background:var(--card); border-top:1px solid var(--border); padding:6px 0 env(safe-area-inset-bottom,6px); }
@@ -360,19 +371,24 @@
     header { height:48px; padding:0 12px; gap:8px; }
     .page-title { min-width:0; max-width:140px; font-size:0.9rem; }
     .top-nav { display:none !important; }
-    .month-tabs { padding:6px 8px; gap:3px; }
+    #userNameLabel { display:none; }
+    .header-controls { gap:4px; }
+    .header-controls button, .header-controls select { padding:4px 8px; font-size:0.76rem; }
+    .month-tabs-row { flex-wrap:wrap; align-items:stretch; }
+    .month-tabs { width:100%; padding:6px 8px 4px; gap:3px; }
     .month-tab { padding:4px 8px; font-size:0.74rem; }
-    .ferie-inline { padding:0 8px; gap:5px; }
+    .ferie-inline { width:100%; padding:8px 10px; gap:6px; border-left:none; border-top:1px solid var(--border); overflow-x:auto; }
     .ferie-inline-hint { display:none; }
     .btn-ferie { padding:4px 8px; font-size:0.72rem; }
     .bottom-nav { display:block; }
     body { padding-bottom:64px; }
     .editor-bar { flex-wrap:wrap; gap:6px; }
+    #logPanel { left:0; right:0; width:auto; top:48px; bottom:64px; border-left:none; border-top:1px solid var(--border); box-shadow:none; }
   }
-  ::-webkit-scrollbar { width:4px; height:4px; }
+  ::-webkit-scrollbar { width:8px; height:8px; }
   ::-webkit-scrollbar-track { background:transparent; }
-  ::-webkit-scrollbar-thumb { background:transparent; border-radius:4px; }
-  ::-webkit-scrollbar-thumb:hover { background:var(--border); }
+  ::-webkit-scrollbar-thumb { background:rgba(71,85,105,.72); border-radius:999px; }
+  ::-webkit-scrollbar-thumb:hover { background:#64748b; }
 </style>
 </head>
 <body>
@@ -632,6 +648,8 @@ let teamContext = { linked_operatore_id:null, linked_operatore_nome:'', can_requ
 let ferieMode = false;
 let ferieAdds = new Set();
 let ferieRemovals = new Set();
+let teamFerieLogData = { pending: [], logs: [] };
+let teamFerieFilters = { name: '', status: 'all' };
 
 function getOperatorSlotCount(extraPositions = []) {
   const opMax = operatori.reduce((max, op) => Math.max(max, Number(op.posizione) || 0), 0);
@@ -1694,6 +1712,211 @@ load = async function() {
   applySpecialTurnoStyles(wrap);
 };
 
+function normalizeTeamFerieText(value) {
+  return String(value || '').toLowerCase();
+}
+
+function getTeamFerieStatusMeta(status) {
+  const key = normalizeTeamFerieText(status);
+  if (key === 'approved') return { key, label: 'Approvata' };
+  if (key === 'rejected') return { key, label: 'Rifiutata' };
+  if (key === 'pending') return { key, label: 'In attesa' };
+  return { key: 'neutral', label: 'Nessuno stato' };
+}
+
+function getTeamFerieActionLabel(action, statusTo) {
+  const actionKey = normalizeTeamFerieText(action);
+  if (actionKey === 'requested') return 'Richiesta inviata';
+  if (actionKey === 'removed') return 'Richiesta rimossa';
+  if (actionKey === 'reviewed') {
+    const meta = getTeamFerieStatusMeta(statusTo);
+    if (meta.key === 'approved') return 'Richiesta approvata';
+    if (meta.key === 'rejected') return 'Richiesta rifiutata';
+    return 'Richiesta revisionata';
+  }
+  return 'Aggiornamento richiesta';
+}
+
+function getTeamFerieHistoryLine(row) {
+  const fromMeta = getTeamFerieStatusMeta(row.status_from);
+  const toMeta = getTeamFerieStatusMeta(row.status_to);
+  return `${row.username || '-'} · ${fromMeta.label} → ${toMeta.label} · da ${row.actor_username || '?'}`;
+}
+
+function rerenderTeamFerieWithFocus(fieldId, selectionStart, selectionEnd) {
+  renderTeamFerieLogContent();
+  if (!fieldId) return;
+  const field = document.getElementById(fieldId);
+  if (!field) return;
+  field.focus();
+  if (typeof selectionStart === 'number' && typeof selectionEnd === 'number' && field.setSelectionRange) {
+    field.setSelectionRange(selectionStart, selectionEnd);
+  }
+}
+
+function filterTeamFeriePending(rows) {
+  const needle = normalizeTeamFerieText(teamFerieFilters.name);
+  const status = teamFerieFilters.status || 'all';
+  if (status !== 'all' && status !== 'pending') return [];
+  return (rows || []).filter(row => {
+    if (!needle) return true;
+    return normalizeTeamFerieText(`${row.operatore_nome} ${row.username}`).includes(needle);
+  });
+}
+
+function filterTeamFerieLogs(rows) {
+  const needle = normalizeTeamFerieText(teamFerieFilters.name);
+  const status = teamFerieFilters.status || 'all';
+  return (rows || []).filter(row => {
+    const matchesName = !needle || normalizeTeamFerieText(`${row.operatore_nome} ${row.username} ${row.actor_username}`).includes(needle);
+    const rowStatus = normalizeTeamFerieText(row.status_to || '');
+    const matchesStatus = status === 'all' || rowStatus === status;
+    return matchesName && matchesStatus;
+  });
+}
+
+function renderTeamFerieLogContent() {
+  const elFerie = document.getElementById('logContentFerie');
+  if (!elFerie) return;
+  const pending = filterTeamFeriePending(teamFerieLogData.pending || []);
+  const ferieLogs = filterTeamFerieLogs(teamFerieLogData.logs || []);
+  const sections = [];
+  sections.push(`
+    <div class="ferie-filter-bar">
+      <input id="teamFerieNameFilter" type="text" placeholder="Filtra per richiedente" value="${teamFerieFilters.name}">
+      <select id="teamFerieStatusFilter">
+        <option value="all"${teamFerieFilters.status === 'all' ? ' selected' : ''}>Tutti gli stati</option>
+        <option value="pending"${teamFerieFilters.status === 'pending' ? ' selected' : ''}>Richieste</option>
+        <option value="approved"${teamFerieFilters.status === 'approved' ? ' selected' : ''}>Accettate</option>
+        <option value="rejected"${teamFerieFilters.status === 'rejected' ? ' selected' : ''}>Rifiutate</option>
+      </select>
+    </div>`);
+  sections.push('<div class="ferie-log-scroll">');
+  if (isEditor && pending.length) {
+    sections.push(`
+      <div style="margin-bottom:14px">
+        <div style="font-size:0.78rem;color:#ccfbf1;font-weight:800;margin-bottom:8px">In attesa di revisione</div>
+        ${pending.map(p => `
+          <div class="ferie-pending-card">
+            <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
+            <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} Â· ${p.giorni || 0} giorni</div>
+            <div style="font-size:0.72rem;color:#bfdbfe;margin-top:6px">
+              ${p.first_day || ''}${p.last_day && p.last_day !== p.first_day ? ` â†’ ${p.last_day}` : ''}
+            </div>
+            <div class="ferie-pending-actions">
+              <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>âœ… Approva</button>
+              <button class="btn-editor" style="color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>âœ• Rifiuta</button>
+            </div>
+          </div>`).join('')}
+      </div>`);
+  }
+  if (ferieLogs.length) {
+    sections.push(`
+      <div>
+        <div style="font-size:0.78rem;color:#cbd5e1;font-weight:800;margin-bottom:8px">Storico ferie</div>
+        ${ferieLogs.slice(0, 120).map(l => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;gap:12px">
+              <span style="font-weight:700;color:var(--text)">${l.operatore_nome || '-'}</span>
+              <span style="color:var(--muted);font-size:0.7rem">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
+            </div>
+            <div style="margin-top:4px;font-size:0.72rem;color:#dbeafe">
+              <span class="ferie-log-type">${l.action || 'ferie'}</span> ${l.data_turno || ''}
+            </div>
+            <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">
+              ${l.username || '-'} Â· ${l.status_from || 'vuoto'} â†’ ${l.status_to || 'vuoto'} Â· da ${l.actor_username || '?'}
+            </div>
+          </div>`).join('')}
+      </div>`);
+  }
+  sections.push('</div>');
+  if ((!isEditor || !pending.length) && !ferieLogs.length) {
+    sections.push('<p style="color:var(--muted);margin-top:12px">Nessuna richiesta ferie registrata per il filtro selezionato</p>');
+  }
+  elFerie.innerHTML = sections.join('');
+  document.getElementById('teamFerieNameFilter')?.addEventListener('input', e => {
+    teamFerieFilters.name = e.target.value || '';
+    renderTeamFerieLogContent();
+  });
+  document.getElementById('teamFerieStatusFilter')?.addEventListener('change', e => {
+    teamFerieFilters.status = e.target.value || 'all';
+    renderTeamFerieLogContent();
+  });
+}
+
+renderTeamFerieLogContent = function() {
+  const elFerie = document.getElementById('logContentFerie');
+  if (!elFerie) return;
+  const pending = filterTeamFeriePending(teamFerieLogData.pending || []);
+  const ferieLogs = filterTeamFerieLogs(teamFerieLogData.logs || []);
+  const sections = [];
+  sections.push(`
+    <div class="ferie-filter-bar">
+      <input id="teamFerieNameFilter" type="text" placeholder="Filtra per richiedente" value="${teamFerieFilters.name}">
+      <select id="teamFerieStatusFilter">
+        <option value="all"${teamFerieFilters.status === 'all' ? ' selected' : ''}>Tutti gli stati</option>
+        <option value="pending"${teamFerieFilters.status === 'pending' ? ' selected' : ''}>Richieste</option>
+        <option value="approved"${teamFerieFilters.status === 'approved' ? ' selected' : ''}>Accettate</option>
+        <option value="rejected"${teamFerieFilters.status === 'rejected' ? ' selected' : ''}>Rifiutate</option>
+      </select>
+    </div>`);
+  sections.push('<div class="ferie-log-scroll">');
+  if (isEditor && pending.length) {
+    sections.push(`
+      <div style="margin-bottom:14px">
+        <div style="font-size:0.78rem;color:#fef08a;font-weight:800;margin-bottom:8px">In attesa di revisione</div>
+        ${pending.map(p => `
+          <div class="ferie-pending-card" style="border-color:rgba(250,204,21,.28)">
+            <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
+            <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} · ${p.giorni || 0} giorni</div>
+            <div style="font-size:0.72rem;color:#bfdbfe;margin-top:6px">
+              ${p.first_day || ''}${p.last_day && p.last_day !== p.first_day ? ` → ${p.last_day}` : ''}
+            </div>
+            <div class="ferie-pending-actions">
+              <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>Approva</button>
+              <button class="btn-editor" style="color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>Rifiuta</button>
+            </div>
+          </div>`).join('')}
+      </div>`);
+  }
+  if (ferieLogs.length) {
+    sections.push(`
+      <div>
+        <div style="font-size:0.78rem;color:#cbd5e1;font-weight:800;margin-bottom:8px">Storico ferie</div>
+        ${ferieLogs.slice(0, 120).map(l => {
+          const statusMeta = getTeamFerieStatusMeta(l.status_to);
+          return `
+          <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;gap:12px">
+              <span style="font-weight:700;color:var(--text)">${l.operatore_nome || '-'}</span>
+              <span style="color:var(--muted);font-size:0.7rem">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
+            </div>
+            <div style="margin-top:4px;font-size:0.72rem;color:#dbeafe;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+              <span>${getTeamFerieActionLabel(l.action, l.status_to)} · ${l.data_turno || ''}</span>
+              <span class="ferie-log-type ${statusMeta.key}">${statusMeta.label}</span>
+            </div>
+            <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">
+              ${getTeamFerieHistoryLine(l)}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`);
+  }
+  sections.push('</div>');
+  if ((!isEditor || !pending.length) && !ferieLogs.length) {
+    sections.push('<p style="color:var(--muted);margin-top:12px">Nessuna richiesta ferie registrata per il filtro selezionato</p>');
+  }
+  elFerie.innerHTML = sections.join('');
+  document.getElementById('teamFerieNameFilter')?.addEventListener('input', e => {
+    teamFerieFilters.name = e.target.value || '';
+    rerenderTeamFerieWithFocus('teamFerieNameFilter', e.target.selectionStart, e.target.selectionEnd);
+  });
+  document.getElementById('teamFerieStatusFilter')?.addEventListener('change', e => {
+    teamFerieFilters.status = e.target.value || 'all';
+    rerenderTeamFerieWithFocus('teamFerieStatusFilter');
+  });
+}
+
 loadLog = async function() {
   const [logs, ferieDash] = await Promise.all([
     fetch('/api/team/log?limit=120').then(r=>r.json()).catch(()=>[]),
@@ -1776,6 +1999,52 @@ loadLog = async function() {
   if (pending.length) {
     const badge = document.getElementById('ferieAlertBadge');
     if (badge) { badge.textContent = pending.length; badge.classList.add('show'); }
+  }
+};
+
+loadLog = async function() {
+  const [logs, ferieDash] = await Promise.all([
+    fetch('/api/team/log?limit=120').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/team/ferie/dashboard').then(r=>r.json()).catch(()=>({pending:[], recent_log:[]})),
+  ]);
+  const pending = ferieDash.pending || [];
+  const ferieLogs = ferieDash.recent_log || [];
+
+  const elTurni = document.getElementById('logContentTurni');
+  if (elTurni) {
+    if (!logs.length) {
+      elTurni.innerHTML = '<p style="color:var(--muted)">Nessuna modifica ai turni registrata</p>';
+    } else {
+      elTurni.innerHTML = logs.slice(0, 80).map(l => {
+        const color = l.nuovo_valore ? '#34D399' : '#EF4444';
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-weight:700;color:var(--text)">${l.operatore_nome||''}</span>
+            <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
+          </div>
+          <div style="font-size:0.72rem">
+            ðŸ“… ${l.data_turno||''} &nbsp;Â·&nbsp; ${l.campo||''}
+            &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'â€”'}</span>
+            â†’ <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
+          </div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente||'?'}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  teamFerieLogData = { pending, logs: ferieLogs };
+  renderTeamFerieLogContent();
+
+  const badge = document.getElementById('ferieAlertBadge');
+  if (badge) {
+    if (pending.length) {
+      badge.textContent = pending.length;
+      badge.classList.add('show');
+    } else {
+      badge.textContent = '';
+      badge.classList.remove('show');
+    }
   }
 };
 
@@ -1876,8 +2145,6 @@ renderTplCella = function(dow, pos) {
   return `<div class="cella tpl-cella${repClass}${smartClass}${specialClass}${stateClass}" onclick="openPickerForTemplate(${dow},${pos},event)">${turno || ''}${mfHtml}${repIcon}${smartHtml}</div>`;
 };
 
-// Keep-alive
-setInterval(async () => { try { await fetch('/api/config'); } catch(e) {} }, 5*60*1000);
 </script>
 </body>
 </html>

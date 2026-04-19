@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#3B82F6">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <title>Admin – Gestione Turni</title>
 <style>
   :root { --bg:#0F172A; --card:#1E293B; --card2:#263348; --border:#334155; --text:#E2E8F0; --muted:#94A3B8; --accent:#3B82F6; --red:#EF4444; --green:#10B981; }
@@ -67,6 +71,38 @@
   .pending-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
   .mini-log { font-size:0.78rem; color:var(--muted); display:flex; flex-direction:column; gap:8px; }
   .mini-log-item { padding:10px 0; border-bottom:1px solid var(--border); }
+  .ferie-tools { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .ferie-tools input, .ferie-tools select { background:var(--card2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:8px 10px; font-size:0.8rem; min-height:38px; }
+  .ferie-tools input { flex:1 1 220px; }
+  .ferie-tools select { flex:0 0 180px; }
+  .ferie-grid { display:grid; grid-template-columns:1.2fr 1fr; gap:18px; }
+  .ferie-scroll { max-height:420px; overflow-y:auto; padding-right:4px; }
+  .ferie-scroll.compact { max-height:500px; }
+  .ferie-scroll, .sec-utenti-wrap, .log-scroll, .week-block {
+    scrollbar-width:thin;
+    scrollbar-color:#475569 transparent;
+  }
+  .ferie-scroll::-webkit-scrollbar,
+  .sec-utenti-wrap::-webkit-scrollbar,
+  .log-scroll::-webkit-scrollbar,
+  .week-block::-webkit-scrollbar { width:8px; height:8px; }
+  .ferie-scroll::-webkit-scrollbar-track,
+  .sec-utenti-wrap::-webkit-scrollbar-track,
+  .log-scroll::-webkit-scrollbar-track,
+  .week-block::-webkit-scrollbar-track { background:transparent; }
+  .ferie-scroll::-webkit-scrollbar-thumb,
+  .sec-utenti-wrap::-webkit-scrollbar-thumb,
+  .log-scroll::-webkit-scrollbar-thumb,
+  .week-block::-webkit-scrollbar-thumb { background:#475569; border-radius:999px; }
+  .ferie-scroll::-webkit-scrollbar-thumb:hover,
+  .sec-utenti-wrap::-webkit-scrollbar-thumb:hover,
+  .log-scroll::-webkit-scrollbar-thumb:hover,
+  .week-block::-webkit-scrollbar-thumb:hover { background:#64748b; }
+  .ferie-status-chip { display:inline-flex; align-items:center; padding:2px 8px; border-radius:999px; font-size:0.68rem; font-weight:800; }
+  .ferie-status-chip.pending { background:rgba(250,204,21,.18); color:#fde68a; border:1px solid rgba(250,204,21,.35); }
+  .ferie-status-chip.approved { background:rgba(34,197,94,.16); color:#86efac; border:1px solid rgba(34,197,94,.32); }
+  .ferie-status-chip.rejected { background:rgba(239,68,68,.16); color:#fca5a5; border:1px solid rgba(239,68,68,.32); }
+  .ferie-status-chip.neutral { background:rgba(148,163,184,.14); color:#cbd5e1; border:1px solid rgba(148,163,184,.24); }
 
   /* Tabella editor */
   .tab-editor { display:none; }
@@ -160,6 +196,8 @@
     .page-title { width: auto; min-width: 0; max-width: 160px; font-size: 0.9rem; }
     .top-nav { display: none !important; }
     .user-label { display: none; }
+    #userNameLabel { display:none; }
+    .header-controls { gap:4px; }
     .header-controls select { display: none; }
     .header-controls button { padding: 4px 8px; font-size: 0.78rem; }
     .btn-logout { padding: 4px 8px; font-size: 0.78rem; }
@@ -273,8 +311,8 @@
   .badge-ok   { background:rgba(16,185,129,.15); color:#34D399; padding:2px 9px; border-radius:4px; font-size:0.72rem; font-weight:700; }
   .badge-fail { background:rgba(239,68,68,.15);  color:#FCA5A5; padding:2px 9px; border-radius:4px; font-size:0.72rem; font-weight:700; }
   .log-scroll { max-height:400px; overflow-y:auto; }
-  .log-scroll::-webkit-scrollbar { width:4px; }
-  .log-scroll::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+  .log-scroll::-webkit-scrollbar { width:8px; height:8px; }
+  .log-scroll::-webkit-scrollbar-thumb { background:#475569; border-radius:999px; }
   .log-scroll::-webkit-scrollbar-track { background:transparent; }
 
   /* ── BOTTOM NAV MOBILE ── */
@@ -338,6 +376,9 @@
     /* Tabelle nascondi colonne non essenziali */
     .log-table th:nth-child(4), .log-table td:nth-child(4),
     .log-table th:nth-child(5), .log-table td:nth-child(5) { display:none; }
+    .ferie-grid { grid-template-columns:1fr; gap:14px; }
+    .ferie-tools input, .ferie-tools select { flex:1 1 100%; }
+    .ferie-scroll, .ferie-scroll.compact { max-height:320px; }
   }
 
   @media(max-width:480px) {
@@ -375,6 +416,7 @@
 
     <div class="acc-overlay" id="accOverlay" onclick="if(event.target===this)closeAccModal()">
       <div class="acc-modal">
+        <form onsubmit="doChangePwd(event)">
         <h2>🔑 Impostazioni account</h2>
         <div class="acc-field">
           <label>Password attuale</label>
@@ -390,9 +432,10 @@
         </div>
         <div class="acc-msg" id="accMsg"></div>
         <div class="acc-actions">
-          <button class="acc-btn acc-btn-cancel" onclick="closeAccModal()">Annulla</button>
-          <button class="acc-btn acc-btn-primary" onclick="doChangePwd()">Salva password</button>
+          <button type="button" class="acc-btn acc-btn-cancel" onclick="closeAccModal()">Annulla</button>
+          <button type="submit" class="acc-btn acc-btn-primary">Salva password</button>
         </div>
+        </form>
       </div>
     </div>
   </div>
@@ -430,6 +473,74 @@ const GIORNI = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
 
 let tabelle = [];
 let editingTab = null;
+let adminFerieData = { pending: [], log: [] };
+let adminFerieFilters = { pendingName: '', allName: '', status: 'all' };
+
+function normalizeFerieText(value) {
+  return String(value || '').toLowerCase();
+}
+
+function getFerieStatusMeta(status) {
+  const key = normalizeFerieText(status);
+  if (key === 'approved') return { key, label: 'Approvata' };
+  if (key === 'rejected') return { key, label: 'Rifiutata' };
+  if (key === 'pending') return { key, label: 'In attesa' };
+  return { key: 'neutral', label: 'Nessuno stato' };
+}
+
+function getFerieStatusLabel(status) {
+  if (status === 'approved') return 'accettate';
+  if (status === 'rejected') return 'rifiutate';
+  if (status === 'pending') return 'richieste';
+  return 'trovate';
+}
+
+function getFerieActionLabel(action, statusTo) {
+  const actionKey = normalizeFerieText(action);
+  if (actionKey === 'requested') return 'Richiesta inviata';
+  if (actionKey === 'removed') return 'Richiesta rimossa';
+  if (actionKey === 'reviewed') {
+    const meta = getFerieStatusMeta(statusTo);
+    if (meta.key === 'approved') return 'Richiesta approvata';
+    if (meta.key === 'rejected') return 'Richiesta rifiutata';
+    return 'Richiesta revisionata';
+  }
+  return 'Aggiornamento richiesta';
+}
+
+function getFerieHistoryLine(row) {
+  const fromMeta = getFerieStatusMeta(row.status_from);
+  const toMeta = getFerieStatusMeta(row.status_to);
+  return `${row.username || '-'} · ${fromMeta.label} → ${toMeta.label} · da ${row.actor_username || '?'}`;
+}
+
+function rerenderAdminFerieWithFocus(fieldId, selectionStart, selectionEnd) {
+  renderFerieRequests(adminFerieData.pending, adminFerieData.log);
+  if (!fieldId) return;
+  const field = document.getElementById(fieldId);
+  if (!field) return;
+  field.focus();
+  if (typeof selectionStart === 'number' && typeof selectionEnd === 'number' && field.setSelectionRange) {
+    field.setSelectionRange(selectionStart, selectionEnd);
+  }
+}
+
+function getAdminFerieFilteredData() {
+  const pendingNeedle = normalizeFerieText(adminFerieFilters.pendingName);
+  const allNeedle = normalizeFerieText(adminFerieFilters.allName);
+  const status = adminFerieFilters.status || 'all';
+  const pending = (adminFerieData.pending || []).filter(p => {
+    if (!pendingNeedle) return true;
+    return normalizeFerieText(`${p.operatore_nome} ${p.username}`).includes(pendingNeedle);
+  });
+  const log = (adminFerieData.log || []).filter(l => {
+    const matchesName = !allNeedle || normalizeFerieText(`${l.operatore_nome} ${l.username} ${l.actor_username}`).includes(allNeedle);
+    const currentStatus = normalizeFerieText(l.status_to || '');
+    const matchesStatus = status === 'all' || currentStatus === status;
+    return matchesName && matchesStatus;
+  });
+  return { pending, log };
+}
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
 (async function() {
@@ -981,7 +1092,8 @@ function openAccModal() {
 function closeAccModal() {
   document.getElementById('accOverlay').classList.remove('open');
 }
-async function doChangePwd() {
+async function doChangePwd(event) {
+  event?.preventDefault?.();
   const old = document.getElementById('accPwdOld').value;
   const nw  = document.getElementById('accPwdNew').value;
   const cnf = document.getElementById('accPwdConfirm').value;
@@ -1153,7 +1265,7 @@ function renderFerieRequests(pending, ferieLog) {
   <div class="section-card" id="sec-ferie">
     <div class="section-head"><span>Richieste ferie team</span></div>
     <div class="section-body">
-      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:18px">
+      <div class="ferie-grid">
         <div>
           <div style="font-size:0.8rem;font-weight:800;color:#ccfbf1;margin-bottom:10px">In attesa di revisione</div>
           ${pending.length ? pending.map(p => `
@@ -1191,6 +1303,160 @@ function renderFerieRequests(pending, ferieLog) {
     if (secTabelle) secTabelle.insertAdjacentHTML('beforebegin', html);
     else container.insertAdjacentHTML('beforeend', html);
   }
+}
+
+renderFerieRequests = function(pending, ferieLog) {
+  adminFerieData = { pending: pending || [], log: ferieLog || [] };
+  const filtered = getAdminFerieFilteredData();
+  const existing = document.getElementById('sec-ferie');
+  const html = `
+  <div class="section-card" id="sec-ferie">
+    <div class="section-head"><span>Richieste ferie team</span></div>
+    <div class="section-body">
+      <div class="ferie-grid">
+        <div>
+          <div style="font-size:0.8rem;font-weight:800;color:#ccfbf1;margin-bottom:10px">In attesa di revisione</div>
+          <div class="ferie-tools">
+            <input id="adminFeriePendingFilter" type="text" placeholder="Filtra per nome o username" value="${adminFerieFilters.pendingName}">
+          </div>
+          <div class="ferie-scroll">
+            ${filtered.pending.length ? filtered.pending.map(p => `
+              <div class="pending-box" style="margin-bottom:12px">
+                <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
+                <div class="soft-note">${p.username || '-'} Â· ${p.giorni || 0} giorni</div>
+                <div style="font-size:0.74rem;color:#bfdbfe;margin-top:8px">${(p.dates || []).join(', ')}</div>
+                <div class="pending-actions">
+                  <button class="btn btn-sm btn-primary" onclick='reviewAdminFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>Approva</button>
+                  <button class="btn btn-sm btn-danger" onclick='reviewAdminFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>Rifiuta</button>
+                </div>
+              </div>`).join('') : '<div class="soft-note">Nessuna richiesta ferie in attesa per il filtro selezionato.</div>'}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:0.8rem;font-weight:800;color:#cbd5e1;margin-bottom:10px">Storico ferie</div>
+          <div class="ferie-tools">
+            <input id="adminFerieAllFilter" type="text" placeholder="Filtra per richiedente" value="${adminFerieFilters.allName}">
+            <select id="adminFerieStatusFilter">
+              <option value="all"${adminFerieFilters.status === 'all' ? ' selected' : ''}>Tutti gli stati</option>
+              <option value="pending"${adminFerieFilters.status === 'pending' ? ' selected' : ''}>Richieste</option>
+              <option value="approved"${adminFerieFilters.status === 'approved' ? ' selected' : ''}>Accettate</option>
+              <option value="rejected"${adminFerieFilters.status === 'rejected' ? ' selected' : ''}>Rifiutate</option>
+            </select>
+          </div>
+          <div class="mini-log ferie-scroll compact">
+            ${filtered.log.length ? filtered.log.map(l => `
+              <div class="mini-log-item">
+                <div style="display:flex;justify-content:space-between;gap:10px">
+                  <strong style="color:var(--text)">${l.operatore_nome || '-'}</strong>
+                  <span class="soft-note">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
+                </div>
+                <div style="font-size:0.76rem;color:#dbeafe;margin-top:3px">${l.action || '-'} Â· ${l.data_turno || '-'}</div>
+                <div class="soft-note">${l.username || '-'} Â· ${l.status_from || 'vuoto'} â†’ ${l.status_to || 'vuoto'} Â· da ${l.actor_username || '?'}</div>
+              </div>`).join('') : `<div class="soft-note">Nessun movimento ferie ${getFerieStatusLabel(adminFerieFilters.status)} per il filtro selezionato.</div>`}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  const container = document.getElementById('container');
+  if (existing) existing.outerHTML = html;
+  else {
+    const secTabelle = document.getElementById('sec-tabelle');
+    if (secTabelle) secTabelle.insertAdjacentHTML('beforebegin', html);
+    else container.insertAdjacentHTML('beforeend', html);
+  }
+  document.getElementById('adminFeriePendingFilter')?.addEventListener('input', e => {
+    adminFerieFilters.pendingName = e.target.value || '';
+    renderFerieRequests(adminFerieData.pending, adminFerieData.log);
+  });
+  document.getElementById('adminFerieAllFilter')?.addEventListener('input', e => {
+    adminFerieFilters.allName = e.target.value || '';
+    renderFerieRequests(adminFerieData.pending, adminFerieData.log);
+  });
+  document.getElementById('adminFerieStatusFilter')?.addEventListener('change', e => {
+    adminFerieFilters.status = e.target.value || 'all';
+    renderFerieRequests(adminFerieData.pending, adminFerieData.log);
+  });
+}
+
+renderFerieRequests = function(pending, ferieLog) {
+  adminFerieData = { pending: pending || [], log: ferieLog || [] };
+  const filtered = getAdminFerieFilteredData();
+  const existing = document.getElementById('sec-ferie');
+  const html = `
+  <div class="section-card" id="sec-ferie">
+    <div class="section-head"><span>Richieste ferie team</span></div>
+    <div class="section-body">
+      <div class="ferie-grid">
+        <div>
+          <div style="font-size:0.8rem;font-weight:800;color:#ccfbf1;margin-bottom:10px">In attesa di revisione</div>
+          <div class="ferie-tools">
+            <input id="adminFeriePendingFilter" type="text" placeholder="Filtra per nome o username" value="${adminFerieFilters.pendingName}">
+          </div>
+          <div class="ferie-scroll">
+            ${filtered.pending.length ? filtered.pending.map(p => `
+              <div class="pending-box" style="margin-bottom:12px">
+                <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
+                <div class="soft-note">${p.username || '-'} · ${p.giorni || 0} giorni</div>
+                <div style="font-size:0.74rem;color:#bfdbfe;margin-top:8px">${(p.dates || []).join(', ')}</div>
+                <div class="pending-actions">
+                  <button class="btn btn-sm btn-primary" onclick='reviewAdminFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>Approva</button>
+                  <button class="btn btn-sm btn-danger" onclick='reviewAdminFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>Rifiuta</button>
+                </div>
+              </div>`).join('') : '<div class="soft-note">Nessuna richiesta ferie in attesa per il filtro selezionato.</div>'}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:0.8rem;font-weight:800;color:#cbd5e1;margin-bottom:10px">Storico ferie</div>
+          <div class="ferie-tools">
+            <input id="adminFerieAllFilter" type="text" placeholder="Filtra per richiedente" value="${adminFerieFilters.allName}">
+            <select id="adminFerieStatusFilter">
+              <option value="all"${adminFerieFilters.status === 'all' ? ' selected' : ''}>Tutti gli stati</option>
+              <option value="pending"${adminFerieFilters.status === 'pending' ? ' selected' : ''}>Richieste</option>
+              <option value="approved"${adminFerieFilters.status === 'approved' ? ' selected' : ''}>Accettate</option>
+              <option value="rejected"${adminFerieFilters.status === 'rejected' ? ' selected' : ''}>Rifiutate</option>
+            </select>
+          </div>
+          <div class="mini-log ferie-scroll compact">
+            ${filtered.log.length ? filtered.log.map(l => {
+              const statusMeta = getFerieStatusMeta(l.status_to);
+              return `
+              <div class="mini-log-item">
+                <div style="display:flex;justify-content:space-between;gap:10px">
+                  <strong style="color:var(--text)">${l.operatore_nome || '-'}</strong>
+                  <span class="soft-note">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
+                </div>
+                <div style="font-size:0.76rem;color:#dbeafe;margin-top:3px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                  <span>${getFerieActionLabel(l.action, l.status_to)} · ${l.data_turno || '-'}</span>
+                  <span class="ferie-status-chip ${statusMeta.key}">${statusMeta.label}</span>
+                </div>
+                <div class="soft-note">${getFerieHistoryLine(l)}</div>
+              </div>`;
+            }).join('') : `<div class="soft-note">Nessun movimento ferie ${getFerieStatusLabel(adminFerieFilters.status)} per il filtro selezionato.</div>`}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+  const container = document.getElementById('container');
+  if (existing) existing.outerHTML = html;
+  else {
+    const secTabelle = document.getElementById('sec-tabelle');
+    if (secTabelle) secTabelle.insertAdjacentHTML('beforebegin', html);
+    else container.insertAdjacentHTML('beforeend', html);
+  }
+  document.getElementById('adminFeriePendingFilter')?.addEventListener('input', e => {
+    adminFerieFilters.pendingName = e.target.value || '';
+    rerenderAdminFerieWithFocus('adminFeriePendingFilter', e.target.selectionStart, e.target.selectionEnd);
+  });
+  document.getElementById('adminFerieAllFilter')?.addEventListener('input', e => {
+    adminFerieFilters.allName = e.target.value || '';
+    rerenderAdminFerieWithFocus('adminFerieAllFilter', e.target.selectionStart, e.target.selectionEnd);
+  });
+  document.getElementById('adminFerieStatusFilter')?.addEventListener('change', e => {
+    adminFerieFilters.status = e.target.value || 'all';
+    rerenderAdminFerieWithFocus('adminFerieStatusFilter');
+  });
 }
 
 async function reviewAdminFerie(operatoreId, dates, status) {

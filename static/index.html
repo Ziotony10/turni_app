@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#3B82F6">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <title>Gestione Turni</title>
 <style>
@@ -1665,11 +1666,6 @@ async function drawerApplica() {
     el.style.display='block'; el.style.color='#EF4444'; el.textContent='❌ Errore nell\'applicazione';
   }
 }
-
-// ── KEEP-ALIVE: pinga il server ogni 5 minuti per non farlo addormentare ──
-setInterval(async () => {
-  try { await fetch('/api/config'); } catch(e) {}
-}, 5 * 60 * 1000);
 
 </script>
 <!-- BOTTOM NAV MOBILE -->

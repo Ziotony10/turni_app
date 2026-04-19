@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#3B82F6">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <title>Account – Gestione Turni</title>
 <style>
   :root { --bg:#0F172A; --card:#1E293B; --card2:#263348; --border:#334155; --text:#E2E8F0; --muted:#94A3B8; --accent:#3B82F6; --radius:10px; }
@@ -107,6 +109,7 @@
   </div>
 
   <div class="acc-card">
+    <form onsubmit="cambiaPwd(event); return false;">
     <h3>🔑 Cambia password</h3>
     <div class="acc-field">
       <label>Password attuale</label>
@@ -122,7 +125,8 @@
              onkeydown="if(event.key==='Enter') cambiaPwd()">
     </div>
     <div class="acc-msg" id="pwdMsg"></div>
-    <button class="btn-save" onclick="cambiaPwd()">Salva nuova password</button>
+    <button type="submit" class="btn-save">Salva nuova password</button>
+    </form>
   </div>
 </div>
 
@@ -168,7 +172,8 @@ function showMsg(txt, color) {
   msg.textContent = txt; msg.style.color = color; msg.style.display = 'block';
 }
 
-async function cambiaPwd() {
+async function cambiaPwd(event) {
+  event?.preventDefault?.();
   const old = document.getElementById('pwdOld').value;
   const nw  = document.getElementById('pwdNew').value;
   const cnf = document.getElementById('pwdConfirm').value;
@@ -211,7 +216,6 @@ async function cambiaPwd() {
   } catch(e) { logout(); }
 })();
 
-setInterval(async () => { try { await fetch('/api/config'); } catch(e) {} }, 5*60*1000);
 </script>
 </body>
 </html>

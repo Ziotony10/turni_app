@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#3B82F6">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <title>Riepilogo Anno – Gestione Turni</title>
 <style>
   :root { --bg:#0F172A; --card:#1E293B; --card2:#263348; --border:#334155; --text:#E2E8F0; --muted:#94A3B8; --accent:#3B82F6; --radius:10px; }
@@ -24,7 +28,25 @@
   .nav-controls select, 
   
 
-  .container { padding:24px; overflow-x:auto; }
+  .container { padding:24px; min-width:0; }
+  .riepilogo-shell {
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    overflow:hidden;
+    box-shadow:0 18px 40px rgba(0,0,0,.24);
+  }
+  .riepilogo-scroll {
+    overflow:auto;
+    max-width:100%;
+    background:var(--card);
+    scrollbar-width:thin;
+    scrollbar-color:#475569 transparent;
+  }
+  .riepilogo-scroll::-webkit-scrollbar { width:8px; height:8px; }
+  .riepilogo-scroll::-webkit-scrollbar-track { background:transparent; }
+  .riepilogo-scroll::-webkit-scrollbar-thumb { background:#475569; border-radius:999px; }
+  .riepilogo-scroll::-webkit-scrollbar-thumb:hover { background:#64748b; }
 
   /* ── TABELLA RIEPILOGO ── */
   .riepilogo-table { width:100%; border-collapse:collapse; min-width:900px; }
@@ -46,11 +68,13 @@
   .riepilogo-table td.label-col {
     text-align:left; font-weight:600; color:var(--muted);
     background:#1E293B; font-size:0.8rem; position:sticky; left:0; z-index:2;
-    box-shadow: 3px 0 8px rgba(0,0,0,0.6);
+    box-shadow:8px 0 18px rgba(15,23,42,.34);
+    background-clip:padding-box;
   }
   .riepilogo-table th.label-col {
     text-align:left; min-width:150px; position:sticky; left:0; z-index:3;
-    background:#263348; box-shadow: 3px 0 8px rgba(0,0,0,0.6);
+    background:#263348; box-shadow:8px 0 18px rgba(15,23,42,.34);
+    background-clip:padding-box;
   }
   .riepilogo-table td.tot-col { background:#172033; color:#60A5FA; font-weight:700; }
   .riepilogo-table td.zero { color:var(--border); }
@@ -92,11 +116,14 @@
   .loading { text-align:center; padding:80px; color:var(--muted); font-size:1rem; }
 
   @media (max-width: 768px) {
+    .container { padding:12px 12px 0; }
+    .riepilogo-shell { border-radius:14px; }
+    .riepilogo-scroll { border-radius:14px; }
     /* Riepilogo tabella mobile */
     .riepilogo-table { font-size: 0.65rem; }
     .riepilogo-table th, .riepilogo-table td { padding: 6px 4px; }
     .riepilogo-table th.label-col,
-    .riepilogo-table td.label-col { min-width: 110px; max-width: 110px; font-size: 0.65rem; }
+    .riepilogo-table td.label-col { min-width: 118px; max-width: 118px; font-size: 0.65rem; }
     .riepilogo-table th.mese-col,
     .riepilogo-table td { min-width: 36px; }
     .riepilogo-table th.tot-col,
@@ -178,9 +205,11 @@
     .page-title { width: auto; min-width: 0; max-width: 160px; font-size: 0.9rem; }
     .top-nav { display: none !important; }
     .user-label { display: none; }
-    .header-controls select { display: none; }
+    .header-controls { gap:4px; }
+    .header-controls select { min-width:72px; padding:4px 8px; font-size:0.78rem; }
     .header-controls button { padding: 4px 8px; font-size: 0.78rem; }
     .btn-logout { padding: 4px 8px; font-size: 0.78rem; }
+    #userNameLabel { display:none; }
   }
 
 
@@ -421,6 +450,8 @@ function render(data) {
   ).join('');
 
   const html = `
+  <div class="riepilogo-shell">
+  <div class="riepilogo-scroll">
   <table class="riepilogo-table">
     <thead>
       <tr>
@@ -550,7 +581,9 @@ function render(data) {
       </tr>
 
     </tbody>
-  </table>`;
+  </table>
+  </div>
+  </div>`;
 
   document.getElementById('body').innerHTML = html;
 }
@@ -599,11 +632,6 @@ window.fetch = function(url, opts={}) {
     load();
   } catch(e) { console.error('Auth error:', e); logout(); }
 })();
-
-// ── KEEP-ALIVE: pinga il server ogni 5 minuti per non farlo addormentare ──
-setInterval(async () => {
-  try { await fetch('/api/config'); } catch(e) {}
-}, 5 * 60 * 1000);
 
 
 function openAccModal() { window.location.href='/impostazioni.html'; }
