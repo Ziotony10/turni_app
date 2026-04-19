@@ -14,6 +14,8 @@ app = FastAPI(title="Gestione Turni")
 DB_PATH      = "turni.db"
 DATABASE_URL = os.environ.get("DATABASE_URL")
 USE_PG       = bool(DATABASE_URL)
+SQLITE_BUSY_TIMEOUT_MS = int(os.environ.get("SQLITE_BUSY_TIMEOUT_MS", "15000"))
+SQLITE_LOG_BUSY_TIMEOUT_MS = int(os.environ.get("SQLITE_LOG_BUSY_TIMEOUT_MS", "1500"))
 
 if USE_PG:
     import psycopg2, psycopg2.extras
@@ -78,13 +80,18 @@ IMPOSTAZIONI_DEFAULTS = {
 }
 
 # ─── DB helpers ────────────────────────────────────────────────────────────────
+def _open_sqlite_connection(timeout_ms: int):
+    conn = sqlite3.connect(DB_PATH, timeout=max(timeout_ms / 1000, 0.1))
+    conn.row_factory = sqlite3.Row
+    conn.execute(f"PRAGMA busy_timeout = {timeout_ms}")
+    conn.execute("PRAGMA foreign_keys=ON")
+    return conn
+
 def get_db():
     if USE_PG:
         conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
         return conn
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return _open_sqlite_connection(SQLITE_BUSY_TIMEOUT_MS)
 
 def q(sql):
     if not USE_PG:
@@ -208,6 +215,9 @@ def calcola_tipo_rep(turno, data_str):
 def init_db():
     conn = get_db()
     try:
+        if not USE_PG:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA synchronous=NORMAL")
         # ── Core tables ────────────────────────────────────────────────────────
         ex(conn, """CREATE TABLE IF NOT EXISTS utenti (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -346,6 +356,17 @@ def init_db():
             id INTEGER PRIMARY KEY CHECK (id = 1),
             start_date TEXT,
             end_date TEXT)""")
+
+        # Indici per le query piu' frequenti su admin, log e ferie.
+        ex(conn, "CREATE INDEX IF NOT EXISTS idx_log_accessi_timestamp ON log_accessi(timestamp DESC)")
+        ex(conn, "CREATE INDEX IF NOT EXISTS idx_login_page_visits_timestamp ON login_page_visits(timestamp DESC)")
+        ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_operatori_active_link ON team_operatori(attivo, linked_user_id)")
+        ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_log_data_modifica ON team_log(data_modifica DESC)")
+        ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_log_data_turno ON team_log(data_turno)")
+        ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_ferie_requests_status_operatore_data ON team_ferie_requests(stato, operatore_id, data)")
+        ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_ferie_requests_user_data ON team_ferie_requests(user_id, data)")
+        ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_ferie_log_created_at ON team_ferie_log(created_at DESC)")
+        ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_ferie_log_operatore_data ON team_ferie_log(operatore_id, data_turno)")
 
         # ── Migrations / defaults (SQLite) ─────────────────────────────────────
         if not USE_PG:
@@ -518,16 +539,22 @@ def get_user_settings(user_id, conn):
     return result
 
 def _log_accesso(username: str, esito: str, request: Request = None):
+    conn2 = None
     try:
         ip = request.client.host if request and request.client else "—"
         ua = (request.headers.get("user-agent", "—")[:200]) if request else "—"
-        conn2 = get_db()
+        if USE_PG:
+            conn2 = get_db()
+        else:
+            conn2 = _open_sqlite_connection(SQLITE_LOG_BUSY_TIMEOUT_MS)
         ex(conn2, "INSERT INTO log_accessi (username, esito, ip, user_agent) VALUES (?,?,?,?)",
            (username, esito, ip, ua))
         conn2.commit()
-        conn2.close()
     except:
         pass
+    finally:
+        if conn2:
+            conn2.close()
 
 # ─── Modelli ───────────────────────────────────────────────────────────────────
 class RegisterInput(BaseModel):
@@ -846,19 +873,26 @@ def change_password(payload: ChangePasswordInput, user=Depends(get_current_user)
 
 # ─── Page visit tracking ───────────────────────────────────────────────────────
 @app.post("/api/log-page-visit")
-async def log_page_visit(request: Request):
+def log_page_visit(request: Request):
     fwd = request.headers.get("X-Forwarded-For")
     ip = fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "—")
     ua = request.headers.get("User-Agent", "")
     ref = request.headers.get("Referer", "")
     is_bot = any(kw in ua.lower() for kw in ["bot", "crawler", "spider", "ping", "monitor", "uptime"])
+    conn = None
     try:
-        conn = get_db()
+        if USE_PG:
+            conn = get_db()
+        else:
+            conn = _open_sqlite_connection(SQLITE_LOG_BUSY_TIMEOUT_MS)
         ex(conn, "INSERT INTO login_page_visits (ip_address, user_agent, referrer, is_bot) VALUES (?,?,?,?)",
            (ip, ua, ref, is_bot))
-        conn.commit(); conn.close()
+        conn.commit()
     except Exception as e:
         print(f"Errore log visita: {e}")
+    finally:
+        if conn:
+            conn.close()
     return {"status": "ok"}
 
 # ─── Admin: utenti ─────────────────────────────────────────────────────────────
@@ -931,7 +965,7 @@ def reset_password(user_id: int, payload: ResetPasswordInput, admin=Depends(requ
 
 # ─── Admin: health / stats / logs ──────────────────────────────────────────────
 @app.get("/api/health")
-async def health_check():
+def health_check():
     t0 = time.time()
     try:
         conn = get_db()
@@ -1004,7 +1038,7 @@ def get_log_accessi(limit: int = 200, admin=Depends(require_admin)):
     return logs
 
 @app.get("/api/admin/page-visits")
-async def get_page_visits(admin=Depends(require_admin)):
+def get_page_visits(admin=Depends(require_admin)):
     try:
         conn = get_db()
         rows = fetchall(conn, "SELECT * FROM login_page_visits ORDER BY timestamp DESC LIMIT 200")
@@ -1035,29 +1069,52 @@ def get_db_stats(admin=Depends(require_admin)):
         conn.close()
 
 class DbCleanupPayload(BaseModel):
-    target: str          # "ferie_requests_processed" | "ferie_requests_all" | "ferie_log" | "login_visits"
+    target: str          # "ferie_closed_history" | "ferie_requests_processed" | "ferie_requests_all" | "ferie_log" | "login_visits"
 
 @app.post("/api/admin/db-cleanup")
 def db_cleanup(payload: DbCleanupPayload, admin=Depends(require_admin)):
     """Cancella le righe dal target specificato."""
     conn = get_db()
     try:
-        if payload.target == "ferie_requests_processed":
+        def count_rows(table, where=""):
+            sql = f"SELECT COUNT(*) AS cnt FROM {table}" + (f" WHERE {where}" if where else "")
+            row = fetchone(conn, sql)
+            return int((row or {}).get("cnt", 0) or 0)
+
+        if payload.target == "ferie_closed_history":
+            processed_deleted = count_rows("team_ferie_requests", "stato != 'pending'")
+            log_deleted = count_rows("team_ferie_log")
             ex(conn, "DELETE FROM team_ferie_requests WHERE stato != 'pending'")
-            msg = "Richieste ferie approvate/rifiutate cancellate"
+            ex(conn, "DELETE FROM team_ferie_log")
+            deleted = processed_deleted + log_deleted
+            msg = "Storico ferie concluse ripulito"
+        elif payload.target == "ferie_requests_processed":
+            deleted = count_rows("team_ferie_requests", "stato != 'pending'")
+            ex(conn, "DELETE FROM team_ferie_requests WHERE stato != 'pending'")
+            msg = "Richieste ferie processate cancellate"
         elif payload.target == "ferie_requests_all":
+            deleted = count_rows("team_ferie_requests")
             ex(conn, "DELETE FROM team_ferie_requests")
             msg = "Tutte le richieste ferie cancellate"
         elif payload.target == "ferie_log":
+            deleted = count_rows("team_ferie_log")
             ex(conn, "DELETE FROM team_ferie_log")
             msg = "Log ferie cancellato"
         elif payload.target == "login_visits":
+            deleted = count_rows("login_page_visits")
             ex(conn, "DELETE FROM login_page_visits")
-            msg = "Log accessi pagina cancellato"
+            msg = "Log visite pagina login cancellato"
         else:
             raise HTTPException(400, "Target non valido")
         conn.commit()
-        return {"ok": True, "msg": msg}
+        if not USE_PG:
+            try:
+                ex(conn, "PRAGMA optimize")
+            except Exception:
+                pass
+        if deleted <= 0:
+            return {"ok": True, "msg": "Nessun record da cancellare", "deleted": 0}
+        return {"ok": True, "msg": f"{msg}: {deleted} record", "deleted": deleted}
     finally:
         conn.close()
 
