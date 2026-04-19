@@ -1013,6 +1013,54 @@ async def get_page_visits(admin=Depends(require_admin)):
     except Exception as e:
         raise HTTPException(500, str(e))
 
+# ─── Admin: pulizia DB ────────────────────────────────────────────────────────
+
+@app.get("/api/admin/db-stats")
+def get_db_stats(admin=Depends(require_admin)):
+    """Restituisce il conteggio delle righe nelle tabelle pulizia."""
+    conn = get_db()
+    try:
+        def count(table, where=""):
+            sql = f"SELECT COUNT(*) AS cnt FROM {table}" + (f" WHERE {where}" if where else "")
+            row = fetchone(conn, sql)
+            return int((row or {}).get("cnt", 0) or 0)
+        return {
+            "ferie_requests_pending":  count("team_ferie_requests", "stato='pending'"),
+            "ferie_requests_processed": count("team_ferie_requests", "stato!='pending'"),
+            "ferie_requests_total":    count("team_ferie_requests"),
+            "ferie_log_total":         count("team_ferie_log"),
+            "login_visits_total":      count("login_page_visits"),
+        }
+    finally:
+        conn.close()
+
+class DbCleanupPayload(BaseModel):
+    target: str          # "ferie_requests_processed" | "ferie_requests_all" | "ferie_log" | "login_visits"
+
+@app.post("/api/admin/db-cleanup")
+def db_cleanup(payload: DbCleanupPayload, admin=Depends(require_admin)):
+    """Cancella le righe dal target specificato."""
+    conn = get_db()
+    try:
+        if payload.target == "ferie_requests_processed":
+            ex(conn, "DELETE FROM team_ferie_requests WHERE stato != 'pending'")
+            msg = "Richieste ferie approvate/rifiutate cancellate"
+        elif payload.target == "ferie_requests_all":
+            ex(conn, "DELETE FROM team_ferie_requests")
+            msg = "Tutte le richieste ferie cancellate"
+        elif payload.target == "ferie_log":
+            ex(conn, "DELETE FROM team_ferie_log")
+            msg = "Log ferie cancellato"
+        elif payload.target == "login_visits":
+            ex(conn, "DELETE FROM login_page_visits")
+            msg = "Log accessi pagina cancellato"
+        else:
+            raise HTTPException(400, "Target non valido")
+        conn.commit()
+        return {"ok": True, "msg": msg}
+    finally:
+        conn.close()
+
 # ─── Admin: tabelle turni ──────────────────────────────────────────────────────
 @app.get("/api/admin/tabelle")
 def get_tabelle(user=Depends(get_current_user)):
