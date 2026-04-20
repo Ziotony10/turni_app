@@ -631,14 +631,6 @@ function renderStatusCard() {
           </div>
           <div class="status-sub" id="sub-ping">In attesa...</div>
         </div>
-        <div class="status-item">
-          <div class="status-label">Latenza DB Frankfurt</div>
-          <div class="status-row">
-            <span class="status-dot dot-loading" id="dot-fra"></span>
-            <span class="status-value" id="val-fra">—</span>
-          </div>
-          <div class="status-sub" id="sub-fra">In attesa...</div>
-        </div>
       </div>
     </div>
   </div>`);
@@ -676,21 +668,7 @@ async function loadStatus() {
     data.db_type || '—'
   );
 
-  // Latenza DB
-  // Latenza DB Frankfurt
-  try {
-    const t1 = performance.now();
-    const fra = await fetch('/api/admin/status-fra').then(r => r.json());
-    if (!fra.available) {
-      setStatus('fra', 'warn', 'N/D', 'Variabile non configurata');
-    } else {
-      const fms = fra.db_ms;
-      const fc = fms < 0 ? 'error' : fms < 100 ? 'ok' : fms < 400 ? 'warn' : 'error';
-      setStatus('fra', fc, fms >= 0 ? `${fms} ms` : 'Errore', fms < 0 ? 'Connessione fallita' : 'Frankfurt (eu-central-1)');
-    }
-  } catch(e) {
-    setStatus('fra', 'error', 'N/A', 'Errore fetch');
-  }
+  // Latenza DB  
   const ms = data.db_ms;
   const pingClass = ms < 0 ? 'error' : ms < 100 ? 'ok' : ms < 400 ? 'warn' : 'error';
   const pingLabel = ms < 0 ? 'N/A' : ms < 100 ? 'Ottima' : ms < 400 ? 'Lenta' : 'Critica';
