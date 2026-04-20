@@ -13,6 +13,7 @@ import json
 app = FastAPI(title="Gestione Turni")
 DB_PATH      = "turni.db"
 DATABASE_URL = os.environ.get("DATABASE_URL")
+DATABASE_URL_FRA = os.environ.get("DATABASE_URL_FRA")
 USE_PG       = bool(DATABASE_URL)
 SQLITE_BUSY_TIMEOUT_MS = int(os.environ.get("SQLITE_BUSY_TIMEOUT_MS", "15000"))
 SQLITE_LOG_BUSY_TIMEOUT_MS = int(os.environ.get("SQLITE_LOG_BUSY_TIMEOUT_MS", "1500"))
@@ -993,6 +994,18 @@ def get_status(admin=Depends(require_admin)):
         db_ms = -1; db_ok = False
     return {"site": "ok", "db": "ok" if db_ok else "error", "db_ms": db_ms,
             "db_type": "PostgreSQL (Supabase)" if USE_PG else "SQLite"}
+    @app.get("/api/admin/status-fra")
+def get_status_fra(admin=Depends(require_admin)):
+    if not DATABASE_URL_FRA:
+        return {"db_ms": -1, "available": False}
+    t0 = time.time()
+    try:
+        conn = psycopg2.connect(DATABASE_URL_FRA, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn.cursor().execute("SELECT 1")
+        conn.close()
+        return {"db_ms": round((time.time() - t0) * 1000, 1), "available": True}
+    except:
+        return {"db_ms": -1, "available": True}
 
 @app.get("/api/admin/stats")
 def get_stats(admin=Depends(require_admin)):
