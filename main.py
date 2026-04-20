@@ -994,7 +994,7 @@ def get_status(admin=Depends(require_admin)):
         db_ms = -1; db_ok = False
     return {"site": "ok", "db": "ok" if db_ok else "error", "db_ms": db_ms,
             "db_type": "PostgreSQL (Supabase)" if USE_PG else "SQLite"}
-    @app.get("/api/admin/status-fra")
+@app.get("/api/admin/status-fra")
 def get_status_fra(admin=Depends(require_admin)):
     if not DATABASE_URL_FRA:
         return {"db_ms": -1, "available": False}
@@ -1006,6 +1006,7 @@ def get_status_fra(admin=Depends(require_admin)):
         return {"db_ms": round((time.time() - t0) * 1000, 1), "available": True}
     except:
         return {"db_ms": -1, "available": True}
+    
 
 @app.get("/api/admin/stats")
 def get_stats(admin=Depends(require_admin)):
