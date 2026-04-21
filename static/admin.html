@@ -631,7 +631,7 @@ function renderStatusCard() {
           </div>
           <div class="status-sub" id="sub-ping">In attesa...</div>
         </div>
-      </div>
+        </div>
     </div>
   </div>`);
 }
@@ -668,7 +668,8 @@ async function loadStatus() {
     data.db_type || '—'
   );
 
-  // Latenza DB  
+  // Latenza DB
+
   const ms = data.db_ms;
   const pingClass = ms < 0 ? 'error' : ms < 100 ? 'ok' : ms < 400 ? 'warn' : 'error';
   const pingLabel = ms < 0 ? 'N/A' : ms < 100 ? 'Ottima' : ms < 400 ? 'Lenta' : 'Critica';
@@ -678,6 +679,7 @@ async function loadStatus() {
     pingLabel
   );
 }
+
 
 function setStatus(key, cls, value, sub) {
   const dot = document.getElementById(`dot-${key}`);
@@ -1887,21 +1889,77 @@ loadAll = async function() {
   renderVisitsCard();
   renderCleanupCard();
 
-  const [utenti, tabs, operatoriLinks, feriePending, ferieLog] = await Promise.all([
-    fetch('/api/admin/utenti').then(r=>r.json()),
-    fetch('/api/admin/tabelle').then(r=>r.json()),
-    fetch('/api/admin/team/operatori-links').then(r=>r.json()).catch(()=>[]),
-    fetch('/api/admin/team/ferie/pending').then(r=>r.json()).catch(()=>[]),
-    fetch('/api/admin/team/ferie/log?limit=120').then(r=>r.json()).catch(()=>[]),
-  ]);
+  const startedAt = performance.now();
+  const bootstrap = await fetch('/api/admin/bootstrap')
+    .then(r => r.json())
+    .catch(() => null);
+
+  if (!bootstrap) {
+    loadStatus();
+    loadLoginLogs();
+    loadDbStats();
+    return;
+  }
+
+  const utenti = bootstrap.utenti || [];
+  const tabs = bootstrap.tabelle || [];
+  const operatoriLinks = bootstrap.operatori_links || [];
+  const feriePending = bootstrap.ferie_pending || [];
+  const ferieLog = bootstrap.ferie_log || [];
+  const loginLogs = bootstrap.log_accessi || [];
+  const dbStats = bootstrap.db_stats || {};
   tabelle = tabs;
+
   renderUtenti(utenti);
   renderOperatorLinks(operatoriLinks, utenti);
   renderFerieRequests(feriePending, ferieLog);
   renderTabelle(tabs);
-  loadStatus();
-  loadLoginLogs();
-  loadDbStats();
+
+  const siteMs = Math.round(performance.now() - startedAt);
+  const status = bootstrap.status || {};
+  setStatus('site', 'ok', 'Online', `Risposta: ${siteMs} ms`);
+  setStatus('db', status.db === 'ok' ? 'ok' : 'error', status.db === 'ok' ? 'Connesso' : 'Errore', status.db_type || '—');
+  setStatus('ping', 'ok', 'Pronto', 'Bootstrap admin');
+  setStatus('fra', 'warn', 'N/D', 'Verifica manuale');
+
+  const tbody = document.getElementById('logTableBody');
+  if (tbody) {
+    if (!loginLogs.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Nessun accesso registrato</td></tr>';
+    } else {
+      tbody.innerHTML = loginLogs.map(l => {
+        const ts = (l.timestamp || '').toString().replace('T', ' ').slice(0, 19);
+        const ua = parseUA(l.user_agent || '');
+        const ipStyle = 'font-family:monospace;font-size:0.78rem;color:var(--muted)';
+        return `<tr>
+          <td style="color:var(--muted);font-size:0.8rem;white-space:nowrap">${ts}</td>
+          <td><strong>${l.username || '—'}</strong></td>
+          <td style="${ipStyle}">${l.ip || '—'}</td>
+          <td>${(l.esito === 'ok' || l.success) ? '<span class="badge-ok">✓ Successo</span>' : '<span class="badge-fail">✗ Fallito</span>'}</td>
+          <td style="color:var(--muted);font-size:0.75rem">${ua}</td>
+        </tr>`;
+      }).join('');
+    }
+  }
+
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+  set('stat-ferie-pending', dbStats.ferie_requests_pending ?? 0);
+  set('stat-ferie-processed', dbStats.ferie_requests_processed ?? 0);
+  set('stat-ferie-log', dbStats.ferie_log_total ?? 0);
+  set('stat-login-visits', dbStats.login_visits_total ?? 0);
+  setCleanupButtonState('ferie_closed_history', Number(dbStats.ferie_requests_processed || 0) > 0 || Number(dbStats.ferie_log_total || 0) > 0);
+  setCleanupButtonState('ferie_requests_processed', Number(dbStats.ferie_requests_processed || 0) > 0);
+  setCleanupButtonState('ferie_requests_all', Number(dbStats.ferie_requests_total || 0) > 0);
+  setCleanupButtonState('ferie_log', Number(dbStats.ferie_log_total || 0) > 0);
+  setCleanupButtonState('login_visits', Number(dbStats.login_visits_total || 0) > 0);
+
+  const visitsTbody = document.getElementById('visitsTableBody');
+  if (visitsTbody) {
+    visitsTbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Caricamento manuale disponibile dal riquadro visite</td></tr>';
+  }
 };
 </script>
 
