@@ -1,9 +1,12 @@
 from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, RootModel
 from typing import Optional, List
+from calendar import monthrange
 import sqlite3, os, time
+import io
 from datetime import date, datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -13,12 +16,26 @@ import json
 app = FastAPI(title="Gestione Turni")
 DB_PATH      = "turni.db"
 DATABASE_URL = os.environ.get("DATABASE_URL")
+DATABASE_URL_FRA = os.environ.get("DATABASE_URL_FRA")
 USE_PG       = bool(DATABASE_URL)
 SQLITE_BUSY_TIMEOUT_MS = int(os.environ.get("SQLITE_BUSY_TIMEOUT_MS", "15000"))
 SQLITE_LOG_BUSY_TIMEOUT_MS = int(os.environ.get("SQLITE_LOG_BUSY_TIMEOUT_MS", "1500"))
 
 if USE_PG:
-    import psycopg2, psycopg2.extras
+    import psycopg2, psycopg2.extras, psycopg2.pool
+
+# ─── Connection Pool (PostgreSQL) ──────────────────────────────────────────────
+_pg_pool = None
+
+def get_pg_pool():
+    global _pg_pool
+    if _pg_pool is None and USE_PG:
+        _pg_pool = psycopg2.pool.ThreadedConnectionPool(
+            minconn=1,
+            maxconn=8,  # rimane sotto il limite Supabase free (15)
+            dsn=DATABASE_URL,
+        )
+    return _pg_pool
 
 # ─── Sicurezza ─────────────────────────────────────────────────────────────────
 SECRET_KEY   = os.environ.get("JWT_SECRET", secrets.token_hex(32))
@@ -65,6 +82,11 @@ FESTIVITA = {
     "2027-12-08","2027-12-25","2027-12-26",
 }
 NOTTE_ASSENZA = {"F": 0.0, "F-P": 3.0, "F-N": 7.0}
+MESI_IT = [
+    "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+    "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre",
+]
+GIORNI_SHORT = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"]
 
 IMPOSTAZIONI_DEFAULTS = {
     "retribuzione_totale": "2573.39", "tariffa_nott_50": "7.53974",
@@ -89,9 +111,20 @@ def _open_sqlite_connection(timeout_ms: int):
 
 def get_db():
     if USE_PG:
-        conn = psycopg2.connect(DATABASE_URL, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn = get_pg_pool().getconn()
+        conn.cursor_factory = psycopg2.extras.RealDictCursor
         return conn
     return _open_sqlite_connection(SQLITE_BUSY_TIMEOUT_MS)
+
+def release_db(conn):
+    """Rilascia la connessione al pool (PG) o la chiude (SQLite)."""
+    if USE_PG:
+        try:
+            get_pg_pool().putconn(conn)
+        except Exception:
+            pass
+    else:
+        conn.close()
 
 def q(sql):
     if not USE_PG:
@@ -117,6 +150,441 @@ def fetchone(conn, sql, params=()):
     cur = ex(conn, sql, params)
     row = cur.fetchone()
     return dict(row) if row else None
+
+def _build_team_turni_payload(anno: int, mese: int, user: dict,
+                              start_date: str = None, end_date: str = None):
+    _, days = monthrange(anno, mese)
+    conn = get_db()
+    try:
+        template_rows = fetchall(conn, "SELECT * FROM team_template_weekly ORDER BY giorno_settimana, posizione")
+        template = {}
+        for r in template_rows:
+            g = r["giorno_settimana"]
+            if g not in template:
+                template[g] = {}
+            template[g][r["posizione"]] = {
+                "turno_base": r["turno_base"] or "",
+                "turno_var": r["turno_var"] or "",
+                "flags": r["flags"] or "",
+            }
+
+        rep_template_rows = fetchall(conn, "SELECT * FROM team_template_reperibili_weekly ORDER BY giorno_settimana")
+        rep_template = {
+            r["giorno_settimana"]: {
+                "rep1": r.get("rep1_pos"),
+                "rep2": r.get("rep2_pos"),
+                "rep3": r.get("rep3_pos"),
+                "fest_m1": r.get("fest_m1_pos"),
+                "fest_m2": r.get("fest_m2_pos"),
+                "fest_p1": r.get("fest_p1_pos"),
+                "fest_p2": r.get("fest_p2_pos"),
+            }
+            for r in rep_template_rows
+        }
+
+        template_cfg = fetchone(conn, "SELECT start_date, end_date FROM team_template_config WHERE id=1")
+        if template_cfg:
+            if start_date is None:
+                start_date = template_cfg.get("start_date") or None
+            if end_date is None:
+                end_date = template_cfg.get("end_date") or None
+
+        ops = fetchall(conn, """
+            SELECT o.*, u.username AS linked_username, u.nome AS linked_nome
+            FROM team_operatori o
+            LEFT JOIN utenti u ON u.id = o.linked_user_id
+            WHERE o.attivo=1
+            ORDER BY o.posizione
+        """)
+        operator_count = max(len(ops), 1)
+        d_from = f"{anno:04d}-{mese:02d}-01"
+        d_to = f"{anno:04d}-{mese:02d}-{days:02d}"
+        turni_esistenti = fetchall(
+            conn,
+            "SELECT * FROM team_turni WHERE data >= ? AND data <= ? ORDER BY data, operatore_id",
+            (d_from, d_to),
+        )
+        turni_idx = {(t["data"], t["operatore_id"]): t for t in turni_esistenti}
+        colonne = fetchall(
+            conn,
+            "SELECT * FROM team_colonne_destra WHERE data >= ? AND data <= ? ORDER BY data",
+            (d_from, d_to),
+        )
+        col_idx = {c["data"]: c for c in colonne}
+        ferie_params = [d_from, d_to]
+        ferie_sql = """
+            SELECT r.*, u.username, o.nome AS operatore_nome
+            FROM team_ferie_requests r
+            LEFT JOIN utenti u ON u.id = r.user_id
+            LEFT JOIN team_operatori o ON o.id = r.operatore_id
+            WHERE r.data >= ? AND r.data <= ? AND r.stato IN ('pending','approved')
+        """
+        linked_op = get_team_operator_for_user(conn, user["id"]) if not (user.get("is_editor") or user.get("is_admin")) else None
+        if linked_op:
+            ferie_sql += " AND r.operatore_id = ?"
+            ferie_params.append(linked_op["id"])
+        ferie_rows = fetchall(conn, ferie_sql, tuple(ferie_params))
+        ferie_idx = {(r["data"], r["operatore_id"]): r for r in ferie_rows}
+
+        start_date_obj = None
+        end_date_obj = None
+        start_week_monday = None
+        if start_date:
+            try:
+                start_date_obj = date.fromisoformat(start_date)
+                start_week_monday = start_date_obj - timedelta(days=start_date_obj.weekday())
+            except Exception:
+                start_date_obj = None
+                start_week_monday = None
+        if end_date:
+            try:
+                end_date_obj = date.fromisoformat(end_date)
+            except Exception:
+                end_date_obj = None
+        if start_date_obj and end_date_obj and end_date_obj < start_date_obj:
+            start_date_obj, end_date_obj = end_date_obj, start_date_obj
+
+        giorni = []
+        for g in range(1, days + 1):
+            data = f"{anno:04d}-{mese:02d}-{g:02d}"
+            d = date.fromisoformat(data)
+            dow = d.weekday()
+            is_fest = data in FESTIVITA
+
+            if start_date_obj and end_date_obj:
+                in_range = start_date_obj <= d <= end_date_obj
+            elif start_date_obj:
+                in_range = d >= start_date_obj
+            elif end_date_obj:
+                in_range = d <= end_date_obj
+            else:
+                in_range = True
+
+            if in_range and start_week_monday:
+                cur_mon = d - timedelta(days=d.weekday())
+                sett_idx = (cur_mon - start_week_monday).days // 7
+                sett_ciclo = (sett_idx % operator_count) + 1
+            else:
+                sett_ciclo = None
+
+            row_turni = []
+            for op in ops:
+                pos = op["posizione"]
+                tpl = {"turno_base": "", "turno_var": "", "flags_base": "", "flags_var": ""}
+                if in_range and sett_ciclo:
+                    pos_orig = ((pos + sett_ciclo - 2) % operator_count) + 1
+                    tpl_row = template.get(dow, {}).get(pos_orig, {})
+                    tpl = {
+                        "turno_base": tpl_row.get("turno_base", ""),
+                        "turno_var": tpl_row.get("turno_var", ""),
+                        "flags_base": tpl_row.get("flags", ""),
+                        "flags_var": "",
+                    }
+
+                key = (data, op["id"])
+                if key in turni_idx:
+                    row = turni_idx[key]
+                    shared_flags = row.get("flags", "") or ""
+                    tpl = {
+                        "turno_base": row.get("turno_base", "") or "",
+                        "turno_var": row.get("turno_var", "") or "",
+                        "flags_base": row.get("flags_base", "") or (shared_flags if not (row.get("turno_var") or "") else ""),
+                        "flags_var": row.get("flags_var", "") or (shared_flags if (row.get("turno_var") or "") else ""),
+                    }
+
+                row_turni.append({
+                    "operatore_id": op["id"],
+                    "turno_base": tpl.get("turno_base", ""),
+                    "turno_var": tpl.get("turno_var", ""),
+                    "flags_base": tpl.get("flags_base", ""),
+                    "flags_var": tpl.get("flags_var", ""),
+                    "ferie_request": ferie_idx.get((data, op["id"])),
+                })
+
+            col = col_idx.get(data, {})
+            rep_defaults = {
+                "rep1": "", "rep2": "", "rep3": "",
+                "fest_m1": "", "fest_m2": "", "fest_p1": "", "fest_p2": "",
+            }
+            if in_range and start_week_monday and dow in rep_template and operator_count > 0:
+                rep_defaults = _compute_team_rep_defaults(rep_template, d, operator_count, start_week_monday)
+            giorni.append({
+                "data": data,
+                "giorno": g,
+                "dow": dow,
+                "is_domenica": dow == 6,
+                "is_sabato": dow == 5,
+                "is_festivo": is_fest,
+                "turni": row_turni,
+                "colonne_destra": {
+                    "rep1": col.get("rep1", "") or rep_defaults["rep1"],
+                    "rep2": col.get("rep2", "") or rep_defaults["rep2"],
+                    "rep3": col.get("rep3", "") or rep_defaults["rep3"],
+                    "fest_m1": col.get("fest_m1", "") or rep_defaults["fest_m1"],
+                    "fest_m2": col.get("fest_m2", "") or rep_defaults["fest_m2"],
+                    "fest_p1": col.get("fest_p1", "") or rep_defaults["fest_p1"],
+                    "fest_p2": col.get("fest_p2", "") or rep_defaults["fest_p2"],
+                }
+            })
+
+        return {
+            "anno": anno,
+            "mese": mese,
+            "start_date": start_date or "",
+            "end_date": end_date or "",
+            "operatori": ops,
+            "giorni": giorni,
+        }
+    finally:
+        release_db(conn)
+
+def _team_pdf_clean_text(value) -> str:
+    text = "" if value is None else str(value)
+    return (
+        text.replace("\\", "\\\\")
+        .replace("(", "\\(")
+        .replace(")", "\\)")
+        .replace("€", "EUR")
+        .replace("–", "-")
+        .replace("—", "-")
+        .replace("°", "deg")
+        .replace("’", "'")
+        .replace("•", "*")
+    )
+
+def _team_pdf_fit_text(value, max_width: float, font_size: float, mono: bool = False) -> str:
+    text = _team_pdf_clean_text(value)
+    if not text:
+        return ""
+    char_factor = 0.60 if mono else 0.52
+    max_chars = max(int(max_width / max(font_size * char_factor, 0.1)), 1)
+    if len(text) <= max_chars:
+        return text
+    if max_chars <= 3:
+        return text[:max_chars]
+    return text[:max_chars - 3] + "..."
+
+def _team_pdf_text_cmd(x: float, y: float, text: str, font: str, size: float,
+                       color=(0, 0, 0), align: str = "left", width: float = None,
+                       mono: bool = False) -> str:
+    safe_text = _team_pdf_fit_text(text, width or 9999, size, mono=mono) if width else _team_pdf_clean_text(text)
+    if align != "left" and width:
+        factor = 0.60 if mono else 0.52
+        estimated = len(safe_text) * size * factor
+        if align == "center":
+            x = x + max((width - estimated) / 2, 0)
+        elif align == "right":
+            x = x + max(width - estimated, 0)
+    r, g, b = color
+    return f"BT /{font} {size:.2f} Tf {r:.3f} {g:.3f} {b:.3f} rg {x:.2f} {y:.2f} Td ({safe_text}) Tj ET"
+
+def _team_pdf_rect_cmd(x: float, y: float, w: float, h: float,
+                       fill=None, stroke=(0, 0, 0), line_width: float = 0.4) -> str:
+    cmds = [f"{line_width:.2f} w"]
+    if stroke is not None:
+        cmds.append(f"{stroke[0]:.3f} {stroke[1]:.3f} {stroke[2]:.3f} RG")
+    if fill is not None:
+        cmds.append(f"{fill[0]:.3f} {fill[1]:.3f} {fill[2]:.3f} rg")
+    op = "B" if fill is not None and stroke is not None else ("f" if fill is not None else "S")
+    cmds.append(f"{x:.2f} {y:.2f} {w:.2f} {h:.2f} re {op}")
+    return "\n".join(cmds)
+
+def _team_pdf_cell_value(turno: str, flags: str) -> str:
+    base = (turno or "").strip()
+    suffix = []
+    if flags:
+        if "smart" in flags:
+            suffix.append("#")
+        if "rep" in flags:
+            suffix.append("R")
+        if "M" in flags:
+            suffix.append("m")
+        if "F" in flags:
+            suffix.append("f")
+    return f"{base}{''.join(suffix)}" if base or suffix else ""
+
+def _build_minimal_pdf(page_streams: List[str], page_width: int, page_height: int) -> bytes:
+    font_objects = {
+        3: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+        4: b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
+        5: b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>",
+    }
+    objects = {**font_objects}
+    page_ids = []
+    content_ids = []
+    next_id = 6
+    for stream in page_streams:
+        page_ids.append(next_id)
+        content_ids.append(next_id + 1)
+        next_id += 2
+
+    kids = " ".join(f"{page_id} 0 R" for page_id in page_ids)
+    objects[2] = f"<< /Type /Pages /Kids [{kids}] /Count {len(page_ids)} >>".encode("ascii")
+    objects[1] = b"<< /Type /Catalog /Pages 2 0 R >>"
+    resources = b"<< /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >>"
+
+    for page_id, content_id, stream in zip(page_ids, content_ids, page_streams):
+        stream_bytes = stream.encode("cp1252", errors="replace")
+        objects[content_id] = b"<< /Length " + str(len(stream_bytes)).encode("ascii") + b" >>\nstream\n" + stream_bytes + b"\nendstream"
+        objects[page_id] = (
+            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {page_width} {page_height}] /Resources ".encode("ascii")
+            + resources
+            + f" /Contents {content_id} 0 R >>".encode("ascii")
+        )
+
+    max_id = max(objects)
+    pdf = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
+    offsets = [0] * (max_id + 1)
+    for obj_id in range(1, max_id + 1):
+        offsets[obj_id] = len(pdf)
+        pdf.extend(f"{obj_id} 0 obj\n".encode("ascii"))
+        pdf.extend(objects[obj_id])
+        pdf.extend(b"\nendobj\n")
+
+    xref_pos = len(pdf)
+    pdf.extend(f"xref\n0 {max_id + 1}\n".encode("ascii"))
+    pdf.extend(b"0000000000 65535 f \n")
+    for obj_id in range(1, max_id + 1):
+        pdf.extend(f"{offsets[obj_id]:010d} 00000 n \n".encode("ascii"))
+    pdf.extend(f"trailer\n<< /Size {max_id + 1} /Root 1 0 R >>\nstartxref\n{xref_pos}\n%%EOF".encode("ascii"))
+    return bytes(pdf)
+
+def _build_team_month_pdf(payload: dict) -> bytes:
+    page_width = 842
+    page_height = 595
+    margin_x = 20
+    margin_bottom = 22
+    title_y = page_height - 28
+    meta_y = page_height - 43
+    table_top = page_height - 70
+    date_w = 42
+    day_w = 26
+    sep_w = 4
+    side_w = 24
+    max_ops_per_page = 6
+    operatori = payload.get("operatori") or []
+    giorni = payload.get("giorni") or []
+    total_ops = len(operatori)
+    if not operatori:
+        page_streams = [
+            "\n".join([
+                _team_pdf_text_cmd(30, title_y, f"Turni team - {MESI_IT[payload['mese'] - 1]} {payload['anno']}", "F2", 16),
+                _team_pdf_text_cmd(30, meta_y, "Nessun operatore configurato.", "F1", 10, color=(0.35, 0.35, 0.35)),
+            ])
+        ]
+        return _build_minimal_pdf(page_streams, page_width, page_height)
+
+    operator_chunks = [operatori[i:i + max_ops_per_page] for i in range(0, total_ops, max_ops_per_page)]
+    month_label = f"{MESI_IT[payload['mese'] - 1]} {payload['anno']}"
+    generated_label = datetime.now().strftime("%d/%m/%Y %H:%M")
+    page_streams = []
+
+    for chunk_index, ops_chunk in enumerate(operator_chunks, start=1):
+        chunk_size = max(len(ops_chunk), 1)
+        fixed_width = date_w + day_w + (2 * sep_w) + (7 * side_w)
+        available_width = page_width - (2 * margin_x) - fixed_width
+        pair_w = available_width / chunk_size
+        slot_w = pair_w / 2
+        header_main_h = 22
+        header_sub_h = 16
+        row_h = min(15.0, max(12.0, (table_top - margin_bottom - header_main_h - header_sub_h) / max(len(giorni), 1)))
+        table_left = margin_x
+        table_width = page_width - (2 * margin_x)
+        commands = []
+
+        commands.append(_team_pdf_text_cmd(margin_x, title_y, f"Turni team - {month_label}", "F2", 16))
+        chunk_start = (chunk_index - 1) * max_ops_per_page + 1
+        chunk_end = chunk_start + len(ops_chunk) - 1
+        meta_text = f"Operatori {chunk_start}-{chunk_end} di {total_ops}  |  Generato {generated_label}  |  Pagina {chunk_index}/{len(operator_chunks)}"
+        commands.append(_team_pdf_text_cmd(margin_x, meta_y, meta_text, "F1", 9, color=(0.35, 0.35, 0.35)))
+
+        x = table_left
+        y_header1 = table_top - header_main_h
+        y_header2 = y_header1 - header_sub_h
+        commands.append(_team_pdf_rect_cmd(x, y_header2, date_w, header_main_h + header_sub_h, fill=(0.89, 0.92, 0.96), stroke=(0.55, 0.60, 0.67)))
+        commands.append(_team_pdf_text_cmd(x + 2, y_header2 + 11, "Data", "F2", 8, width=date_w - 4))
+        x += date_w
+        commands.append(_team_pdf_rect_cmd(x, y_header2, day_w, header_main_h + header_sub_h, fill=(0.89, 0.92, 0.96), stroke=(0.55, 0.60, 0.67)))
+        commands.append(_team_pdf_text_cmd(x, y_header2 + 11, "Gg", "F2", 8, align="center", width=day_w))
+        x += day_w
+
+        for op in ops_chunk:
+            commands.append(_team_pdf_rect_cmd(x, y_header1, pair_w, header_main_h, fill=(0.90, 0.92, 0.95), stroke=(0.55, 0.60, 0.67)))
+            header_name = f"{op.get('posizione', '')} {op.get('nome', '')}".strip()
+            commands.append(_team_pdf_text_cmd(x + 3, y_header1 + 8, header_name, "F2", 7.5, width=pair_w - 6))
+            commands.append(_team_pdf_rect_cmd(x, y_header2, slot_w, header_sub_h, fill=(0.96, 0.97, 0.99), stroke=(0.55, 0.60, 0.67)))
+            commands.append(_team_pdf_rect_cmd(x + slot_w, y_header2, slot_w, header_sub_h, fill=(0.96, 0.97, 0.99), stroke=(0.55, 0.60, 0.67)))
+            commands.append(_team_pdf_text_cmd(x, y_header2 + 5.5, "TAB", "F2", 6.5, align="center", width=slot_w))
+            commands.append(_team_pdf_text_cmd(x + slot_w, y_header2 + 5.5, "VAR", "F2", 6.5, align="center", width=slot_w))
+            x += pair_w
+
+        commands.append(_team_pdf_rect_cmd(x, y_header2, sep_w, header_main_h + header_sub_h, fill=(0.10, 0.14, 0.20), stroke=(0.10, 0.14, 0.20)))
+        x += sep_w
+
+        for label in ["Rep1", "Rep2", "Rep3"]:
+            commands.append(_team_pdf_rect_cmd(x, y_header2, side_w, header_main_h + header_sub_h, fill=(0.86, 0.92, 0.99), stroke=(0.55, 0.66, 0.84)))
+            commands.append(_team_pdf_text_cmd(x, y_header2 + 11, label, "F2", 6.5, align="center", width=side_w))
+            x += side_w
+
+        commands.append(_team_pdf_rect_cmd(x, y_header2, sep_w, header_main_h + header_sub_h, fill=(0.10, 0.14, 0.20), stroke=(0.10, 0.14, 0.20)))
+        x += sep_w
+
+        for label in ["FM1", "FM2", "FP1", "FP2"]:
+            commands.append(_team_pdf_rect_cmd(x, y_header2, side_w, header_main_h + header_sub_h, fill=(0.86, 0.92, 0.99), stroke=(0.55, 0.66, 0.84)))
+            commands.append(_team_pdf_text_cmd(x, y_header2 + 11, label, "F2", 6.5, align="center", width=side_w))
+            x += side_w
+
+        y_cursor = y_header2
+        month_short = MESI_IT[payload["mese"] - 1][:3]
+        op_ids = [op["id"] for op in ops_chunk]
+        for row in giorni:
+            y_cursor -= row_h
+            if row.get("is_festivo"):
+                row_fill = (1.00, 0.87, 0.90)
+            elif row.get("is_sabato"):
+                row_fill = (0.89, 0.95, 0.82)
+            elif row.get("is_domenica"):
+                row_fill = (0.98, 0.89, 0.93)
+            else:
+                row_fill = (1.00, 1.00, 1.00)
+            commands.append(_team_pdf_rect_cmd(table_left, y_cursor, table_width, row_h, fill=row_fill, stroke=(0.84, 0.87, 0.91), line_width=0.3))
+
+            x = table_left
+            commands.append(_team_pdf_text_cmd(x + 2, y_cursor + 4.2, f"{row['giorno']:02d} {month_short}", "F1", 7.2, width=date_w - 4))
+            x += date_w
+            commands.append(_team_pdf_text_cmd(x, y_cursor + 4.2, GIORNI_SHORT[row["dow"]], "F1", 7.2, align="center", width=day_w))
+            x += day_w
+
+            turni_per_op = {t["operatore_id"]: t for t in row.get("turni", [])}
+            for op_id in op_ids:
+                turno = turni_per_op.get(op_id, {})
+                base_value = _team_pdf_cell_value(turno.get("turno_base", ""), turno.get("flags_base", ""))
+                var_value = _team_pdf_cell_value(turno.get("turno_var", ""), turno.get("flags_var", ""))
+                commands.append(_team_pdf_text_cmd(x, y_cursor + 4.0, base_value or "-", "F3", 6.3, align="center", width=slot_w, mono=True))
+                commands.append(_team_pdf_text_cmd(x + slot_w, y_cursor + 4.0, var_value or "-", "F3", 6.3, align="center", width=slot_w, mono=True))
+                x += pair_w
+
+            x += sep_w
+            cd = row.get("colonne_destra", {})
+            for key in ["rep1", "rep2", "rep3"]:
+                commands.append(_team_pdf_text_cmd(x, y_cursor + 4.0, cd.get(key) or "-", "F3", 6.1, align="center", width=side_w, mono=True))
+                x += side_w
+            x += sep_w
+            for key in ["fest_m1", "fest_m2", "fest_p1", "fest_p2"]:
+                commands.append(_team_pdf_text_cmd(x, y_cursor + 4.0, cd.get(key) or "-", "F3", 6.1, align="center", width=side_w, mono=True))
+                x += side_w
+
+        commands.append(_team_pdf_text_cmd(
+            margin_x,
+            10,
+            "Legenda: R=rep  #=smart  m/f=modificatori  |  PDF generato al volo, non salvato nel database",
+            "F1",
+            8,
+            color=(0.35, 0.35, 0.35),
+        ))
+        page_streams.append("\n".join(commands))
+
+    return _build_minimal_pdf(page_streams, page_width, page_height)
 
 def get_user_record(conn, user_id: int):
     return fetchone(conn, "SELECT id, username, nome, is_admin, is_editor, is_team_editor FROM utenti WHERE id=?", (user_id,))
@@ -474,7 +942,7 @@ def init_db():
 
         conn.commit()
     finally:
-        conn.close()
+        release_db(conn)
 
 
 init_db()
@@ -498,7 +966,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         try:
             user = get_user_record(conn, uid)
         finally:
-            conn.close()
+            release_db(conn)
         if not user:
             raise HTTPException(401, "Utente non trovato")
         return {
@@ -830,7 +1298,7 @@ def register(payload: RegisterInput):
             raise HTTPException(400, "Username già esistente")
         raise HTTPException(500, str(e))
     finally:
-        conn.close()
+        release_db(conn)
 
 @app.post("/api/auth/login")
 def login(form: OAuth2PasswordRequestForm = Depends(), request: Request = None):
@@ -840,10 +1308,10 @@ def login(form: OAuth2PasswordRequestForm = Depends(), request: Request = None):
     esito = "ok" if success else "fallito"
     _log_accesso(form.username.strip().lower(), esito, request)
     if not success:
-        conn.close()
+        release_db(conn)
         raise HTTPException(401, "Credenziali non corrette")
     token = create_token(user["id"], user["username"], bool(user.get("is_admin")))
-    conn.close()
+    release_db(conn)
     return {"access_token": token, "token_type": "bearer",
             "username": user["username"], "nome": user["nome"],
             "is_admin": bool(user.get("is_admin"))}
@@ -866,9 +1334,9 @@ def change_password(payload: ChangePasswordInput, user=Depends(get_current_user)
     conn = get_db()
     u = fetchone(conn, "SELECT password_hash FROM utenti WHERE id=?", (user["id"],))
     if not u or not verify_password(payload.password_attuale, u["password_hash"]):
-        conn.close(); raise HTTPException(400, "Password attuale non corretta")
+        release_db(conn); raise HTTPException(400, "Password attuale non corretta")
     ex(conn, "UPDATE utenti SET password_hash=? WHERE id=?", (hash_password(payload.nuova_password), user["id"]))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 # ─── Page visit tracking ───────────────────────────────────────────────────────
@@ -892,7 +1360,7 @@ def log_page_visit(request: Request):
         print(f"Errore log visita: {e}")
     finally:
         if conn:
-            conn.close()
+            release_db(conn)
     return {"status": "ok"}
 
 # ─── Admin: utenti ─────────────────────────────────────────────────────────────
@@ -906,7 +1374,7 @@ def get_utenti(admin=Depends(require_admin)):
         LEFT JOIN team_operatori o ON o.linked_user_id = u.id AND o.attivo=1
         ORDER BY u.created_at
     """)
-    conn.close()
+    release_db(conn)
     return rows
 
 @app.post("/api/admin/utenti/{user_id}/admin")
@@ -916,7 +1384,7 @@ def toggle_admin(user_id: int, admin=Depends(require_admin)):
     if not user: raise HTTPException(404, "Utente non trovato")
     new_val = 0 if user["is_admin"] else 1
     ex(conn, "UPDATE utenti SET is_admin=? WHERE id=?", (new_val, user_id))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True, "is_admin": bool(new_val)}
 
 @app.post("/api/admin/utenti/{user_id}/editor")
@@ -926,7 +1394,7 @@ def toggle_editor(user_id: int, admin=Depends(require_admin)):
     if not u: raise HTTPException(404, "Utente non trovato")
     new_val = 0 if u.get("is_editor") else 1
     ex(conn, "UPDATE utenti SET is_editor=? WHERE id=?", (new_val, user_id))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True, "is_editor": bool(new_val)}
 
 @app.post("/api/admin/utenti/{user_id}/team-editor")
@@ -936,7 +1404,7 @@ def toggle_team_editor(user_id: int, admin=Depends(require_admin)):
     if not u: raise HTTPException(404, "Utente non trovato")
     new_val = 0 if u.get("is_team_editor") else 1
     ex(conn, "UPDATE utenti SET is_team_editor=? WHERE id=?", (new_val, user_id))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True, "is_team_editor": bool(new_val)}
 
 @app.delete("/api/admin/utenti/{user_id}")
@@ -949,7 +1417,7 @@ def delete_user(user_id: int, admin=Depends(require_admin)):
     ex(conn, "UPDATE team_operatori SET linked_user_id=NULL WHERE linked_user_id=?", (user_id,))
     ex(conn, "DELETE FROM team_ferie_requests WHERE user_id=?", (user_id,))
     ex(conn, "DELETE FROM utenti WHERE id=?", (user_id,))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 @app.post("/api/admin/utenti/{user_id}/reset-password")
@@ -960,7 +1428,7 @@ def reset_password(user_id: int, payload: ResetPasswordInput, admin=Depends(requ
     user = fetchone(conn, "SELECT username FROM utenti WHERE id=?", (user_id,))
     if not user: raise HTTPException(404, "Utente non trovato")
     ex(conn, "UPDATE utenti SET password_hash=? WHERE id=?", (hash_password(payload.nuova_password), user_id))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 # ─── Admin: health / stats / logs ──────────────────────────────────────────────
@@ -970,7 +1438,7 @@ def health_check():
     try:
         conn = get_db()
         fetchone(conn, "SELECT 1 as ok")
-        conn.close()
+        release_db(conn)
         db_ms = round((time.time() - t0) * 1000, 1)
         db_ok = True
     except:
@@ -986,14 +1454,26 @@ def get_status(admin=Depends(require_admin)):
     try:
         conn = get_db()
         fetchone(conn, "SELECT 1 as x")
-        conn.close()
+        release_db(conn)
         db_ms = round((time.time() - t0) * 1000, 1)
         db_ok = True
     except:
         db_ms = -1; db_ok = False
     return {"site": "ok", "db": "ok" if db_ok else "error", "db_ms": db_ms,
             "db_type": "PostgreSQL (Supabase)" if USE_PG else "SQLite"}
-   
+
+@app.get("/api/admin/status-fra")
+def get_status_fra(admin=Depends(require_admin)):
+    if not DATABASE_URL_FRA:
+        return {"db_ms": -1, "available": False}
+    t0 = time.time()
+    try:
+        conn = psycopg2.connect(DATABASE_URL_FRA, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn.cursor().execute("SELECT 1")
+        release_db(conn)
+        return {"db_ms": round((time.time() - t0) * 1000, 1), "available": True}
+    except:
+        return {"db_ms": -1, "available": True}
 
 @app.get("/api/admin/stats")
 def get_stats(admin=Depends(require_admin)):
@@ -1022,7 +1502,7 @@ def get_stats(admin=Depends(require_admin)):
                 "SELECT COUNT(*) as n FROM log_accessi WHERE esito='fallito' AND date(timestamp) = date('now')") or {}).get("n", 0)
     except:
         stats["log_accessi_oggi"] = 0; stats["login_falliti_oggi"] = 0
-    conn.close()
+    release_db(conn)
     return stats
 
 @app.get("/api/admin/log-accessi")
@@ -1032,7 +1512,7 @@ def get_log_accessi(limit: int = 200, admin=Depends(require_admin)):
         logs = fetchall(conn, f"SELECT * FROM log_accessi ORDER BY id DESC LIMIT {get_limit_placeholder()}", (limit,))
     except:
         logs = []
-    conn.close()
+    release_db(conn)
     for r in logs:
         if r.get("timestamp") and not isinstance(r["timestamp"], str):
             r["timestamp"] = r["timestamp"].isoformat()
@@ -1043,7 +1523,7 @@ def get_page_visits(admin=Depends(require_admin)):
     try:
         conn = get_db()
         rows = fetchall(conn, "SELECT * FROM login_page_visits ORDER BY timestamp DESC LIMIT 200")
-        conn.close()
+        release_db(conn)
         return rows
     except Exception as e:
         raise HTTPException(500, str(e))
@@ -1067,7 +1547,7 @@ def get_db_stats(admin=Depends(require_admin)):
             "login_visits_total":      count("login_page_visits"),
         }
     finally:
-        conn.close()
+        release_db(conn)
 
 class DbCleanupPayload(BaseModel):
     target: str          # "ferie_closed_history" | "ferie_requests_processed" | "ferie_requests_all" | "ferie_log" | "login_visits"
@@ -1117,21 +1597,21 @@ def db_cleanup(payload: DbCleanupPayload, admin=Depends(require_admin)):
             return {"ok": True, "msg": "Nessun record da cancellare", "deleted": 0}
         return {"ok": True, "msg": f"{msg}: {deleted} record", "deleted": deleted}
     finally:
-        conn.close()
+        release_db(conn)
 
 # ─── Admin: tabelle turni ──────────────────────────────────────────────────────
 @app.get("/api/admin/tabelle")
 def get_tabelle(user=Depends(get_current_user)):
     conn = get_db()
     rows = fetchall(conn, "SELECT id, nome, tipo, num_settimane, created_at FROM tabelle_turni ORDER BY tipo, nome")
-    conn.close()
+    release_db(conn)
     return rows
 
 @app.get("/api/admin/tabelle/{tab_id}")
 def get_tabella(tab_id: int, user=Depends(get_current_user)):
     conn = get_db()
     row = fetchone(conn, "SELECT * FROM tabelle_turni WHERE id=?", (tab_id,))
-    conn.close()
+    release_db(conn)
     if not row: raise HTTPException(404, "Tabella non trovata")
     import json
     row["turni_json"] = json.loads(row["turni_json"])
@@ -1143,7 +1623,7 @@ def create_tabella(payload: TabellaTurniInput, admin=Depends(require_admin)):
     conn = get_db()
     ex(conn, "INSERT INTO tabelle_turni (nome, tipo, num_settimane, turni_json) VALUES (?,?,?,?)",
        (payload.nome, payload.tipo, payload.num_settimane, json.dumps(payload.turni)))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 @app.put("/api/admin/tabelle/{tab_id}")
@@ -1152,14 +1632,14 @@ def update_tabella(tab_id: int, payload: TabellaTurniInput, admin=Depends(requir
     conn = get_db()
     ex(conn, "UPDATE tabelle_turni SET nome=?, tipo=?, num_settimane=?, turni_json=? WHERE id=?",
        (payload.nome, payload.tipo, payload.num_settimane, json.dumps(payload.turni), tab_id))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 @app.delete("/api/admin/tabelle/{tab_id}")
 def delete_tabella(tab_id: int, admin=Depends(require_admin)):
     conn = get_db()
     ex(conn, "DELETE FROM tabelle_turni WHERE id=?", (tab_id,))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 # ─── Applica tabella turni ─────────────────────────────────────────────────────
@@ -1168,7 +1648,7 @@ def applica_tabella(payload: ApplicaTabella, user=Depends(get_current_user)):
     import json
     conn = get_db()
     tab = fetchone(conn, "SELECT * FROM tabelle_turni WHERE id=?", (payload.tab_id,))
-    if not tab: conn.close(); raise HTTPException(404, "Tabella non trovata")
+    if not tab: release_db(conn); raise HTTPException(404, "Tabella non trovata")
     settimane = json.loads(tab["turni_json"])
     num_sett = len(settimane)
     data_inizio = date.fromisoformat(payload.data_inizio)
@@ -1227,7 +1707,7 @@ def applica_tabella(payload: ApplicaTabella, user=Depends(get_current_user)):
             cur_giorno = 0
             cur_sett = (cur_sett + 1) % num_sett
         data_cur += timedelta(days=1)
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True, "inseriti": inseriti}
 
 # ─── Turni personali ───────────────────────────────────────────────────────────
@@ -1248,7 +1728,7 @@ def get_turni_mese(anno: int, mese: int, user=Depends(get_current_user)):
     conn = get_db()
     rows = fetchall(conn, "SELECT * FROM turni WHERE user_id=? AND data LIKE ?",
                     (user["id"], f"{anno:04d}-{mese:02d}-%"))
-    conn.close()
+    release_db(conn)
     result = {}
     for r in rows:
         d = r["data"]
@@ -1288,14 +1768,14 @@ def set_turno(data: str, payload: TurnoInput, user=Depends(get_current_user)):
            (user["id"],data,payload.turno,payload.ora_inizio,payload.ora_fine,
             ore["ore_diurne"],ore["ore_notturne"],ore["strao_diurno"],ore["strao_notturno"],
             ore["strao_fest_diurno"],ore["strao_fest_notturno"],tipo_rep or None,payload.note))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True, **ore, "tipo_reperibilita": tipo_rep}
 
 @app.delete("/api/turni/{data}")
 def delete_turno(data: str, user=Depends(get_current_user)):
     conn = get_db()
     ex(conn, "DELETE FROM turni WHERE user_id=? AND data=?", (user["id"], data))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 @app.delete("/api/turni-mese/{anno}/{mese}")
@@ -1307,7 +1787,7 @@ def delete_mese(anno: int, mese: int, user=Depends(get_current_user)):
     else:
         ex(conn, "DELETE FROM turni WHERE user_id=? AND data LIKE ?",
            (user["id"], f"{anno:04d}-{mese:02d}-%"))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 @app.get("/api/riepilogo/{anno}")
@@ -1319,7 +1799,7 @@ def get_riepilogo(anno: int, user=Depends(get_current_user)):
     else:
         rows = fetchall(conn, "SELECT * FROM turni WHERE user_id=? AND data LIKE ?",
                         (user["id"], f"{anno:04d}-%"))
-    conn.close()
+    release_db(conn)
     mesi = {m: {
         "ore_diurne": 0.0, "ore_notturne": 0.0, "strao_diurno": 0.0, "strao_notturno": 0.0,
         "strao_fest_diurno": 0.0, "strao_fest_notturno": 0.0,
@@ -1349,7 +1829,7 @@ def get_riepilogo(anno: int, user=Depends(get_current_user)):
 def get_impostazioni(user=Depends(get_current_user)):
     conn = get_db()
     s = get_user_settings(user["id"], conn)
-    conn.close()
+    release_db(conn)
     return s
 
 @app.post("/api/impostazioni")
@@ -1363,7 +1843,7 @@ def set_impostazioni(payload: ImpostazioniInput, user=Depends(get_current_user))
         else:
             conn.execute("INSERT OR REPLACE INTO impostazioni (user_id,chiave,valore) VALUES (?,?,?)",
                          (user["id"], k, str(v)))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 @app.get("/api/bustapaga/{anno}/{mese}")
@@ -1378,7 +1858,7 @@ def get_busta_paga(anno: int, mese: int, user=Depends(get_current_user)):
         rows = fetchall(conn, "SELECT * FROM turni WHERE user_id=? AND data LIKE ?",
                         (user["id"], f"{ap:04d}-{mp:02d}-%"))
     cfg = get_user_settings(user["id"], conn)
-    conn.close()
+    release_db(conn)
 
     tot = {"ore_diurne":0.0,"ore_notturne":0.0,"strao_diurno":0.0,"strao_notturno":0.0,
            "strao_fest_diurno":0.0,"strao_fest_notturno":0.0,
@@ -1471,7 +1951,7 @@ def team_me(user=Depends(get_current_user)):
         GROUP BY operatore_id, operatore_nome, username
         ORDER BY operatore_nome
     """)
-    conn.close()
+    release_db(conn)
     return {
         "is_editor": bool(user.get("is_editor")) or bool(user.get("is_admin")),
         "is_admin": bool(user.get("is_admin")),
@@ -1493,7 +1973,7 @@ def get_team_operatori(user=Depends(get_current_user)):
         WHERE o.attivo=1
         ORDER BY o.posizione
     """)
-    conn.close()
+    release_db(conn)
     return ops
 
 @app.post("/api/team/operatori")
@@ -1522,7 +2002,7 @@ def save_operatori(payload: TeamOperatoriInput, user=Depends(require_team_editor
         ex(conn,
            f"UPDATE team_template_reperibili_weekly SET {campo}=NULL WHERE COALESCE({campo}, 0) > ?",
            (max_active_position,))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 @app.get("/api/admin/team/operatori-links")
@@ -1535,7 +2015,7 @@ def get_team_operatori_links(admin=Depends(require_admin)):
         WHERE o.attivo=1
         ORDER BY o.posizione
     """)
-    conn.close()
+    release_db(conn)
     return rows
 
 @app.post("/api/admin/team/operatori/{op_id}/link")
@@ -1543,18 +2023,18 @@ def set_team_operatore_link(op_id: int, payload: TeamOperatoreLinkInput, admin=D
     conn = get_db()
     op = fetchone(conn, "SELECT id, nome, linked_user_id FROM team_operatori WHERE id=? AND attivo=1", (op_id,))
     if not op:
-        conn.close()
+        release_db(conn)
         raise HTTPException(404, "Operatore non trovato")
     user_id = payload.user_id
     if user_id is not None:
         user = fetchone(conn, "SELECT id FROM utenti WHERE id=?", (user_id,))
         if not user:
-            conn.close()
+            release_db(conn)
             raise HTTPException(404, "Utente non trovato")
         ex(conn, "UPDATE team_operatori SET linked_user_id=NULL WHERE linked_user_id=? AND id<>?", (user_id, op_id))
     ex(conn, "UPDATE team_operatori SET linked_user_id=? WHERE id=?", (user_id, op_id))
     conn.commit()
-    conn.close()
+    release_db(conn)
     return {"ok": True}
 
 @app.put("/api/team/operatori/{op_id}")
@@ -1562,14 +2042,14 @@ def update_team_operatore(op_id: int, payload: TeamOperatoreUpdateInput, user=De
     conn = get_db()
     ex(conn, "UPDATE team_operatori SET nome=?, posizione=? WHERE id=?",
        (payload.nome.strip(), payload.posizione, op_id))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 @app.delete("/api/team/operatori/{op_id}")
 def delete_team_operatore(op_id: int, user=Depends(require_team_editor)):
     conn = get_db()
     ex(conn, "UPDATE team_operatori SET attivo=0 WHERE id=?", (op_id,))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 # ─── Team: turni ───────────────────────────────────────────────────────────────
@@ -1578,167 +2058,22 @@ def get_team_turni(anno: int, mese: int,
                    start_date: str = None, end_date: str = None,
                    user=Depends(get_current_user)):
     try:
-        from calendar import monthrange
-        _, days = monthrange(anno, mese)
-        conn = get_db()
-
-        template_rows = fetchall(conn, "SELECT * FROM team_template_weekly ORDER BY giorno_settimana, posizione")
-        template = {}
-        for r in template_rows:
-            g = r["giorno_settimana"]
-            if g not in template: template[g] = {}
-            template[g][r["posizione"]] = {
-                "turno_base": r["turno_base"] or "", "turno_var": r["turno_var"] or "", "flags": r["flags"] or ""}
-
-        rep_template_rows = fetchall(conn, "SELECT * FROM team_template_reperibili_weekly ORDER BY giorno_settimana")
-        rep_template = {
-            r["giorno_settimana"]: {
-                "rep1": r.get("rep1_pos"),
-                "rep2": r.get("rep2_pos"),
-                "rep3": r.get("rep3_pos"),
-                "fest_m1": r.get("fest_m1_pos"),
-                "fest_m2": r.get("fest_m2_pos"),
-                "fest_p1": r.get("fest_p1_pos"),
-                "fest_p2": r.get("fest_p2_pos"),
-            }
-            for r in rep_template_rows
-        }
-
-        template_cfg = fetchone(conn, "SELECT start_date, end_date FROM team_template_config WHERE id=1")
-        if template_cfg:
-            if start_date is None:
-                start_date = template_cfg.get("start_date") or None
-            if end_date is None:
-                end_date = template_cfg.get("end_date") or None
-
-        ops = fetchall(conn, """
-            SELECT o.*, u.username AS linked_username, u.nome AS linked_nome
-            FROM team_operatori o
-            LEFT JOIN utenti u ON u.id = o.linked_user_id
-            WHERE o.attivo=1
-            ORDER BY o.posizione
-        """)
-        operator_count = max(len(ops), 1)
-        d_from = f"{anno:04d}-{mese:02d}-01"
-        d_to   = f"{anno:04d}-{mese:02d}-{days:02d}"
-        turni_esistenti = fetchall(conn,
-            "SELECT * FROM team_turni WHERE data >= ? AND data <= ? ORDER BY data, operatore_id", (d_from, d_to))
-        turni_idx = {(t["data"], t["operatore_id"]): t for t in turni_esistenti}
-        colonne = fetchall(conn,
-            "SELECT * FROM team_colonne_destra WHERE data >= ? AND data <= ? ORDER BY data", (d_from, d_to))
-        col_idx = {c["data"]: c for c in colonne}
-        ferie_params = [d_from, d_to]
-        ferie_sql = """
-            SELECT r.*, u.username, o.nome AS operatore_nome
-            FROM team_ferie_requests r
-            LEFT JOIN utenti u ON u.id = r.user_id
-            LEFT JOIN team_operatori o ON o.id = r.operatore_id
-            WHERE r.data >= ? AND r.data <= ? AND r.stato IN ('pending','approved')
-        """
-        linked_op = get_team_operator_for_user(conn, user["id"]) if not (user.get("is_editor") or user.get("is_admin")) else None
-        if linked_op:
-            ferie_sql += " AND r.operatore_id = ?"
-            ferie_params.append(linked_op["id"])
-        ferie_rows = fetchall(conn, ferie_sql, tuple(ferie_params))
-        ferie_idx = {(r["data"], r["operatore_id"]): r for r in ferie_rows}
-        conn.close()
-
-        start_date_obj = None; end_date_obj = None; start_week_monday = None
-        if start_date:
-            try:
-                start_date_obj = date.fromisoformat(start_date)
-                start_week_monday = start_date_obj - timedelta(days=start_date_obj.weekday())
-            except: pass
-        if end_date:
-            try: end_date_obj = date.fromisoformat(end_date)
-            except: pass
-        if start_date_obj and end_date_obj and end_date_obj < start_date_obj:
-            start_date_obj, end_date_obj = end_date_obj, start_date_obj
-
-        giorni = []
-        for g in range(1, days + 1):
-            data = f"{anno:04d}-{mese:02d}-{g:02d}"
-            d = date.fromisoformat(data)
-            dow = d.weekday()
-            is_fest = data in FESTIVITA
-
-            if start_date_obj and end_date_obj:
-                in_range = start_date_obj <= d <= end_date_obj
-            elif start_date_obj:
-                in_range = d >= start_date_obj
-            elif end_date_obj:
-                in_range = d <= end_date_obj
-            else:
-                in_range = True
-
-            if in_range and start_week_monday:
-                cur_mon = d - timedelta(days=d.weekday())
-                sett_idx = (cur_mon - start_week_monday).days // 7
-                sett_ciclo = (sett_idx % operator_count) + 1
-            else:
-                sett_ciclo = None
-
-            row_turni = []
-            for op in ops:
-                pos = op["posizione"]
-                tpl = {"turno_base": "", "turno_var": "", "flags_base": "", "flags_var": ""}
-                if in_range and sett_ciclo:
-                    pos_orig = ((pos + sett_ciclo - 2) % operator_count) + 1
-                    tpl_row = template.get(dow, {}).get(pos_orig, {})
-                    tpl = {
-                        "turno_base": tpl_row.get("turno_base", ""),
-                        "turno_var": tpl_row.get("turno_var", ""),
-                        "flags_base": tpl_row.get("flags", ""),
-                        "flags_var": "",
-                    }
-
-                key = (data, op["id"])
-                if key in turni_idx:
-                    row = turni_idx[key]
-                    shared_flags = row.get("flags", "") or ""
-                    tpl = {
-                        "turno_base": row.get("turno_base", "") or "",
-                        "turno_var": row.get("turno_var", "") or "",
-                        "flags_base": row.get("flags_base", "") or (shared_flags if not (row.get("turno_var") or "") else ""),
-                        "flags_var": row.get("flags_var", "") or (shared_flags if (row.get("turno_var") or "") else ""),
-                    }
-
-                row_turni.append({
-                    "operatore_id": op["id"],
-                    "turno_base": tpl.get("turno_base", ""),
-                    "turno_var":  tpl.get("turno_var", ""),
-                    "flags_base": tpl.get("flags_base", ""),
-                    "flags_var":  tpl.get("flags_var", ""),
-                    "ferie_request": ferie_idx.get((data, op["id"])),
-                })
-
-            col = col_idx.get(data, {})
-            rep_defaults = {"rep1": "", "rep2": "", "rep3": "", "fest_m1": "", "fest_m2": "", "fest_p1": "", "fest_p2": ""}
-            if in_range and start_week_monday and dow in rep_template and operator_count > 0:
-                cur_mon = d - timedelta(days=d.weekday())
-                sett_idx = (cur_mon - start_week_monday).days // 7
-                rep_defaults = _compute_team_rep_defaults(rep_template, d, operator_count, start_week_monday)
-            giorni.append({
-                "data": data, "giorno": g, "dow": dow,
-                "is_domenica": dow == 6, "is_sabato": dow == 5, "is_festivo": is_fest,
-                "turni": row_turni,
-                "colonne_destra": {
-                    "rep1": col.get("rep1","") or rep_defaults["rep1"],
-                    "rep2": col.get("rep2","") or rep_defaults["rep2"],
-                    "rep3": col.get("rep3","") or rep_defaults["rep3"],
-                    "fest_m1": col.get("fest_m1","") or rep_defaults["fest_m1"],
-                    "fest_m2": col.get("fest_m2","") or rep_defaults["fest_m2"],
-                    "fest_p1": col.get("fest_p1","") or rep_defaults["fest_p1"],
-                    "fest_p2": col.get("fest_p2","") or rep_defaults["fest_p2"],
-                }
-            })
-
-        return {"anno": anno, "mese": mese,
-                "start_date": start_date or "", "end_date": end_date or "",
-                "operatori": ops, "giorni": giorni}
+        return _build_team_turni_payload(anno, mese, user, start_date, end_date)
     except Exception as e:
         import traceback; traceback.print_exc()
         raise HTTPException(500, f"Errore interno: {str(e)}")
+
+@app.get("/api/team/turni/{anno}/{mese}/pdf")
+def download_team_turni_pdf(anno: int, mese: int, user=Depends(get_current_user)):
+    try:
+        payload = _build_team_turni_payload(anno, mese, user)
+        pdf_bytes = _build_team_month_pdf(payload)
+        filename = f"turni-team-{anno:04d}-{mese:02d}.pdf"
+        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+        return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers=headers)
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        raise HTTPException(500, f"Errore generazione PDF: {str(e)}")
 
 
 @app.post("/api/team/turni")
@@ -1804,14 +2139,14 @@ def set_team_turni(payload: TeamCellaInput, user=Depends(require_team_editor)):
        VALUES (?,?,?,?,?,?,?,?)""",
        (now, user["username"], data, op["nome"] if op else str(op_id), campo_log, vecchio, nuovo, log_flags))
 
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True, "propagati": 0}
 
 @app.delete("/api/team/turni/{data}/{op_id}")
 def delete_team_turno(data: str, op_id: int, user=Depends(require_team_editor)):
     conn = get_db()
     ex(conn, "DELETE FROM team_turni WHERE data=? AND operatore_id=?", (data, op_id))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 # ─── Team: colonne destra ──────────────────────────────────────────────────────
@@ -1829,7 +2164,7 @@ def set_colonne_destra(payload: TeamColonneDestraInput, user=Depends(require_tea
          rep1=excluded.rep1, rep2=excluded.rep2, rep3=excluded.rep3,
          fest_m1=excluded.fest_m1, fest_m2=excluded.fest_m2,
          fest_p1=excluded.fest_p1, fest_p2=excluded.fest_p2""", vals)
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 @app.post("/api/team/ferie/request-batch")
@@ -1837,7 +2172,7 @@ def save_team_ferie_request(payload: TeamFerieBatchInput, user=Depends(get_curre
     conn = get_db()
     op = get_team_operator_for_user(conn, user["id"])
     if not op:
-        conn.close()
+        release_db(conn)
         raise HTTPException(403, "Account non associato a un operatore team")
 
     add_dates = sorted({d for d in payload.add_dates if _parse_iso_date(d)})
@@ -1846,7 +2181,7 @@ def save_team_ferie_request(payload: TeamFerieBatchInput, user=Depends(get_curre
         row = fetchone(conn, "SELECT id, stato, user_id FROM team_ferie_requests WHERE operatore_id=? AND data=?",
                        (op["id"], data_turno))
         if row and row["user_id"] != user["id"] and not (user.get("is_editor") or user.get("is_admin")):
-            conn.close()
+            release_db(conn)
             raise HTTPException(403, "Richiesta ferie già presente per questo giorno")
         if row:
             old_status = row.get("stato")
@@ -1870,14 +2205,14 @@ def save_team_ferie_request(payload: TeamFerieBatchInput, user=Depends(get_curre
         if not row:
             continue
         if row["user_id"] != user["id"] and not (user.get("is_editor") or user.get("is_admin")):
-            conn.close()
+            release_db(conn)
             raise HTTPException(403, "Non puoi rimuovere questa richiesta")
         ex(conn, "DELETE FROM team_ferie_requests WHERE id=?", (row["id"],))
         _log_team_ferie(conn, user["username"], user["id"], user["username"], op["id"], op["nome"], data_turno,
                         "removed", row.get("stato"), None)
 
     conn.commit()
-    conn.close()
+    release_db(conn)
     return {"ok": True, "linked_operatore_id": op["id"]}
 
 @app.post("/api/team/ferie/review")
@@ -1892,7 +2227,7 @@ def review_team_ferie(payload: TeamFerieReviewInput, user=Depends(require_team_e
     conn = get_db()
     op = fetchone(conn, "SELECT id, nome FROM team_operatori WHERE id=?", (payload.operatore_id,))
     if not op:
-        conn.close()
+        release_db(conn)
         raise HTTPException(404, "Operatore non trovato")
     rows = fetchall(conn, f"""
         SELECT r.*, u.username
@@ -1911,7 +2246,7 @@ def review_team_ferie(payload: TeamFerieReviewInput, user=Depends(require_team_e
         _log_team_ferie(conn, user["username"], row["user_id"], row.get("username"), op["id"], op["nome"], data_turno,
                         "reviewed", row.get("stato"), new_status)
     conn.commit()
-    conn.close()
+    release_db(conn)
     return {"ok": True}
 
 @app.get("/api/team/ferie/dashboard")
@@ -1951,7 +2286,7 @@ def get_team_ferie_dashboard(user=Depends(get_current_user)):
         """, (linked_op["id"], 60))
     else:
         recent_log = []
-    conn.close()
+    release_db(conn)
     return {
         "pending": pending_rows,
         "recent_log": recent_log,
@@ -1977,14 +2312,14 @@ def get_admin_team_ferie_pending(admin=Depends(require_admin)):
         rows = fetchall(conn, "SELECT data FROM team_ferie_requests WHERE stato='pending' AND operatore_id=? ORDER BY data",
                         (group["operatore_id"],))
         group["dates"] = [r["data"] for r in rows]
-    conn.close()
+    release_db(conn)
     return groups
 
 @app.get("/api/admin/team/ferie/log")
 def get_admin_team_ferie_log(limit: int = 150, admin=Depends(require_admin)):
     conn = get_db()
     rows = fetchall(conn, f"SELECT * FROM team_ferie_log ORDER BY id DESC LIMIT {get_limit_placeholder()}", (limit,))
-    conn.close()
+    release_db(conn)
     return rows
 
 # ─── Team: template settimanale ────────────────────────────────────────────────
@@ -1994,7 +2329,7 @@ def get_team_template_week(user=Depends(get_current_user)):
     rows = fetchall(conn, "SELECT * FROM team_template_weekly ORDER BY giorno_settimana, posizione")
     rep_rows = fetchall(conn, "SELECT * FROM team_template_reperibili_weekly ORDER BY giorno_settimana")
     cfg = fetchone(conn, "SELECT start_date, end_date FROM team_template_config WHERE id=1")
-    conn.close()
+    release_db(conn)
     template = {}
     for r in rows:
         g = r["giorno_settimana"]
@@ -2076,7 +2411,7 @@ def save_team_template_week(payload: TeamTemplateWeekInput, user=Depends(require
           VALUES (1, ?, ?)
           ON CONFLICT(id) DO UPDATE SET start_date=excluded.start_date, end_date=excluded.end_date""",
        (payload.start_date or None, payload.end_date or None))
-    conn.commit(); conn.close()
+    conn.commit(); release_db(conn)
     return {"ok": True}
 
 # ─── Team: log ─────────────────────────────────────────────────────────────────
@@ -2084,7 +2419,7 @@ def save_team_template_week(payload: TeamTemplateWeekInput, user=Depends(require
 def get_team_log(limit: int = 100, user=Depends(get_current_user)):
     conn = get_db()
     logs = fetchall(conn, f"SELECT * FROM team_log ORDER BY id DESC LIMIT {get_limit_placeholder()}", (limit,))
-    conn.close()
+    release_db(conn)
     return logs
 
 # ─── Static ────────────────────────────────────────────────────────────────────
