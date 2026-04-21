@@ -138,16 +138,17 @@ def get_db():
                     raise HTTPException(status_code=503, detail="Server occupato, riprova tra un momento")
     return _open_sqlite_connection(SQLITE_BUSY_TIMEOUT_MS)
 
-def release_db(conn):
+def release_db(conn, discard: bool = False):
     """Rilascia la connessione al pool (PG) o la chiude (SQLite)."""
     if USE_PG:
         try:
-            if getattr(conn, "closed", 1) == 0:
+            is_closed = getattr(conn, "closed", 1) != 0
+            if not discard and not is_closed:
                 try:
                     conn.rollback()
                 except Exception:
-                    pass
-            get_pg_pool().putconn(conn)
+                    discard = True
+            get_pg_pool().putconn(conn, close=(discard or is_closed))
         except Exception:
             pass
     else:
@@ -163,9 +164,17 @@ def q(sql):
 
 def ex(conn, sql, params=()):
     if USE_PG:
-        cur = conn.cursor()
-        cur.execute(q(sql), params)
-        return cur
+        try:
+            cur = conn.cursor()
+            cur.execute(q(sql), params)
+            return cur
+        except (psycopg2.OperationalError, psycopg2.InterfaceError):
+            try:
+                if getattr(conn, "closed", 1) == 0:
+                    conn.close()
+            except Exception:
+                pass
+            raise HTTPException(503, "Connessione database temporaneamente non disponibile, riprova tra un momento")
     return conn.execute(q(sql), params)
 
 def fetchall(conn, sql, params=()):
@@ -1552,6 +1561,76 @@ def get_page_visits(admin=Depends(require_admin)):
         raise HTTPException(500, str(e))
 
 # ─── Admin: pulizia DB ────────────────────────────────────────────────────────
+
+@app.get("/api/admin/bootstrap")
+def get_admin_bootstrap(admin=Depends(require_admin)):
+    conn = get_db()
+    try:
+        utenti = fetchall(conn, """
+            SELECT u.id, u.username, u.nome, u.is_admin, u.is_editor, u.is_team_editor, u.created_at,
+                   o.id AS linked_operatore_id, o.nome AS linked_operatore_nome, o.posizione AS linked_operatore_posizione
+            FROM utenti u
+            LEFT JOIN team_operatori o ON o.linked_user_id = u.id AND o.attivo=1
+            ORDER BY u.created_at
+        """)
+        tabelle = fetchall(conn, "SELECT id, nome, tipo, num_settimane, created_at FROM tabelle_turni ORDER BY tipo, nome")
+        operatori_links = fetchall(conn, """
+            SELECT o.id, o.nome, o.posizione, o.linked_user_id, u.username AS linked_username, u.nome AS linked_nome
+            FROM team_operatori o
+            LEFT JOIN utenti u ON u.id = o.linked_user_id
+            WHERE o.attivo=1
+            ORDER BY o.posizione
+        """)
+        ferie_pending = fetchall(conn, """
+            SELECT r.operatore_id, o.nome AS operatore_nome, u.username, u.nome,
+                   COUNT(*) AS giorni,
+                   MIN(r.data) AS first_day,
+                   MAX(r.data) AS last_day
+            FROM team_ferie_requests r
+            LEFT JOIN team_operatori o ON o.id = r.operatore_id
+            LEFT JOIN utenti u ON u.id = r.user_id
+            WHERE r.stato='pending'
+            GROUP BY r.operatore_id, o.nome, u.username, u.nome
+            ORDER BY first_day, operatore_nome
+        """)
+        for group in ferie_pending:
+            rows = fetchall(conn, "SELECT data FROM team_ferie_requests WHERE stato='pending' AND operatore_id=? ORDER BY data",
+                            (group["operatore_id"],))
+            group["dates"] = [r["data"] for r in rows]
+        ferie_log = fetchall(conn, f"SELECT * FROM team_ferie_log ORDER BY id DESC LIMIT {get_limit_placeholder()}", (120,))
+        log_accessi = fetchall(conn, f"SELECT * FROM log_accessi ORDER BY id DESC LIMIT {get_limit_placeholder()}", (100,))
+        for row in log_accessi:
+            if row.get("timestamp") and not isinstance(row["timestamp"], str):
+                row["timestamp"] = row["timestamp"].isoformat()
+
+        def count(table, where=""):
+            sql = f"SELECT COUNT(*) AS cnt FROM {table}" + (f" WHERE {where}" if where else "")
+            row = fetchone(conn, sql)
+            return int((row or {}).get("cnt", 0) or 0)
+
+        return {
+            "utenti": utenti,
+            "tabelle": tabelle,
+            "operatori_links": operatori_links,
+            "ferie_pending": ferie_pending,
+            "ferie_log": ferie_log,
+            "log_accessi": log_accessi,
+            "db_stats": {
+                "ferie_requests_pending":  count("team_ferie_requests", "stato='pending'"),
+                "ferie_requests_processed": count("team_ferie_requests", "stato!='pending'"),
+                "ferie_requests_total":    count("team_ferie_requests"),
+                "ferie_log_total":         count("team_ferie_log"),
+                "login_visits_total":      count("login_page_visits"),
+            },
+            "status": {
+                "site": "ok",
+                "db": "ok",
+                "db_ms": 0,
+                "db_type": "PostgreSQL (Supabase)" if USE_PG else "SQLite",
+            },
+        }
+    finally:
+        release_db(conn)
 
 @app.get("/api/admin/db-stats")
 def get_db_stats(admin=Depends(require_admin)):
