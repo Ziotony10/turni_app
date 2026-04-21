@@ -16,10 +16,13 @@ import json
 app = FastAPI(title="Gestione Turni")
 DB_PATH      = "turni.db"
 DATABASE_URL = os.environ.get("DATABASE_URL")
-DATABASE_URL_FRA = os.environ.get("DATABASE_URL_FRA")
 USE_PG       = bool(DATABASE_URL)
 SQLITE_BUSY_TIMEOUT_MS = int(os.environ.get("SQLITE_BUSY_TIMEOUT_MS", "15000"))
 SQLITE_LOG_BUSY_TIMEOUT_MS = int(os.environ.get("SQLITE_LOG_BUSY_TIMEOUT_MS", "1500"))
+PG_CONNECT_TIMEOUT_SEC = int(os.environ.get("PG_CONNECT_TIMEOUT_SEC", "5"))
+PG_STATEMENT_TIMEOUT_MS = int(os.environ.get("PG_STATEMENT_TIMEOUT_MS", "15000"))
+PG_LOCK_TIMEOUT_MS = int(os.environ.get("PG_LOCK_TIMEOUT_MS", "5000"))
+PG_IDLE_IN_TX_TIMEOUT_MS = int(os.environ.get("PG_IDLE_IN_TX_TIMEOUT_MS", "15000"))
 
 if USE_PG:
     import psycopg2, psycopg2.extras, psycopg2.pool
@@ -34,6 +37,17 @@ def get_pg_pool():
             minconn=2,
             maxconn=12,  # Supabase free supporta fino a 15 connessioni dirette, 200 via pooler 6543
             dsn=DATABASE_URL,
+            connect_timeout=PG_CONNECT_TIMEOUT_SEC,
+            application_name="turni_app",
+            keepalives=1,
+            keepalives_idle=30,
+            keepalives_interval=10,
+            keepalives_count=3,
+            options=(
+                f"-c statement_timeout={PG_STATEMENT_TIMEOUT_MS} "
+                f"-c lock_timeout={PG_LOCK_TIMEOUT_MS} "
+                f"-c idle_in_transaction_session_timeout={PG_IDLE_IN_TX_TIMEOUT_MS}"
+            ),
         )
     return _pg_pool
 
@@ -128,6 +142,11 @@ def release_db(conn):
     """Rilascia la connessione al pool (PG) o la chiude (SQLite)."""
     if USE_PG:
         try:
+            if getattr(conn, "closed", 1) == 0:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
             get_pg_pool().putconn(conn)
         except Exception:
             pass
@@ -1030,7 +1049,7 @@ def _log_accesso(username: str, esito: str, request: Request = None):
         pass
     finally:
         if conn2:
-            conn2.close()
+            release_db(conn2)
 
 # ─── Modelli ───────────────────────────────────────────────────────────────────
 class RegisterInput(BaseModel):
@@ -1478,19 +1497,6 @@ def get_status(admin=Depends(require_admin)):
     _status_cache["ts"] = now
     _status_cache["data"] = result
     return result
-
-@app.get("/api/admin/status-fra")
-def get_status_fra(admin=Depends(require_admin)):
-    if not DATABASE_URL_FRA:
-        return {"db_ms": -1, "available": False}
-    t0 = time.time()
-    try:
-        conn_fra = psycopg2.connect(DATABASE_URL_FRA, cursor_factory=psycopg2.extras.RealDictCursor)
-        conn_fra.cursor().execute("SELECT 1")
-        conn_fra.close()
-        return {"db_ms": round((time.time() - t0) * 1000, 1), "available": True}
-    except:
-        return {"db_ms": -1, "available": True}
 
 @app.get("/api/admin/stats")
 def get_stats(admin=Depends(require_admin)):
