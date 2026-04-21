@@ -31,8 +31,8 @@ def get_pg_pool():
     global _pg_pool
     if _pg_pool is None and USE_PG:
         _pg_pool = psycopg2.pool.ThreadedConnectionPool(
-            minconn=1,
-            maxconn=8,  # rimane sotto il limite Supabase free (15)
+            minconn=2,
+            maxconn=12,  # Supabase free supporta fino a 15 connessioni dirette, 200 via pooler 6543
             dsn=DATABASE_URL,
         )
     return _pg_pool
@@ -111,9 +111,17 @@ def _open_sqlite_connection(timeout_ms: int):
 
 def get_db():
     if USE_PG:
-        conn = get_pg_pool().getconn()
-        conn.cursor_factory = psycopg2.extras.RealDictCursor
-        return conn
+        pool = get_pg_pool()
+        for attempt in range(10):
+            try:
+                conn = pool.getconn()
+                conn.cursor_factory = psycopg2.extras.RealDictCursor
+                return conn
+            except psycopg2.pool.PoolError:
+                if attempt < 9:
+                    time.sleep(0.3)
+                else:
+                    raise HTTPException(status_code=503, detail="Server occupato, riprova tra un momento")
     return _open_sqlite_connection(SQLITE_BUSY_TIMEOUT_MS)
 
 def release_db(conn):
@@ -1448,8 +1456,14 @@ def health_check():
             "db_type": "PostgreSQL" if USE_PG else "SQLite",
             "timestamp": datetime.utcnow().isoformat()}
 
+_status_cache = {"ts": 0, "data": None}
+_STATUS_CACHE_TTL = 5  # secondi — il polling frontend non ha senso più frequente di così
+
 @app.get("/api/admin/status")
 def get_status(admin=Depends(require_admin)):
+    now = time.time()
+    if now - _status_cache["ts"] < _STATUS_CACHE_TTL and _status_cache["data"]:
+        return _status_cache["data"]
     t0 = time.time()
     try:
         conn = get_db()
@@ -1459,8 +1473,11 @@ def get_status(admin=Depends(require_admin)):
         db_ok = True
     except:
         db_ms = -1; db_ok = False
-    return {"site": "ok", "db": "ok" if db_ok else "error", "db_ms": db_ms,
-            "db_type": "PostgreSQL (Supabase)" if USE_PG else "SQLite"}
+    result = {"site": "ok", "db": "ok" if db_ok else "error", "db_ms": db_ms,
+              "db_type": "PostgreSQL (Supabase)" if USE_PG else "SQLite"}
+    _status_cache["ts"] = now
+    _status_cache["data"] = result
+    return result
 
 @app.get("/api/admin/status-fra")
 def get_status_fra(admin=Depends(require_admin)):
@@ -1468,9 +1485,9 @@ def get_status_fra(admin=Depends(require_admin)):
         return {"db_ms": -1, "available": False}
     t0 = time.time()
     try:
-        conn = psycopg2.connect(DATABASE_URL_FRA, cursor_factory=psycopg2.extras.RealDictCursor)
-        conn.cursor().execute("SELECT 1")
-        release_db(conn)
+        conn_fra = psycopg2.connect(DATABASE_URL_FRA, cursor_factory=psycopg2.extras.RealDictCursor)
+        conn_fra.cursor().execute("SELECT 1")
+        conn_fra.close()
         return {"db_ms": round((time.time() - t0) * 1000, 1), "available": True}
     except:
         return {"db_ms": -1, "available": True}
