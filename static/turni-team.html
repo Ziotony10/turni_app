@@ -51,6 +51,15 @@
   .month-tab.active { background:var(--accent); color:white; border-color:var(--accent); }
   /* ── FERIE INLINE ── */
   .ferie-inline { display:flex; align-items:center; gap:7px; padding:0 14px 0 10px; border-left:1px solid var(--border); flex-shrink:0; }
+  .btn-pdf {
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(59,130,246,.14);
+    color:#bfdbfe; border:1px solid rgba(96,165,250,.35);
+    border-radius:8px; padding:5px 11px; font-size:0.78rem; font-weight:700;
+    cursor:pointer; white-space:nowrap; transition:all .15s;
+  }
+  .btn-pdf:hover:not(:disabled) { background:rgba(59,130,246,.26); border-color:rgba(147,197,253,.55); }
+  .btn-pdf:disabled { opacity:.55; cursor:not-allowed; }
   .btn-ferie {
     display:inline-flex; align-items:center; gap:5px;
     background:linear-gradient(135deg,rgba(20,184,166,.18),rgba(59,130,246,.14));
@@ -362,11 +371,12 @@
   #logPanel { display:none; position:fixed; right:0; top:56px; bottom:64px; width:380px; background:var(--card); border-left:1px solid var(--border); z-index:30; overflow-y:auto; padding:16px; box-shadow:-18px 0 40px rgba(0,0,0,.26); }
 
   /* ── BOTTOM NAV ── */
-  .bottom-nav { display:none; position:fixed; bottom:0; left:0; right:0; z-index:50; background:var(--card); border-top:1px solid var(--border); padding:6px 0 env(safe-area-inset-bottom,6px); }
+  .bottom-nav { display:none; position:fixed; bottom:0; left:0; right:0; z-index:50; background:var(--card); border-top:1px solid var(--border); padding:6px 0 env(safe-area-inset-bottom,8px); }
   .bottom-nav-inner { display:flex; justify-content:space-around; align-items:stretch; }
-  .bottom-nav a { display:flex; flex-direction:column; align-items:center; gap:2px; color:var(--muted); text-decoration:none; font-size:0.6rem; font-weight:600; padding:4px 6px; flex:1; text-align:center; }
+  .bottom-nav a { display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--muted); text-decoration:none; font-size:0.65rem; font-weight:600; padding:6px 4px; flex:1; text-align:center; min-width:0; margin:0 2px; border-radius:8px; transition:color .15s; }
   .bottom-nav a.active { color:var(--accent); }
-  .bottom-nav a span.icon { font-size:1.2rem; line-height:1; }
+  .bottom-nav a.admin-link { color:#F59E0B !important; }
+  .bottom-nav a span.icon { font-size:1.35rem; line-height:1.2; }
   #adminMobileBtn { display:none; color:#F59E0B !important; }
 
   @media (max-width:768px) {
@@ -427,6 +437,7 @@
 <div class="month-tabs-row">
   <div class="month-tabs" id="monthTabs"></div>
   <div class="ferie-inline" id="ferieBar">
+    <button class="btn-pdf" id="downloadPdfBtn" onclick="downloadTeamPdf()">PDF mese</button>
     <span class="ferie-inline-hint" id="ferieModeHint"></span>
     <button class="btn-ferie" id="ferieToggleBtn" style="display:none" onclick="toggleFerieMode()">📅 Ferie</button>
     <button class="btn-editor primary" id="ferieSubmitBtn" style="display:none" onclick="submitFerieRequest()">Invia</button>
@@ -623,7 +634,7 @@
     <a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a>
     <a href="/turni-team.html" class="active"><span class="icon">👥</span><span>Team</span></a>
     <a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a>
-    <a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a>
+    <a href="/admin.html" id="adminMobileBtn" class="admin-link"><span class="icon">🔧</span><span>Admin</span></a>
   </div>
 </nav>
 
@@ -674,6 +685,12 @@ function logout()   {
   localStorage.removeItem('is_admin');
   window.location.href='/login.html';
 }
+async function fetchCurrentUserOrNull() {
+  const res = await fetch('/api/auth/me');
+  if (res.status === 401) { logout(); return null; }
+  if (!res.ok) throw new Error(`Auth check failed: ${res.status}`);
+  return res.json();
+}
 
 const _origFetch = window.fetch.bind(window);
 window.fetch = function(url, opts={}) {
@@ -699,8 +716,9 @@ document.addEventListener('click', e => {
 (async function() {
   if (!getToken()) { window.location.href='/login.html'; return; }
   try {
-    const me = await fetch('/api/auth/me').then(r=>r.json());
-    if (!me || !me.id) { logout(); return; }
+    const me = await fetchCurrentUserOrNull();
+    if (!me) return;
+    if (!me.id) throw new Error('Auth payload non valido');
     const nome = me.nome || me.username || '';
     const initiali = nome.split(' ').map(p=>p[0]||'').join('').slice(0,2).toUpperCase();
     document.getElementById('userNameLabel').textContent = nome.split(' ')[0];
@@ -729,7 +747,7 @@ document.addEventListener('click', e => {
     await loadOperatori();
     updateFerieUi();
     load();
-  } catch(e) { console.error(e); logout(); }
+  } catch(e) { console.error(e); }
 })();
 
 function changeAnno(d) {
@@ -748,6 +766,37 @@ function buildMonthTabs() {
     d.onclick = () => { mese=i+1; document.querySelectorAll('.month-tab').forEach((t,j)=>t.classList.toggle('active',j===i)); load(); };
     c.appendChild(d);
   });
+}
+
+async function downloadTeamPdf() {
+  const btn = document.getElementById('downloadPdfBtn');
+  if (!btn) return;
+  const previousLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'PDF...';
+  try {
+    const response = await fetch(`/api/team/turni/${anno}/${mese}/pdf`);
+    if (!response.ok) {
+      if (response.status === 401) { logout(); return; }
+      const text = await response.text();
+      throw new Error(text || `Errore ${response.status}`);
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `turni-team-${anno}-${String(mese).padStart(2, '0')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert('Impossibile generare il PDF del mese selezionato.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = previousLabel;
+  }
 }
 
 async function loadOperatori() {

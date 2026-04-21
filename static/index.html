@@ -330,17 +330,18 @@
     display: flex; justify-content: space-around; align-items: stretch;
   }
   .bottom-nav a {
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
-    color: var(--muted); text-decoration: none; font-size: 0.6rem;
-    font-weight: 600; padding: 4px 6px; border-radius: 6px; flex: 1;
-    text-align: center; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: var(--muted); text-decoration: none; font-size: 0.65rem;
+    font-weight: 600; padding: 6px 4px; border-radius: 8px; flex: 1;
+    text-align: center; min-width: 0; margin: 0 2px; transition: color .15s;
   }
   .bottom-nav a.active { color: var(--accent); }
-  .bottom-nav a span.icon { font-size: 1.2rem; line-height: 1; }
+  .bottom-nav a.admin-link { color:#F59E0B !important; }
+  .bottom-nav a span.icon { font-size: 1.35rem; line-height: 1.2; }
   #adminMobileBtn { display: none; color: #F59E0B !important; }
   @media (max-width: 768px) {
     .bottom-nav { display: block; }
-    body { padding-bottom: 64px; }
+    body { padding-bottom: 72px; }
   }
 
 
@@ -1453,6 +1454,12 @@ async function deleteTurno() {
 function getToken() { return localStorage.getItem('token'); }
 function getNome()  { return localStorage.getItem('nome') || localStorage.getItem('username') || ''; }
 function logout()   { localStorage.removeItem('token'); localStorage.removeItem('username'); localStorage.removeItem('nome'); localStorage.removeItem('is_admin'); window.location.href='/login.html'; }
+async function fetchCurrentUserOrNull() {
+  const res = await fetch('/api/auth/me');
+  if (res.status === 401) { logout(); return null; }
+  if (!res.ok) throw new Error(`Auth check failed: ${res.status}`);
+  return res.json();
+}
 
 // Inietta token in ogni fetch API
 const _origFetch = window.fetch.bind(window);
@@ -1474,8 +1481,9 @@ window.fetch = function(url, opts={}) {
 (async function() {
   if (!getToken()) { window.location.href='/login.html'; return; }
   try {
-    const me = await fetch('/api/auth/me').then(r => r.json());
-    if (!me || !me.id) { logout(); return; }
+    const me = await fetchCurrentUserOrNull();
+    if (!me) return;
+    if (!me.id) throw new Error('Auth payload non valido');
     // user label handled by menu
     
     // Aggiorna user menu
@@ -1495,7 +1503,7 @@ window.fetch = function(url, opts={}) {
       localStorage.removeItem('is_admin');
     }
     if(typeof init==='function') init(); else if(typeof loadAll==='function') loadAll();
-  } catch(e) { console.error('Auth error:', e); logout(); }
+  } catch(e) { console.error('Auth error:', e); }
 })();
 
 // ── DRAWER IMPORTA TABELLA ──────────────────────────────────────────────
@@ -1670,6 +1678,6 @@ async function drawerApplica() {
 </script>
 <!-- BOTTOM NAV MOBILE -->
 
-<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"  class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/turni-team.html"><span class="icon">👥</span><span>Team</span></a><a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a><a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
+<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/" class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/turni-team.html"><span class="icon">👥</span><span>Team</span></a><a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a><a href="/admin.html" id="adminMobileBtn" class="admin-link"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
 </body>
 </html>

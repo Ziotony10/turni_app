@@ -91,6 +91,7 @@
     text-align: center; min-width: 0; margin: 0 2px; transition: color .15s;
   }
   .bottom-nav a.active { color: var(--accent); }
+  .bottom-nav a.admin-link { color:#F59E0B !important; }
   .bottom-nav a span.icon { font-size: 1.35rem; line-height: 1.2; }
   #adminMobileBtn { display: none; color: #F59E0B !important; }
   @media (max-width: 768px) {
@@ -358,6 +359,12 @@ function logout()   {
   localStorage.removeItem('is_admin');
   window.location.href='/login.html';
 }
+async function fetchCurrentUserOrNull() {
+  const res = await fetch('/api/auth/me');
+  if (res.status === 401) { logout(); return null; }
+  if (!res.ok) throw new Error(`Auth check failed: ${res.status}`);
+  return res.json();
+}
 
 const _origFetch = window.fetch.bind(window);
 window.fetch = function(url, opts={}) {
@@ -538,8 +545,9 @@ async function applica() {
 (async function() {
   if (!getToken()) { window.location.href='/login.html'; return; }
   try {
-    const me = await fetch('/api/auth/me').then(r => r.json());
-    if (!me || !me.id) { logout(); return; }
+    const me = await fetchCurrentUserOrNull();
+    if (!me) return;
+    if (!me.id) throw new Error('Auth payload non valido');
     // user label handled by menu
     
     // Aggiorna user menu
@@ -559,7 +567,7 @@ async function applica() {
     allTabelle = await fetch('/api/admin/tabelle').then(r=>r.json());
     if (allTabelle.length===0) document.getElementById('emptyState').style.display='block';
     renderSelector();
-  } catch(e) { console.error('Auth error:', e); logout(); }
+  } catch(e) { console.error('Auth error:', e); }
 })();
 
 
@@ -610,6 +618,6 @@ async function doChangePwd() {
 
 </script>
 
-<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/"  class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/turni-team.html"><span class="icon">👥</span><span>Team</span></a><a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a><a href="/admin.html" id="adminMobileBtn"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
+<nav class="bottom-nav"><div class="bottom-nav-inner"><a href="/" class="active"><span class="icon">🗓</span><span>Turni</span></a><a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a><a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a><a href="/turni-team.html"><span class="icon">👥</span><span>Team</span></a><a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a><a href="/admin.html" id="adminMobileBtn" class="admin-link"><span class="icon">🔧</span><span>Admin</span></a></div></nav>
 </body>
 </html>
