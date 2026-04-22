@@ -72,23 +72,32 @@
   .ferie-inline-hint { font-size:0.72rem; color:#5eead4; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
 
   /* ── TABELLA TEAM ── */
-  .table-wrap { flex:1; overflow:auto; position:relative; background:white; overscroll-behavior:contain; }
-  .team-table { border-collapse:collapse; font-size:0.82rem; white-space:nowrap; background:white; }
+  .table-wrap {
+    --date-w:50px; --day-w:32px; --sep-w:2px; --side-w:24px; --slot-w:42px;
+    --slot-font:0.72rem; --slot-var-font:0.8rem; --op-name-font:0.62rem;
+    flex:1; overflow:auto; position:relative; background:white; overscroll-behavior:contain;
+  }
+  .team-table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:0.78rem; white-space:nowrap; background:white; }
+  .team-table col.col-date { width:var(--date-w); }
+  .team-table col.col-day { width:var(--day-w); }
+  .team-table col.col-slot { width:var(--slot-w); }
+  .team-table col.col-sep { width:var(--sep-w); }
+  .team-table col.col-side { width:var(--side-w); }
   .team-table th {
     background:#f1f5f9; color:#475569; font-weight:700;
-    font-size:0.68rem; text-transform:uppercase; letter-spacing:.04em;
-    padding:7px 5px; text-align:center;
+    font-size:0.64rem; text-transform:uppercase; letter-spacing:.03em;
+    padding:6px 3px; text-align:center;
     position:sticky; top:0; z-index:5; border-bottom:2px solid #334155;
     white-space:nowrap;
   }
   .team-table th.sticky-left { left:0; z-index:6; background:#e2e8f0; }
   .team-table th.col-data { min-width:50px; text-align:left; padding-left:7px; background:#e2e8f0; }
   .team-table th.col-giorno { min-width:32px; position:sticky; left:50px; z-index:6; background:#e2e8f0; }
-  .team-table th.col-op { min-width:56px; border-left:1px solid #334155; }
-  .team-table th.col-destra { min-width:32px; background:#dbeafe; color:#1e40af; border-left:1px solid #bfdbfe; font-weight:800; }
-  .th-op-nome { font-size:0.68rem; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100px; width:100%; margin:0 auto; color:#1e293b; font-weight:700; }
+  .team-table th.col-op { width:calc(var(--slot-w) * 2); min-width:calc(var(--slot-w) * 2); border-left:1px solid #334155; }
+  .team-table th.col-destra { min-width:var(--side-w); width:var(--side-w); background:#dbeafe; color:#1e40af; border-left:1px solid #bfdbfe; font-weight:800; padding-left:2px; padding-right:2px; }
+  .th-op-nome { font-size:var(--op-name-font); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; margin:0 auto; color:#1e293b; font-weight:700; }
 
-  .team-table td { padding:3px 4px; border-bottom:1px solid #e2e8f0; border-right:none; text-align:center; vertical-align:middle; background:white; }
+  .team-table td { padding:2px 2px; border-bottom:1px solid #e2e8f0; border-right:none; text-align:center; vertical-align:middle; background:white; }
   .team-table td.td-data { text-align:left; padding-left:6px; font-size:0.68rem; color:#475569; font-weight:700; background:#f8fafc; position:sticky; left:0; z-index:3; border-right:1px solid #e2e8f0; min-width:50px; }
   .team-table td.td-giorno { font-size:0.7rem; color:#64748b; background:#f8fafc; min-width:32px; position:sticky; left:50px; z-index:3; border-right:1px solid #e2e8f0; }
   .team-table tr.domenica td.td-data,
@@ -106,10 +115,10 @@
   /* Celle turno */
   .cella {
     display:inline-flex; align-items:center; justify-content:center;
-    border-radius:5px; padding:3px 4px; font-size:0.8rem; font-weight:700;
-    color:#1a2535; min-width:68px; min-height:25px; position:relative;
+    width:calc(var(--slot-w) - 2px); border-radius:5px; padding:2px 3px; font-size:var(--slot-font); font-weight:700;
+    color:#1a2535; min-width:0; min-height:23px; position:relative;
     cursor:default; line-height:1.1; background:transparent; border:1px solid transparent;
-    gap:1px; flex-wrap:nowrap; white-space:nowrap;
+    gap:0; flex-wrap:nowrap; white-space:nowrap;
   }
   .cella.editable { cursor:pointer; transition:background .1s, border-color .1s; }
   .cella.editable:hover { background:rgba(59,130,246,0.08); border-color:rgba(59,130,246,0.3); }
@@ -140,6 +149,22 @@
   .tpl-cella.special-fest.filled .mf-inline,
   .tpl-cella.special-fest.filled .cella-rep-icon,
   .tpl-cella.special-fest.filled .smart-inline { color:#ffffff !important; }
+  .cella.rf-rep.filled,
+  .cella.var-cell.rf-rep.filled,
+  .tpl-cella.rf-rep.filled {
+    background:#fef9c3 !important;
+    color:#FF0000 !important;
+    border:1px solid rgba(250,204,21,0.5) !important;
+  }
+  .cella.rf-rep.filled .mf-inline,
+  .cella.rf-rep.filled .cella-rep-icon,
+  .cella.rf-rep.filled .smart-inline,
+  .cella.var-cell.rf-rep.filled .mf-inline,
+  .cella.var-cell.rf-rep.filled .cella-rep-icon,
+  .cella.var-cell.rf-rep.filled .smart-inline,
+  .tpl-cella.rf-rep.filled .mf-inline,
+  .tpl-cella.rf-rep.filled .cella-rep-icon,
+  .tpl-cella.rf-rep.filled .smart-inline { color:#FF0000 !important; }
   .cella.special-mal.filled,
   .cella.var-cell.special-mal.filled,
   .tpl-cella.special-mal.filled {
@@ -156,9 +181,9 @@
   .tpl-cella.special-mal.filled .mf-inline,
   .tpl-cella.special-mal.filled .cella-rep-icon,
   .tpl-cella.special-mal.filled .smart-inline { color:#FF0000 !important; }
-  .cella.var-cell.filled { color:#FF0000; font-size:0.9rem; font-weight:900; }
+  .cella.var-cell.filled { color:#FF0000; font-size:var(--slot-var-font); font-weight:900; }
   .cella.var-cell.filled .mf-inline { color:#FF0000; }
-  .cella.filled:not(.var-cell) { color:#1a2535; font-size:0.76rem; font-weight:700; }
+  .cella.filled:not(.var-cell) { color:#1a2535; font-size:var(--slot-font); font-weight:700; }
   .cella.empty { background:transparent; border:1px dashed #94a3b8; color:#64748b; }
   .cella.editable.empty:hover { background:#1e2d40; color:var(--muted); border-color:#94a3b8; }
 
@@ -181,21 +206,21 @@
 
   /* Modificatori inline (ordine: m/f → ® → #) */
   .mf-inline {
-    font-size:0.64rem; font-weight:500; color:#334155; margin-left:1px; line-height:1;
+    font-size:0.58rem; font-weight:500; color:#334155; margin-left:0; line-height:1;
     position:relative; top:-0.38em;
   }
   .cella-rep-icon {
-    font-size:0.75rem; margin-left:1px; line-height:1;
+    font-size:0.68rem; margin-left:0; line-height:1;
     position:relative; top:-0.38em;
   }
   /* Smart # inline — stessa dimensione del testo turno */
-  .smart-inline { font-size:0.9rem; font-weight:900; color:#FF0000; margin-left:1px; line-height:1; }
+  .smart-inline { font-size:0.78rem; font-weight:900; color:#FF0000; margin-left:0; line-height:1; }
 
   /* Colonne destra */
-  .td-destra { font-size:0.72rem; color:#334155; background:#f8fafc; border-left:1px solid #cbd5e1; font-weight:600; }
+  .td-destra { width:var(--side-w); min-width:var(--side-w); max-width:var(--side-w); padding:2px 1px !important; font-size:0.68rem; color:#334155; background:#f8fafc; border-left:1px solid #cbd5e1; font-weight:600; }
   .td-destra.editable { cursor:pointer; }
   .td-destra.editable:hover { background:#e2e8f0; color:#1f2937; }
-  .td-sep-destra { background:var(--bg); width:2px; padding:0; }
+  .td-sep-destra { background:var(--bg); width:var(--sep-w); min-width:var(--sep-w); max-width:var(--sep-w); padding:0; }
 
   /* ── TURNO PICKER REDESIGN ── */
   .turno-picker {
@@ -499,8 +524,10 @@
       <button class="sb sb-rc" data-t="RC"      onclick="pickerSetTurno('RC',this)">RC</button>
       <button class="sb sb-r"  data-t="R"       onclick="pickerSetTurno('R',this)">R</button>
       <button class="sb sb-sp" data-t="ROT"     onclick="pickerSetTurno('ROT',this)">ROT</button>
+      <button class="sb sb-r"  data-t="RF"      onclick="pickerSetTurno('RF',this)">RF</button>
       <button class="sb sb-sp" data-t="F"       onclick="pickerSetTurno('F',this)">F</button>
       <button class="sb sb-sp" data-t="MAL"     onclick="pickerSetTurno('MAL',this)">MAL</button>
+      <button class="sb sb-sp" data-t="8PR"     onclick="pickerSetTurno('8PR',this)">8PR</button>
       <button class="sb sb-sp" data-t="LUTTO"   onclick="pickerSetTurno('LUTTO',this)">LUTTO</button>
       <button class="sb sb-sp" data-t="EX FEST" onclick="pickerSetTurno('EX FEST',this)">EX F.</button>
       <button class="sb sb-sp" data-t="#"       onclick="pickerSetTurno('#',this)" title="Solo smart working">#</button>
@@ -521,8 +548,8 @@
 
   <!-- Azioni -->
   <div class="picker-actions">
-    <button class="picker-btn picker-btn-secondary" onclick="pickerAnnulla()">Annulla</button>
     <button class="picker-btn picker-btn-confirm" onclick="pickerConferma()">✅ Conferma</button>
+    <button class="picker-btn picker-btn-secondary" onclick="pickerAnnulla()">Annulla</button>
     <button class="picker-btn picker-btn-cancel"  onclick="pickerCancella()">✕ Cancella</button>
   </div>
 </div>
@@ -547,7 +574,7 @@
 <datalist id="turni-list">
   <option value="7-15"><option value="8-16"><option value="9-17"><option value="11-19">
   <option value="15-23"><option value="23-7">
-  <option value="RC"><option value="R"><option value="ROT"><option value="F">
+  <option value="RC"><option value="R"><option value="ROT"><option value="RF"><option value="8PR"><option value="F">
   <option value="MAL"><option value="LUTTO"><option value="EX FEST">
 </datalist>
 
@@ -664,6 +691,8 @@ let ferieAdds = new Set();
 let ferieRemovals = new Set();
 let teamFerieLogData = { pending: [], logs: [] };
 let teamFerieFilters = { name: '', status: 'all' };
+let teamTableResizeBound = false;
+let teamTableResizeObserver = null;
 
 function getOperatorSlotCount(extraPositions = []) {
   const opMax = operatori.reduce((max, op) => Math.max(max, Number(op.posizione) || 0), 0);
@@ -674,6 +703,61 @@ function getOperatorSlotCount(extraPositions = []) {
 function updateSetupHelpText() {
   const el = document.getElementById('setupHelpText');
   if (el) el.textContent = `Inserisci i nomi degli operatori nell'ordine delle colonne della tabella (${setupOperatorCount} posizioni).`;
+}
+
+function buildTeamTableColgroup(operatorCount = 0) {
+  let html = '<colgroup><col class="col-date"><col class="col-day">';
+  for (let i = 0; i < operatorCount; i += 1) html += '<col class="col-slot"><col class="col-slot">';
+  html += '<col class="col-sep">';
+  for (let i = 0; i < 3; i += 1) html += '<col class="col-side">';
+  html += '<col class="col-sep">';
+  for (let i = 0; i < 4; i += 1) html += '<col class="col-side">';
+  html += '</colgroup>';
+  return html;
+}
+
+function applyResponsiveTeamLayout() {
+  const wrap = document.getElementById('tableWrap');
+  const table = wrap?.querySelector('.team-table');
+  const operatorCount = datiMese?.operatori?.length || operatori.length || 0;
+  if (!wrap || !table || !operatorCount) return;
+
+  const containerWidth = Math.max(Math.floor(wrap.clientWidth || 0), 320);
+  const dateW = 50;
+  const dayW = 32;
+  const sepW = 2;
+  const sideW = containerWidth >= 1700 ? 26 : containerWidth >= 1450 ? 24 : containerWidth >= 1250 ? 22 : 20;
+  const fixedWidth = dateW + dayW + (sepW * 2) + (sideW * 7);
+  const slotCount = operatorCount * 2;
+  const slotW = Math.max(28, Math.floor((containerWidth - fixedWidth) / Math.max(slotCount, 1)));
+
+  let slotFont = 0.72;
+  let slotVarFont = 0.80;
+  let opNameFont = 0.62;
+  if (slotW <= 38) {
+    slotFont = 0.68;
+    slotVarFont = 0.75;
+    opNameFont = 0.58;
+  }
+  if (slotW <= 34) {
+    slotFont = 0.62;
+    slotVarFont = 0.69;
+    opNameFont = 0.54;
+  }
+  if (slotW <= 30) {
+    slotFont = 0.58;
+    slotVarFont = 0.64;
+    opNameFont = 0.50;
+  }
+
+  wrap.style.setProperty('--date-w', `${dateW}px`);
+  wrap.style.setProperty('--day-w', `${dayW}px`);
+  wrap.style.setProperty('--sep-w', `${sepW}px`);
+  wrap.style.setProperty('--side-w', `${sideW}px`);
+  wrap.style.setProperty('--slot-w', `${slotW}px`);
+  wrap.style.setProperty('--slot-font', `${slotFont}rem`);
+  wrap.style.setProperty('--slot-var-font', `${slotVarFont}rem`);
+  wrap.style.setProperty('--op-name-font', `${opNameFont}rem`);
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
@@ -797,6 +881,207 @@ async function downloadTeamPdf() {
     btn.disabled = false;
     btn.textContent = previousLabel;
   }
+}
+
+function getTeamPrintStyle(pageWidthMm, pageHeightMm, pageMarginMm) {
+  const appStyle = Array.from(document.querySelectorAll('style')).map(s => s.textContent || '').join('\n');
+  return `
+    ${appStyle}
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      forced-color-adjust: none !important;
+    }
+    html, body {
+      background:#ffffff !important;
+      color:#0f172a !important;
+      margin:0;
+      padding:0;
+      font-family:'Segoe UI', system-ui, sans-serif;
+      width:${pageWidthMm}mm;
+      height:${pageHeightMm}mm;
+    }
+    body { padding:${pageMarginMm}mm; overflow:visible; }
+    .print-page {
+      width:calc(${pageWidthMm}mm - ${pageMarginMm * 2}mm);
+      min-height:calc(${pageHeightMm}mm - ${pageMarginMm * 2}mm);
+      overflow:visible;
+    }
+    .print-shell {
+      display:block;
+      width:max-content;
+    }
+    .print-head { margin-bottom:14px; }
+    .print-title {
+      font-size:1.15rem;
+      font-weight:800;
+      color:#0f172a;
+      margin-bottom:4px;
+    }
+    .print-meta {
+      font-size:0.78rem;
+      color:#475569;
+    }
+    .table-wrap {
+      overflow:visible !important;
+      background:#ffffff !important;
+      height:auto !important;
+      max-height:none !important;
+    }
+    .team-table {
+      font-size:0.78rem !important;
+      border-collapse:collapse !important;
+      width:auto !important;
+    }
+    .team-table th,
+    .team-table td {
+      position:static !important;
+      filter:none !important;
+      box-shadow:none !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .team-table th {
+      top:auto !important;
+      left:auto !important;
+    }
+    .team-table td.td-data,
+    .team-table td.td-giorno,
+    .team-table th.sticky-left,
+    .team-table th.col-giorno {
+      left:auto !important;
+    }
+    .team-table tr:hover td { filter:none !important; }
+    .cella,
+    .tpl-cella {
+      min-width:56px !important;
+      min-height:22px !important;
+      font-size:0.76rem !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .cella.var-cell.filled {
+      font-size:0.82rem !important;
+    }
+    .th-op-nome {
+      max-width:none !important;
+      overflow:visible !important;
+      text-overflow:clip !important;
+    }
+    .print-legend {
+      margin-top:18px;
+      font-size:0.78rem;
+      color:#475569;
+    }
+    @page {
+      size: ${pageWidthMm}mm ${pageHeightMm}mm;
+      margin: ${pageMarginMm}mm;
+    }
+    @media print {
+      html, body {
+        width:${pageWidthMm}mm;
+        height:${pageHeightMm}mm;
+        overflow:visible;
+      }
+      body { padding:0; }
+      .print-page { width:auto; min-height:auto; }
+    }
+  `;
+}
+
+function buildTeamPrintHtml() {
+  const wrap = document.getElementById('tableWrap');
+  const table = wrap?.querySelector('.team-table');
+  if (!wrap || !table) {
+    throw new Error('Tabella team non disponibile');
+  }
+  const pxToMm = 25.4 / 96;
+  const contentWidthPx = Math.ceil(table.scrollWidth);
+  const contentHeightPx = Math.ceil(wrap.scrollHeight);
+  const pageMarginMm = 8;
+  const pageWidthMm = Math.max(297, Math.ceil(contentWidthPx * pxToMm) + (pageMarginMm * 2));
+  const pageHeightMm = Math.max(210, Math.ceil(contentHeightPx * pxToMm) + (pageMarginMm * 2));
+  const now = new Date();
+  const generated = now.toLocaleDateString('it-IT') + ' ' + now.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
+  const title = `Turni team - ${MESI_IT[mese - 1]} ${anno}`;
+  const meta = `Generato ${generated} | Operatori ${operatori.length}`;
+  return `<!DOCTYPE html>
+  <html lang="it">
+  <head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <style>${getTeamPrintStyle(pageWidthMm, pageHeightMm, pageMarginMm)}</style>
+  </head>
+  <body>
+    <div class="print-page">
+      <div class="print-shell" id="printShell">
+        <div class="print-head">
+          <div class="print-title">${title}</div>
+          <div class="print-meta">${meta}</div>
+        </div>
+        <div class="table-wrap">${wrap.innerHTML}</div>
+        <div class="print-legend">R=rep&nbsp;&nbsp; #=smart&nbsp;&nbsp; m/f=mod</div>
+      </div>
+    </div>
+    <script>
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          window.print();
+        }, 300);
+      });
+    <\/script>
+  </body>
+  </html>`;
+}
+
+async function openTeamPrintView() {
+  if (!datiMese?.giorni?.length) {
+    await load();
+  }
+  let frame = document.getElementById('teamPrintFrame');
+  if (frame) frame.remove();
+  frame = document.createElement('iframe');
+  frame.id = 'teamPrintFrame';
+  frame.style.position = 'fixed';
+  frame.style.left = '-20000px';
+  frame.style.top = '0';
+  frame.style.width = `${Math.max(window.innerWidth, 2200)}px`;
+  frame.style.height = `${Math.max(window.innerHeight, 1400)}px`;
+  frame.style.opacity = '0';
+  frame.style.pointerEvents = 'none';
+  frame.style.border = '0';
+  document.body.appendChild(frame);
+
+  const html = buildTeamPrintHtml();
+  await new Promise((resolve, reject) => {
+    const cleanup = () => {
+      frame.onload = null;
+    };
+    frame.onload = () => {
+      cleanup();
+      resolve();
+    };
+    try {
+      const doc = frame.contentWindow?.document;
+      if (!doc) throw new Error('Frame di stampa non disponibile');
+      doc.open();
+      doc.write(html);
+      doc.close();
+    } catch (err) {
+      cleanup();
+      reject(err);
+    }
+  });
+
+  const printWindow = frame.contentWindow;
+  if (!printWindow) throw new Error('Finestra di stampa non disponibile');
+  printWindow.focus();
+  printWindow.print();
+
+  window.setTimeout(() => {
+    const existing = document.getElementById('teamPrintFrame');
+    if (existing) existing.remove();
+  }, 60000);
 }
 
 async function loadOperatori() {
@@ -1708,8 +1993,8 @@ buildTeamRowHtml = function(g, idx, totalRows = (datiMese?.giorni?.length || 0))
   html += `<td class="td-data">${dayNum} ${monthShort}</td>`;
   html += `<td class="td-giorno">${dayName}</td>`;
   g.turni.forEach(t => {
-    html += `<td style="padding:2px 1px">${renderCella(t.turno_base, t.flags_base, g.data, t.operatore_id, 'base', t.turno_var, t.ferie_request)}</td>`;
-    html += `<td style="padding:2px 1px;border-right:2px solid rgba(51,65,85,0.78)">${renderCella(t.turno_var, t.flags_var, g.data, t.operatore_id, 'var', '', t.ferie_request)}</td>`;
+    html += `<td style="padding:2px 0">${renderCella(t.turno_base, t.flags_base, g.data, t.operatore_id, 'base', t.turno_var, t.ferie_request)}</td>`;
+    html += `<td style="padding:2px 0;border-right:2px solid rgba(51,65,85,0.78)">${renderCella(t.turno_var, t.flags_var, g.data, t.operatore_id, 'var', '', t.ferie_request)}</td>`;
   });
   const cd = g.colonne_destra;
   html += '<td class="td-sep-destra"></td>';
@@ -1756,15 +2041,25 @@ load = async function() {
   }
   const data = await response.json();
   datiMese = data;
-  let html = '<table class="team-table"><thead><tr>';
+  let html = `<table class="team-table">${buildTeamTableColgroup(data.operatori.length)}<thead><tr>`;
   html += '<th class="col-data sticky-left">Data</th><th class="col-giorno">Gg</th>';
   data.operatori.forEach(op => {
-    html += `<th colspan="2" class="col-op" title="${op.nome}"><div style="font-size:0.62rem;color:#6b7280;font-weight:800;background:#e5e7eb;border-radius:3px;padding:0 4px;display:inline-block;margin-bottom:1px">${op.posizione}</div><div class="th-op-nome">${op.nome}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:2px;font-size:0.55rem;color:#9ca3af"><span>TAB</span><span>VAR</span></div></th>`;
+    html += `<th colspan="2" class="col-op" title="${op.nome}"><div style="font-size:0.58rem;color:#6b7280;font-weight:800;background:#e5e7eb;border-radius:3px;padding:0 3px;display:inline-block;margin-bottom:1px">${op.posizione}</div><div class="th-op-nome">${op.nome}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:1px;font-size:0.5rem;color:#9ca3af"><span>TAB</span><span>VAR</span></div></th>`;
   });
-  html += '<th class="td-sep-destra" style="width:2px;padding:0"></th><th class="col-destra" style="font-size:0.6rem">Rep<br>1°</th><th class="col-destra" style="font-size:0.6rem">Rep<br>2°</th><th class="col-destra" style="font-size:0.6rem">Rep<br>3°</th><th class="td-sep-destra" style="width:2px;padding:0"></th><th colspan="4" class="col-destra" style="text-align:center;font-size:0.6rem">FESTIVITA<br><span style="font-size:0.55rem;opacity:.7">M M P P</span></th></tr></thead><tbody>';
+  html += '<th class="td-sep-destra" style="width:2px;padding:0"></th><th class="col-destra" style="font-size:0.56rem">Rep<br>1°</th><th class="col-destra" style="font-size:0.56rem">Rep<br>2°</th><th class="col-destra" style="font-size:0.56rem">Rep<br>3°</th><th class="td-sep-destra" style="width:2px;padding:0"></th><th colspan="4" class="col-destra" style="text-align:center;font-size:0.56rem">FESTIVITA<br><span style="font-size:0.5rem;opacity:.7">M M P P</span></th></tr></thead><tbody>';
   data.giorni.forEach((g, idx) => { html += buildTeamRowHtml(g, idx, data.giorni.length); });
   html += '</tbody></table>';
   wrap.innerHTML = html;
+  applyResponsiveTeamLayout();
+  if (!teamTableResizeBound) {
+    window.addEventListener('resize', applyResponsiveTeamLayout);
+    teamTableResizeBound = true;
+  }
+  if (window.ResizeObserver) {
+    if (teamTableResizeObserver) teamTableResizeObserver.disconnect();
+    teamTableResizeObserver = new ResizeObserver(() => applyResponsiveTeamLayout());
+    teamTableResizeObserver.observe(wrap);
+  }
   applySpecialTurnoStyles(wrap);
 };
 
@@ -2154,6 +2449,7 @@ renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const isM = flags && flags.includes('M');
   const isFestTurno = ['F', 'RF', 'EX FEST', 'EX F.', 'LUTTO'].includes(turnoNorm);
   const isMalTurno = turnoNorm === 'MAL';
+  const rfRepClass = turnoNorm === 'RF' && isRep ? ' rf-rep' : '';
   const repClass = isRep ? ' rep' : '';
   const smartClass = isSmart ? ' smart' : '';
   const specialClass = isFestTurno ? ' special-fest' : (isMalTurno ? ' special-mal' : '');
@@ -2171,13 +2467,13 @@ renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const value = isEmpty ? '' : turno;
   if (col === 'base' && turnoVar) {
     const filledClass = isEmpty && !extras ? ' empty' : ' filled';
-    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${ferieClass}${selectedClass}${filledClass}" ${clickEvt}>${value}${extras}${marker}</div>`;
+    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${selectedClass}${filledClass}" ${clickEvt}>${value}${extras}${marker}</div>`;
   }
   if (isEmpty) {
     const filledClass = extras || marker ? ' filled' : ' empty';
-    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${ferieClass}${selectedClass}${filledClass}" ${clickEvt}>${value}${extras}${marker}</div>`;
+    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${selectedClass}${filledClass}" ${clickEvt}>${value}${extras}${marker}</div>`;
   }
-  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${ferieClass}${selectedClass} filled" ${clickEvt}>${turno}${extras}${marker}</div>`;
+  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${selectedClass} filled" ${clickEvt}>${turno}${extras}${marker}</div>`;
 };
 
 renderTplCella = function(dow, pos) {
@@ -2191,6 +2487,7 @@ renderTplCella = function(dow, pos) {
   const isM = flags.includes('M');
   const isFestTurno = ['F', 'RF', 'EX FEST', 'EX F.', 'LUTTO'].includes(turnoNorm);
   const isMalTurno = turnoNorm === 'MAL';
+  const rfRepClass = turnoNorm === 'RF' && isRep ? ' rf-rep' : '';
   const repClass = isRep ? ' rep' : '';
   const smartClass = isSmart ? ' smart' : '';
   const specialClass = isFestTurno ? ' special-fest' : (isMalTurno ? ' special-mal' : '');
@@ -2198,7 +2495,7 @@ renderTplCella = function(dow, pos) {
   const mfHtml = (isM ? '<span class="mf-inline">m</span>' : '') + (isF ? '<span class="mf-inline">f</span>' : '');
   const repIcon = isRep ? '<span class="cella-rep-icon">&reg;</span>' : '';
   const smartHtml = isSmart ? '<span class="smart-inline">#</span>' : '';
-  return `<div class="cella tpl-cella${repClass}${smartClass}${specialClass}${stateClass}" onclick="openPickerForTemplate(${dow},${pos},event)">${turno || ''}${mfHtml}${repIcon}${smartHtml}</div>`;
+  return `<div class="cella tpl-cella${repClass}${smartClass}${specialClass}${rfRepClass}${stateClass}" onclick="openPickerForTemplate(${dow},${pos},event)">${turno || ''}${mfHtml}${repIcon}${smartHtml}</div>`;
 };
 
 loadLog = async function() {
