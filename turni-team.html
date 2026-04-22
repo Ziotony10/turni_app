@@ -1,0 +1,2551 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#3B82F6">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<title>Turni Team – Gestione Turni</title>
+<style>
+  :root {
+    --bg:#0F172A; --card:#1E293B; --card2:#263348; --border:#334155;
+    --text:#E2E8F0; --muted:#94A3B8; --accent:#3B82F6; --radius:10px;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+  /* ── HEADER ── */
+  header { background:var(--card); border-bottom:1px solid var(--border); height:56px; padding:0 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:20; flex-shrink:0; }
+  .page-title { width:230px; min-width:230px; font-size:1.05rem; font-weight:700; color:var(--text); white-space:nowrap; flex-shrink:0; }
+  .page-title span { color:var(--accent); }
+  .top-nav { display:flex; gap:4px; align-items:center; }
+  .top-nav a { color:var(--muted); text-decoration:none; font-size:0.82rem; padding:5px 10px; border-radius:8px; background:var(--card2); white-space:nowrap; transition:color .15s,background .15s; }
+  .top-nav a:hover { color:var(--text); background:#2d3f55; }
+  .top-nav a.nav-active { color:var(--text); background:#2d3f55; cursor:default; opacity:.85; box-shadow:inset 0 0 0 1px var(--border); }
+  .top-nav a#adminNavLink { display:none; color:#F59E0B; }
+  .header-controls { display:flex; align-items:center; gap:6px; margin-left:auto; }
+  .header-controls select, .header-controls button { background:var(--card2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:5px 10px; font-size:0.82rem; cursor:pointer; height:32px; }
+  .header-controls button:hover { background:var(--accent); border-color:var(--accent); }
+  .user-menu { position:relative; }
+  .user-btn { display:flex; align-items:center; gap:6px; background:var(--card2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:5px 10px; font-size:0.82rem; cursor:pointer; height:32px; transition:background .15s; }
+  .user-btn:hover { background:#2d3f55; }
+  .user-btn .avatar { width:20px; height:20px; border-radius:50%; background:var(--accent); color:white; font-size:0.65rem; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .user-dropdown { display:none; position:absolute; right:0; top:calc(100% + 6px); background:var(--card); border:1px solid var(--border); border-radius:10px; min-width:200px; z-index:200; box-shadow:0 8px 24px rgba(0,0,0,.4); overflow:hidden; }
+  .user-dropdown.open { display:block; }
+  .ud-header { padding:12px 14px; background:var(--card2); border-bottom:1px solid var(--border); font-size:0.78rem; color:var(--muted); }
+  .ud-header strong { display:block; color:var(--text); font-size:0.9rem; margin-bottom:2px; }
+  .ud-item { display:flex; align-items:center; gap:8px; padding:10px 14px; font-size:0.85rem; cursor:pointer; color:var(--text); transition:background .1s; }
+  .ud-item:hover { background:var(--card2); }
+  .ud-item.danger { color:#FCA5A5; }
+  .ud-item.danger:hover { background:rgba(239,68,68,.1); }
+  .ud-sep { height:1px; background:var(--border); margin:2px 0; }
+
+  /* ── MONTH TABS ROW ── */
+  .month-tabs-row { display:flex; align-items:center; background:var(--card); border-bottom:1px solid var(--border); flex-shrink:0; min-height:46px; }
+  .month-tabs { display:flex; gap:4px; padding:8px 16px; overflow-x:auto; flex:1; align-items:center; scrollbar-width:none; }
+  .month-tabs::-webkit-scrollbar { display:none; }
+  .month-tab { padding:5px 12px; border-radius:20px; cursor:pointer; font-size:0.82rem; font-weight:600; border:1px solid transparent; transition:all .15s; white-space:nowrap; color:var(--muted); }
+  .month-tab:hover { color:var(--text); background:var(--card2); }
+  .month-tab.active { background:var(--accent); color:white; border-color:var(--accent); }
+  /* ── FERIE INLINE ── */
+  .ferie-inline { display:flex; align-items:center; gap:7px; padding:0 14px 0 10px; border-left:1px solid var(--border); flex-shrink:0; }
+  .btn-pdf {
+    display:inline-flex; align-items:center; gap:6px;
+    background:rgba(59,130,246,.14);
+    color:#bfdbfe; border:1px solid rgba(96,165,250,.35);
+    border-radius:8px; padding:5px 11px; font-size:0.78rem; font-weight:700;
+    cursor:pointer; white-space:nowrap; transition:all .15s;
+  }
+  .btn-pdf:hover:not(:disabled) { background:rgba(59,130,246,.26); border-color:rgba(147,197,253,.55); }
+  .btn-pdf:disabled { opacity:.55; cursor:not-allowed; }
+  .btn-ferie {
+    display:inline-flex; align-items:center; gap:5px;
+    background:linear-gradient(135deg,rgba(20,184,166,.18),rgba(59,130,246,.14));
+    color:#2dd4bf; border:1px solid rgba(45,212,191,.3);
+    border-radius:8px; padding:5px 11px; font-size:0.78rem; font-weight:700;
+    cursor:pointer; white-space:nowrap; transition:all .15s;
+  }
+  .btn-ferie:hover:not(:disabled) { background:linear-gradient(135deg,rgba(20,184,166,.3),rgba(59,130,246,.24)); border-color:rgba(45,212,191,.5); }
+  .btn-ferie:disabled { opacity:.45; cursor:not-allowed; filter:grayscale(.5); }
+  .ferie-inline-hint { font-size:0.72rem; color:#5eead4; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
+
+  /* ── TABELLA TEAM ── */
+  .table-wrap {
+    --date-w:50px; --day-w:32px; --sep-w:2px; --side-w:24px; --slot-w:42px;
+    --slot-font:0.72rem; --slot-var-font:0.8rem; --op-name-font:0.62rem;
+    flex:1; overflow:auto; position:relative; background:white; overscroll-behavior:contain;
+  }
+  .team-table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:0.78rem; white-space:nowrap; background:white; }
+  .team-table col.col-date { width:var(--date-w); }
+  .team-table col.col-day { width:var(--day-w); }
+  .team-table col.col-slot { width:var(--slot-w); }
+  .team-table col.col-sep { width:var(--sep-w); }
+  .team-table col.col-side { width:var(--side-w); }
+  .team-table th {
+    background:#f1f5f9; color:#475569; font-weight:700;
+    font-size:0.64rem; text-transform:uppercase; letter-spacing:.03em;
+    padding:6px 3px; text-align:center;
+    position:sticky; top:0; z-index:5; border-bottom:2px solid #334155;
+    white-space:nowrap;
+  }
+  .team-table th.sticky-left { left:0; z-index:6; background:#e2e8f0; }
+  .team-table th.col-data { min-width:50px; text-align:left; padding-left:7px; background:#e2e8f0; }
+  .team-table th.col-giorno { min-width:32px; position:sticky; left:50px; z-index:6; background:#e2e8f0; }
+  .team-table th.col-op { width:calc(var(--slot-w) * 2); min-width:calc(var(--slot-w) * 2); border-left:1px solid #334155; }
+  .team-table th.col-destra { min-width:var(--side-w); width:var(--side-w); background:#dbeafe; color:#1e40af; border-left:1px solid #bfdbfe; font-weight:800; padding-left:2px; padding-right:2px; }
+  .th-op-nome { font-size:var(--op-name-font); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; margin:0 auto; color:#1e293b; font-weight:700; }
+
+  .team-table td { padding:2px 2px; border-bottom:1px solid #e2e8f0; border-right:none; text-align:center; vertical-align:middle; background:white; }
+  .team-table td.td-data { text-align:left; padding-left:6px; font-size:0.68rem; color:#475569; font-weight:700; background:#f8fafc; position:sticky; left:0; z-index:3; border-right:1px solid #e2e8f0; min-width:50px; }
+  .team-table td.td-giorno { font-size:0.7rem; color:#64748b; background:#f8fafc; min-width:32px; position:sticky; left:50px; z-index:3; border-right:1px solid #e2e8f0; }
+  .team-table tr.domenica td.td-data,
+  .team-table tr.domenica td.td-giorno { color:#9d174d; background:#FF99CC; }
+  .team-table tr.sabato td.td-data,
+  .team-table tr.sabato td.td-giorno { color:#3f6212; background:#C6E0B4; }
+  .team-table tr.festivo td.td-data,
+  .team-table tr.festivo td.td-giorno { color:#9d174d; font-weight:800; background:#FF99CC; }
+  .team-table tr:hover td { filter:brightness(.97); }
+  .team-table tr.week-block td:first-child { border-left:1px solid rgba(100,116,139,0.52); }
+  .team-table tr.week-block td:last-child { border-right:1px solid rgba(100,116,139,0.52); }
+  .team-table tr.week-start td { border-top:2px solid rgba(100,116,139,0.6); }
+  .team-table tr.week-end td { border-bottom:2px solid rgba(100,116,139,0.6); }
+
+  /* Celle turno */
+  .cella {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:calc(var(--slot-w) - 2px); border-radius:5px; padding:2px 3px; font-size:var(--slot-font); font-weight:700;
+    color:#1a2535; min-width:0; min-height:23px; position:relative;
+    cursor:default; line-height:1.1; background:transparent; border:1px solid transparent;
+    gap:0; flex-wrap:nowrap; white-space:nowrap;
+  }
+  .cella.editable { cursor:pointer; transition:background .1s, border-color .1s; }
+  .cella.editable:hover { background:rgba(59,130,246,0.08); border-color:rgba(59,130,246,0.3); }
+  .cella.filled { border:1px solid rgba(100,116,139,0.18); }
+  .cella.rep { background:#fef9c3; }
+  .cella.rep.filled { border:1px solid rgba(100,116,139,0.18); }
+  .cella.rep .cella-rep-icon { font-size:0.75rem; margin-left:1px; }
+  .cella.smart { background:#fed7aa; }
+  .cella.smart.filled { border:1px solid rgba(100,116,139,0.18); }
+  .cella.rep.smart,
+  .cella.rep.smart.filled {
+    background:#fef9c3;
+    border:1px solid rgba(100,116,139,0.18);
+  }
+  .cella.special-fest.filled,
+  .cella.var-cell.special-fest.filled,
+  .tpl-cella.special-fest.filled {
+    background:#FF0000;
+    color:#ffffff !important;
+    border:1px solid rgba(127,29,29,0.22);
+  }
+  .cella.special-fest.filled .mf-inline,
+  .cella.special-fest.filled .cella-rep-icon,
+  .cella.special-fest.filled .smart-inline,
+  .cella.var-cell.special-fest.filled .mf-inline,
+  .cella.var-cell.special-fest.filled .cella-rep-icon,
+  .cella.var-cell.special-fest.filled .smart-inline,
+  .tpl-cella.special-fest.filled .mf-inline,
+  .tpl-cella.special-fest.filled .cella-rep-icon,
+  .tpl-cella.special-fest.filled .smart-inline { color:#ffffff !important; }
+  .cella.rf-rep.filled,
+  .cella.var-cell.rf-rep.filled,
+  .tpl-cella.rf-rep.filled {
+    background:#fef9c3 !important;
+    color:#FF0000 !important;
+    border:1px solid rgba(250,204,21,0.5) !important;
+  }
+  .cella.rf-rep.filled .mf-inline,
+  .cella.rf-rep.filled .cella-rep-icon,
+  .cella.rf-rep.filled .smart-inline,
+  .cella.var-cell.rf-rep.filled .mf-inline,
+  .cella.var-cell.rf-rep.filled .cella-rep-icon,
+  .cella.var-cell.rf-rep.filled .smart-inline,
+  .tpl-cella.rf-rep.filled .mf-inline,
+  .tpl-cella.rf-rep.filled .cella-rep-icon,
+  .tpl-cella.rf-rep.filled .smart-inline { color:#FF0000 !important; }
+  .cella.special-mal.filled,
+  .cella.var-cell.special-mal.filled,
+  .tpl-cella.special-mal.filled {
+    background:#93c5fd;
+    color:#FF0000 !important;
+    border:1px solid rgba(59,130,246,0.28);
+  }
+  .cella.special-mal.filled .mf-inline,
+  .cella.special-mal.filled .cella-rep-icon,
+  .cella.special-mal.filled .smart-inline,
+  .cella.var-cell.special-mal.filled .mf-inline,
+  .cella.var-cell.special-mal.filled .cella-rep-icon,
+  .cella.var-cell.special-mal.filled .smart-inline,
+  .tpl-cella.special-mal.filled .mf-inline,
+  .tpl-cella.special-mal.filled .cella-rep-icon,
+  .tpl-cella.special-mal.filled .smart-inline { color:#FF0000 !important; }
+  .cella.var-cell.filled { color:#FF0000; font-size:var(--slot-var-font); font-weight:900; }
+  .cella.var-cell.filled .mf-inline { color:#FF0000; }
+  .cella.filled:not(.var-cell) { color:#1a2535; font-size:var(--slot-font); font-weight:700; }
+  .cella.empty { background:transparent; border:1px dashed #94a3b8; color:#64748b; }
+  .cella.editable.empty:hover { background:#1e2d40; color:var(--muted); border-color:#94a3b8; }
+
+  /* BASE sbarrata quando c'è una VAR */
+  .cella-base-sbarrata { overflow:hidden; }
+  .cella-base-sbarrata::after {
+    content:'';
+    position:absolute;
+    left:-12%;
+    top:50%;
+    width:124%;
+    border-top:2px dashed #FF0000;
+    transform:rotate(-19deg);
+    transform-origin:center center;
+    pointer-events:none;
+    opacity:.95;
+  }
+  .cella-base-sbarrata.editable { cursor:pointer; }
+  .cella-base-sbarrata.editable:hover { background:rgba(59,130,246,0.08); border-color:rgba(59,130,246,0.3); }
+
+  /* Modificatori inline (ordine: m/f → ® → #) */
+  .mf-inline {
+    font-size:0.58rem; font-weight:500; color:#334155; margin-left:0; line-height:1;
+    position:relative; top:-0.38em;
+  }
+  .cella-rep-icon {
+    font-size:0.68rem; margin-left:0; line-height:1;
+    position:relative; top:-0.38em;
+  }
+  /* Smart # inline — stessa dimensione del testo turno */
+  .smart-inline { font-size:0.78rem; font-weight:900; color:#FF0000; margin-left:0; line-height:1; }
+
+  /* Colonne destra */
+  .td-destra { width:var(--side-w); min-width:var(--side-w); max-width:var(--side-w); padding:2px 1px !important; font-size:0.68rem; color:#334155; background:#f8fafc; border-left:1px solid #cbd5e1; font-weight:600; }
+  .td-destra.editable { cursor:pointer; }
+  .td-destra.editable:hover { background:#e2e8f0; color:#1f2937; }
+  .td-sep-destra { background:var(--bg); width:var(--sep-w); min-width:var(--sep-w); max-width:var(--sep-w); padding:0; }
+
+  /* ── TURNO PICKER REDESIGN ── */
+  .turno-picker {
+    position:fixed; z-index:500;
+    background:linear-gradient(155deg, #0d1b2e 0%, #162033 60%, #1a2d45 100%);
+    border:1px solid rgba(99,115,140,0.4);
+    border-radius:18px;
+    padding:16px;
+    box-shadow:0 24px 48px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,0.04) inset;
+    width:296px;
+    display:flex; flex-direction:column; gap:12px;
+  }
+
+  /* Preview bar */
+  .picker-preview {
+    background:rgba(15,23,42,0.8);
+    border:1px solid rgba(99,115,140,0.25);
+    border-radius:10px;
+    padding:8px 12px;
+    display:flex; align-items:center; gap:10px; min-height:38px;
+  }
+  .picker-preview-label { font-size:0.6rem; font-weight:800; letter-spacing:.08em; color:#475569; text-transform:uppercase; white-space:nowrap; }
+  .picker-preview-value { flex:1; text-align:center; font-size:0.95rem; font-weight:800; color:#e2e8f0; }
+  .picker-preview-col { font-size:0.6rem; font-weight:700; letter-spacing:.05em; color:#475569; text-transform:uppercase; white-space:nowrap; padding:2px 6px; border-radius:4px; background:rgba(255,255,255,0.05); }
+
+  /* Section labels */
+  .picker-section {
+    display:flex; align-items:center; gap:8px;
+    font-size:0.6rem; font-weight:800; letter-spacing:.08em;
+    color:#475569; text-transform:uppercase; margin-bottom:5px;
+  }
+  .picker-section::after { content:''; flex:1; height:1px; background:rgba(100,116,139,0.15); }
+
+  /* Shift buttons */
+  .sb {
+    padding:9px 6px; border-radius:9px; border:1px solid transparent;
+    cursor:pointer; font-size:0.78rem; font-weight:700; text-align:center;
+    transition:all 0.15s; letter-spacing:0.02em;
+  }
+  .sb:active { transform:scale(.95); }
+  .sb.active { outline:2px solid currentColor; outline-offset:1px; }
+
+  .sb-m  { background:rgba(37,99,235,0.15); border-color:rgba(37,99,235,0.25); color:#7eb3f5; }
+  .sb-m:hover,.sb-m.active  { background:rgba(37,99,235,0.3);  border-color:#3b82f6; color:#bfdbfe; box-shadow:0 0 10px rgba(59,130,246,0.2); }
+
+  .sb-p  { background:rgba(161,78,0,0.18);  border-color:rgba(217,119,6,0.3);  color:#fbbf24; }
+  .sb-p:hover,.sb-p.active  { background:rgba(180,83,9,0.32);   border-color:#f59e0b; color:#fde68a; box-shadow:0 0 10px rgba(245,158,11,0.2); }
+
+  .sb-n  { background:rgba(67,56,202,0.18); border-color:rgba(99,102,241,0.3); color:#a5b4fc; }
+  .sb-n:hover,.sb-n.active  { background:rgba(67,56,202,0.32);  border-color:#818cf8; color:#c7d2fe; box-shadow:0 0 10px rgba(129,140,248,0.2); }
+
+  .sb-rc { background:rgba(6,78,59,0.25);   border-color:rgba(16,185,129,0.3); color:#6ee7b7; }
+  .sb-rc:hover,.sb-rc.active{ background:rgba(6,78,59,0.4);    border-color:#10b981; color:#a7f3d0; box-shadow:0 0 10px rgba(16,185,129,0.2); }
+
+  .sb-r  { background:rgba(127,29,29,0.25); border-color:rgba(239,68,68,0.3);  color:#fca5a5; }
+  .sb-r:hover,.sb-r.active  { background:rgba(127,29,29,0.4);  border-color:#ef4444; color:#fecaca; box-shadow:0 0 10px rgba(239,68,68,0.2); }
+
+  .sb-sp { background:rgba(30,41,59,0.7);   border-color:rgba(71,85,105,0.35); color:#7a8fa8; }
+  .sb-sp:hover,.sb-sp.active{ background:rgba(51,65,85,0.85); border-color:#60a5fa; color:#cbd5e1; }
+
+  .sb-clr{ background:rgba(239,68,68,0.08); border-color:rgba(239,68,68,0.2);  color:#f87171; }
+  .sb-clr:hover { background:rgba(239,68,68,0.18); border-color:rgba(239,68,68,0.4); }
+
+  /* Modifier chips */
+  .mod-chips { display:flex; gap:5px; flex-wrap:wrap; }
+  .mod-chip {
+    display:inline-flex; align-items:center; gap:4px;
+    padding:5px 9px; border-radius:16px;
+    border:1px solid rgba(71,85,105,0.4);
+    background:rgba(22,32,50,0.8);
+    color:#4e627a; font-size:0.7rem; font-weight:700;
+    cursor:pointer; transition:all 0.15s; user-select:none;
+  }
+  .mod-chip:hover { border-color:rgba(100,116,139,0.7); color:#7a92aa; }
+  .mod-chip.chip-smart { color:#fb923c; border-color:rgba(251,146,60,0.5); background:rgba(251,146,60,0.1); }
+  .mod-chip.chip-rep   { color:#facc15; border-color:rgba(250,204,21,0.5); background:rgba(250,204,21,0.08); }
+  .mod-chip.chip-F     { color:#a3e635; border-color:rgba(163,230,53,0.5); background:rgba(163,230,53,0.08); }
+  .mod-chip.chip-M     { color:#34d399; border-color:rgba(52,211,153,0.5); background:rgba(52,211,153,0.08); }
+
+  /* Action buttons */
+  .picker-actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
+  .picker-btn {
+    padding:10px 8px; border-radius:10px; border:none;
+    cursor:pointer; font-size:0.8rem; font-weight:700;
+    transition:all 0.15s; letter-spacing:.01em;
+  }
+  .picker-btn-secondary { background:rgba(148,163,184,0.12); color:#cbd5e1; border:1px solid rgba(148,163,184,0.24); }
+  .picker-btn-secondary:hover { background:rgba(148,163,184,0.2); border-color:rgba(148,163,184,0.42); }
+  .picker-btn-confirm { background:linear-gradient(135deg,#2563eb,#1d4ed8); color:white; }
+  .picker-btn-confirm:hover { background:linear-gradient(135deg,#3b82f6,#2563eb); box-shadow:0 4px 14px rgba(37,99,235,0.4); }
+  .picker-btn-cancel { background:rgba(239,68,68,0.08); color:#f87171; border:1px solid rgba(239,68,68,0.25); }
+  .picker-btn-cancel:hover { background:rgba(239,68,68,0.16); border-color:rgba(239,68,68,0.45); }
+
+  /* ── EDITOR BAR ── */
+  .editor-bar { background:var(--card); border-bottom:1px solid var(--border); padding:8px 20px; display:flex; align-items:center; gap:10px; font-size:0.82rem; flex-shrink:0; }
+  .editor-badge { background:rgba(245,158,11,.15); color:#F59E0B; border:1px solid rgba(245,158,11,.3); border-radius:6px; padding:3px 10px; font-size:0.75rem; font-weight:700; }
+  .btn-editor { background:var(--card2); border:1px solid var(--border); color:var(--muted); border-radius:8px; padding:5px 14px; cursor:pointer; font-size:0.8rem; transition:all .15s; }
+  .btn-editor:hover { background:#2d3f55; color:var(--text); }
+  .btn-editor.primary { background:var(--accent); color:white; border-color:var(--accent); }
+  .btn-editor.primary:hover { background:#2563EB; }
+  .btn-editor.warn { background:rgba(16,185,129,.16); color:#a7f3d0; border-color:rgba(16,185,129,.35); }
+  .btn-editor.warn:hover { background:#10b981; color:#fff; }
+  .btn-editor.pending { position:relative; }
+  .nav-badge { display:none; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#ef4444; color:#fff; font-size:0.68rem; font-weight:800; align-items:center; justify-content:center; line-height:1; }
+  .nav-badge.show { display:inline-flex; }
+  .ferie-mini { font-size:0.72rem; color:#bfdbfe; }
+  .ferie-marker { position:absolute; right:2px; top:2px; z-index:2; min-width:18px; height:18px; padding:0 5px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-size:0.66rem; font-weight:900; letter-spacing:.02em; border:1px solid rgba(15,23,42,.14); }
+  .ferie-marker.pending { background:#ccfbf1; color:#115e59; }
+  .ferie-marker.approved { background:#d9f99d; color:#365314; }
+  .ferie-marker.rejected { background:#fecaca; color:#991b1b; }
+  .ferie-cell-selectable { box-shadow:inset 0 0 0 1px rgba(20,184,166,.28); }
+  .ferie-cell-selectable:hover { background:rgba(20,184,166,.12) !important; border-color:rgba(20,184,166,.32) !important; }
+  .ferie-cell-selected { background:rgba(20,184,166,.18) !important; border-color:#14b8a6 !important; }
+  .ferie-pending-card { border:1px solid rgba(20,184,166,.2); border-radius:12px; background:rgba(15,23,42,.38); padding:12px; margin-bottom:10px; }
+  .ferie-pending-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .ferie-log-type { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; font-size:0.68rem; font-weight:700; background:rgba(59,130,246,.16); color:#bfdbfe; }
+  .ferie-log-type.pending { background:rgba(250,204,21,.18); color:#fde68a; border:1px solid rgba(250,204,21,.35); }
+  .ferie-log-type.approved { background:rgba(34,197,94,.16); color:#86efac; border:1px solid rgba(34,197,94,.32); }
+  .ferie-log-type.rejected { background:rgba(239,68,68,.16); color:#fca5a5; border:1px solid rgba(239,68,68,.32); }
+  .ferie-log-type.neutral { background:rgba(148,163,184,.14); color:#cbd5e1; border:1px solid rgba(148,163,184,.24); }
+  .ferie-filter-bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .ferie-filter-bar input, .ferie-filter-bar select { background:var(--card2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:8px 10px; font-size:0.78rem; min-height:36px; }
+  .ferie-filter-bar input { flex:1 1 220px; }
+  .ferie-filter-bar select { flex:0 0 180px; }
+  .ferie-log-scroll { max-height:460px; overflow-y:auto; padding-right:4px; }
+
+  /* ── SETUP OPERATORI ── */
+  .setup-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:400; align-items:center; justify-content:center; }
+  .setup-overlay.open { display:flex; }
+  .setup-modal { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:28px; width:500px; max-width:95vw; max-height:85vh; overflow-y:auto; }
+  .setup-modal h2 { font-size:1rem; font-weight:700; margin-bottom:20px; }
+  .op-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .op-row input { flex:1; background:var(--card2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:8px 10px; font-size:0.88rem; outline:none; }
+  .op-row input:focus { border-color:var(--accent); }
+  .op-pos { width:28px; text-align:center; font-size:0.78rem; color:var(--muted); font-weight:700; flex-shrink:0; }
+
+  /* ── TEMPLATE ── */
+  .template-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:400; align-items:center; justify-content:center; }
+  .template-overlay.open { display:flex; }
+  .template-modal { background:linear-gradient(145deg, #111827, #1f2937); border:1px solid rgba(148,163,184,.5); border-radius:18px; padding:20px; width:1100px; max-width:97vw; max-height:88vh; overflow-y:auto; box-shadow:0 18px 38px rgba(0,0,0,.6); }
+  .template-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .template-header h2 { font-size:1.08rem; font-weight:800; color:#dbeafe; margin:0; }
+  .template-header .close-btn { background:#1f2a3f; border:1px solid #4772a5; color:#dbebff; border-radius:12px; padding:6px 12px; cursor:pointer; transition:all .2s; }
+  .template-header .close-btn:hover { background:#2e3a53; border-color:#60a5fa; }
+  .template-meta { background:rgba(30,41,59,.7); border:1px solid rgba(100,116,139,.45); border-radius:14px; padding:12px 14px; margin-bottom:16px; color:#d6dbe6; font-size:0.82rem; }
+  .template-table { border-collapse:collapse; width:100%; font-size:0.8rem; }
+  .template-table th { background:#1a2535; color:#94a3b8; font-weight:700; padding:8px 4px; text-align:center; border:1px solid #2d3f55; }
+  .template-table td { padding:5px 4px; border:1px solid #2d3f55; text-align:center; background:#111827; }
+  .template-pos-label { font-weight:700; color:#60a5fa !important; background:#0f172a !important; min-width:28px; }
+  .template-rep-table { border-collapse:collapse; width:100%; margin-top:14px; font-size:0.78rem; }
+  .template-rep-table th { background:#1a2535; color:#94a3b8; font-weight:700; padding:8px 4px; text-align:center; border:1px solid #2d3f55; }
+  .template-rep-table td { padding:6px 4px; border:1px solid #2d3f55; text-align:center; background:#111827; }
+  .template-rep-table input {
+    width:58px; text-align:center; background:#0f172a; border:1px solid #334155;
+    color:#e2e8f0; border-radius:8px; padding:6px 4px; font-size:0.8rem;
+  }
+  .template-rep-label { font-weight:700; color:#fcd34d; background:#0f172a !important; min-width:52px; }
+  .template-subtitle { margin-top:14px; font-size:0.8rem; font-weight:800; color:#cbd5e1; letter-spacing:.02em; }
+  /* Cella template cliccabile */
+  .tpl-cella { cursor:pointer; font-size:0.78rem; min-width:62px; }
+  .tpl-cella.filled:not(.rep):not(.smart) { color:#ffffff; }
+  .tpl-cella.filled:not(.rep):not(.smart) .mf-inline { color:#ffffff; }
+  .tpl-cella:hover { background:rgba(59,130,246,0.12) !important; border-color:rgba(96,165,250,0.45) !important; }
+  .tpl-date-input { background:#1f2a3f; border:1px solid #3b4a68; color:#e2e8f0; border-radius:6px; padding:4px 8px; }
+  .tpl-date-input:focus { border-color:#60a5fa; outline:2px solid rgba(96,165,250,.25); }
+  .template-actions { display:flex; justify-content:space-between; gap:10px; margin-top:16px; }
+  .template-actions .btn { border:1px solid rgba(76,86,106,.6); border-radius:14px; padding:10px 14px; background:rgba(31,41,59,.9); color:#dbeafe; font-weight:700; cursor:pointer; transition:all .18s; min-width:150px; }
+  .template-actions .btn:hover { background:rgba(42,61,93,.95); border-color:#60a5fa; transform:translateY(-1px); }
+  .template-actions .btn.primary { background:#0ea5e9; color:white; border-color:#0284c7; }
+  .template-actions .btn.primary:hover { background:#0284c7; }
+
+  /* ── LOG PANEL ── */
+  #logPanel { display:none; position:fixed; right:0; top:56px; bottom:64px; width:380px; background:var(--card); border-left:1px solid var(--border); z-index:30; overflow-y:auto; padding:16px; box-shadow:-18px 0 40px rgba(0,0,0,.26); }
+
+  /* ── BOTTOM NAV ── */
+  .bottom-nav { display:none; position:fixed; bottom:0; left:0; right:0; z-index:50; background:var(--card); border-top:1px solid var(--border); padding:6px 0 env(safe-area-inset-bottom,8px); }
+  .bottom-nav-inner { display:flex; justify-content:space-around; align-items:stretch; }
+  .bottom-nav a { display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--muted); text-decoration:none; font-size:0.65rem; font-weight:600; padding:6px 4px; flex:1; text-align:center; min-width:0; margin:0 2px; border-radius:8px; transition:color .15s; }
+  .bottom-nav a.active { color:var(--accent); }
+  .bottom-nav a.admin-link { color:#F59E0B !important; }
+  .bottom-nav a span.icon { font-size:1.35rem; line-height:1.2; }
+  #adminMobileBtn { display:none; color:#F59E0B !important; }
+
+  @media (max-width:768px) {
+    header { height:48px; padding:0 12px; gap:8px; }
+    .page-title { min-width:0; max-width:140px; font-size:0.9rem; }
+    .top-nav { display:none !important; }
+    #userNameLabel { display:none; }
+    .header-controls { gap:4px; }
+    .header-controls button, .header-controls select { padding:4px 8px; font-size:0.76rem; }
+    .month-tabs-row { flex-wrap:wrap; align-items:stretch; }
+    .month-tabs { width:100%; padding:6px 8px 4px; gap:3px; }
+    .month-tab { padding:4px 8px; font-size:0.74rem; }
+    .ferie-inline { width:100%; padding:8px 10px; gap:6px; border-left:none; border-top:1px solid var(--border); overflow-x:auto; }
+    .ferie-inline-hint { display:none; }
+    .btn-ferie { padding:4px 8px; font-size:0.72rem; }
+    .bottom-nav { display:block; }
+    body { padding-bottom:64px; }
+    .editor-bar { flex-wrap:wrap; gap:6px; }
+    #logPanel { left:0; right:0; width:auto; top:48px; bottom:64px; border-left:none; border-top:1px solid var(--border); box-shadow:none; }
+  }
+  ::-webkit-scrollbar { width:8px; height:8px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:rgba(71,85,105,.72); border-radius:999px; }
+  ::-webkit-scrollbar-thumb:hover { background:#64748b; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="page-title">👥 Turni <span>Team</span></div>
+  <nav class="top-nav">
+    <a href="/">📅 Calendario</a>
+    <a href="/riepilogo.html">📊 Riepilogo</a>
+    <a href="/bustapaga.html">💶 Busta Paga</a>
+    <a href="#" onclick="return false;" class="nav-active">👥 Team</a>
+    <a href="/admin.html" id="adminNavLink">🔧 Admin</a>
+  </nav>
+  <div class="header-controls">
+    <button onclick="changeAnno(-1)">◀</button>
+    <select id="selAnno" onchange="anno=parseInt(this.value);buildMonthTabs();load()"></select>
+    <button onclick="changeAnno(1)">▶</button>
+    <div class="user-menu">
+      <button class="user-btn" onclick="toggleUserMenu(event)" id="userBtn">
+        <div class="avatar" id="userAvatar">?</div>
+        <span id="userNameLabel">—</span>
+        <span style="font-size:0.65rem;color:var(--muted)">▼</span>
+      </button>
+      <div class="user-dropdown" id="userDropdown">
+        <div class="ud-header"><strong id="udName">—</strong><span id="udUsername"></span></div>
+        <div class="ud-item" onclick="window.location.href='/impostazioni.html'">👤 Impostazioni account</div>
+        <div class="ud-sep"></div>
+        <div class="ud-item danger" onclick="logout()">↩ Esci</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="month-tabs-row">
+  <div class="month-tabs" id="monthTabs"></div>
+  <div class="ferie-inline" id="ferieBar">
+    <button class="btn-pdf" id="downloadPdfBtn" onclick="downloadTeamPdf()">PDF mese</button>
+    <span class="ferie-inline-hint" id="ferieModeHint"></span>
+    <button class="btn-ferie" id="ferieToggleBtn" style="display:none" onclick="toggleFerieMode()">📅 Ferie</button>
+    <button class="btn-editor primary" id="ferieSubmitBtn" style="display:none" onclick="submitFerieRequest()">Invia</button>
+    <button class="btn-editor" id="ferieCancelBtn" style="display:none" onclick="cancelFerieMode()">✕ Annulla</button>
+  </div>
+</div>
+
+<div class="editor-bar" id="editorBar" style="display:none">
+  <span class="editor-badge">✏️ Modalità Editor</span>
+  <button class="btn-editor" onclick="openSetupOperatori()">👥 Imposta operatori</button>
+  <button class="btn-editor primary" onclick="openTemplate()">📋 Carica template settimana</button>
+  <button class="btn-editor pending" onclick="toggleLog()" id="logBtn">📋 Log modifiche <span id="ferieAlertBadge" class="nav-badge"></span></button>
+  <span style="font-size:0.75rem;color:var(--muted)" id="lastSaveLabel"></span>
+</div>
+
+<div class="table-wrap" id="tableWrap">
+  <div style="text-align:center;padding:60px;color:var(--muted)">Caricamento…</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TURNO PICKER — Redesign
+═══════════════════════════════════════════════════════════ -->
+<div id="turnoPicker" class="turno-picker" style="display:none" onclick="event.stopPropagation()">
+
+  <!-- Preview -->
+  <div class="picker-preview">
+    <span class="picker-preview-label">Turno</span>
+    <div class="picker-preview-value" id="pickerPreview">—</div>
+    <span class="picker-preview-col" id="pickerColLabel">BASE</span>
+  </div>
+
+  <!-- Mattino -->
+  <div>
+    <div class="picker-section">Mattino</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+      <button class="sb sb-m" data-t="7-15"  onclick="pickerSetTurno('7-15',this)">7–15</button>
+      <button class="sb sb-m" data-t="8-16"  onclick="pickerSetTurno('8-16',this)">8–16</button>
+      <button class="sb sb-m" data-t="9-17"  onclick="pickerSetTurno('9-17',this)">9–17</button>
+      <button class="sb sb-m" data-t="11-19" onclick="pickerSetTurno('11-19',this)">11–19</button>
+    </div>
+  </div>
+
+  <!-- Pomeriggio + Notte -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+    <div>
+      <div class="picker-section">Pomeriggio</div>
+      <button class="sb sb-p" data-t="15-23" onclick="pickerSetTurno('15-23',this)" style="width:100%;padding:10px">15–23</button>
+    </div>
+    <div>
+      <div class="picker-section">Notte</div>
+      <button class="sb sb-n" data-t="23-7" onclick="pickerSetTurno('23-7',this)" style="width:100%;padding:10px">23–7</button>
+    </div>
+  </div>
+
+  <!-- Speciali -->
+  <div>
+    <div class="picker-section">Turni speciali</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+      <button class="sb sb-rc" data-t="RC"      onclick="pickerSetTurno('RC',this)">RC</button>
+      <button class="sb sb-r"  data-t="R"       onclick="pickerSetTurno('R',this)">R</button>
+      <button class="sb sb-sp" data-t="ROT"     onclick="pickerSetTurno('ROT',this)">ROT</button>
+      <button class="sb sb-r"  data-t="RF"      onclick="pickerSetTurno('RF',this)">RF</button>
+      <button class="sb sb-sp" data-t="F"       onclick="pickerSetTurno('F',this)">F</button>
+      <button class="sb sb-sp" data-t="MAL"     onclick="pickerSetTurno('MAL',this)">MAL</button>
+      <button class="sb sb-sp" data-t="8PR"     onclick="pickerSetTurno('8PR',this)">8PR</button>
+      <button class="sb sb-sp" data-t="LUTTO"   onclick="pickerSetTurno('LUTTO',this)">LUTTO</button>
+      <button class="sb sb-sp" data-t="EX FEST" onclick="pickerSetTurno('EX FEST',this)">EX F.</button>
+      <button class="sb sb-sp" data-t="#"       onclick="pickerSetTurno('#',this)" title="Solo smart working">#</button>
+      <button class="sb sb-clr"                 onclick="pickerSetTurno('',this)" title="Svuota cella">—</button>
+    </div>
+  </div>
+
+  <!-- Modificatori -->
+  <div>
+    <div class="picker-section">Modificatori</div>
+    <div class="mod-chips">
+      <button class="mod-chip" id="modSmart" onclick="pickerToggleFlag('smart',event)" title="Smart Working → appare su VAR">🟠 Smart #</button>
+      <button class="mod-chip" id="modRep"   onclick="pickerToggleFlag('rep',event)"   title="Reperibilità">🟡 Rep ®</button>
+      <button class="mod-chip" id="modF"     onclick="pickerToggleFlag('F',event)"     title="Facoltativo">ᶠ Facolt.</button>
+      <button class="mod-chip" id="modM"     onclick="pickerToggleFlag('M',event)"     title="Minimo Servizio">ᴹ Min.S.</button>
+    </div>
+  </div>
+
+  <!-- Azioni -->
+  <div class="picker-actions">
+    <button class="picker-btn picker-btn-confirm" onclick="pickerConferma()">✅ Conferma</button>
+    <button class="picker-btn picker-btn-secondary" onclick="pickerAnnulla()">Annulla</button>
+    <button class="picker-btn picker-btn-cancel"  onclick="pickerCancella()">✕ Cancella</button>
+  </div>
+</div>
+
+<!-- SETUP OPERATORI -->
+<div class="setup-overlay" id="setupOverlay">
+  <div class="setup-modal">
+    <h2>👥 Imposta operatori</h2>
+    <p id="setupHelpText" style="font-size:0.82rem;color:var(--muted);margin-bottom:16px">Inserisci i nomi degli operatori nell'ordine delle colonne della tabella.</p>
+    <div id="opRows"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap">
+      <button class="btn-editor" onclick="removeOperatoreRow()">➖ Rimuovi posizione</button>
+      <button class="btn-editor" onclick="addOperatoreRow()">➕ Aggiungi posizione</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn-editor primary" onclick="saveOperatori()">💾 Salva</button>
+      <button class="btn-editor" onclick="document.getElementById('setupOverlay').classList.remove('open')">Annulla</button>
+    </div>
+  </div>
+</div>
+
+<datalist id="turni-list">
+  <option value="7-15"><option value="8-16"><option value="9-17"><option value="11-19">
+  <option value="15-23"><option value="23-7">
+  <option value="RC"><option value="R"><option value="ROT"><option value="RF"><option value="8PR"><option value="F">
+  <option value="MAL"><option value="LUTTO"><option value="EX FEST">
+</datalist>
+
+<!-- CARICA TEMPLATE -->
+<div class="template-overlay" id="templateOverlay">
+  <div class="template-modal">
+    <div class="template-header">
+      <h2>📋 Carica template settimana ciclico</h2>
+      <button class="close-btn" onclick="document.getElementById('templateOverlay').classList.remove('open')">✕ Chiudi</button>
+    </div>
+    <div class="template-meta">
+      Inserisci i turni per ogni giorno della settimana e, se vuoi, anche le posizioni dei reperibili e delle festivita da ruotare automaticamente.<br>
+      Ogni settimana il sistema ruota i turni; puoi limitare l'applicazione del ciclo ad un intervallo specifico.
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+      <label style="font-size:0.87rem;color:#cbd5e1;font-weight:700;white-space:nowrap">Inizio ciclo:</label>
+      <input id="tpl_start_date" type="date" class="tpl-date-input"/>
+      <label style="font-size:0.87rem;color:#cbd5e1;font-weight:700;white-space:nowrap">Fine ciclo:</label>
+      <input id="tpl_end_date" type="date" class="tpl-date-input"/>
+      <span style="font-size:0.78rem;color:#a5b4fc;white-space:nowrap">Il ciclo sarà applicato solo in questo intervallo.</span>
+    </div>
+    <table class="template-table">
+      <thead>
+        <tr>
+          <th>Pos.</th><th>Lunedì</th><th>Martedì</th><th>Mercoledì</th>
+          <th>Giovedì</th><th>Venerdì</th><th>Sabato</th><th>Domenica</th>
+        </tr>
+      </thead>
+      <tbody id="templateTableBody"></tbody>
+    </table>
+    <table class="template-rep-table">
+      <thead>
+        <tr>
+          <th>Col.</th><th>Lunedì</th><th>Martedì</th><th>Mercoledì</th>
+          <th>Giovedì</th><th>Venerdì</th><th>Sabato</th><th>Domenica</th>
+        </tr>
+      </thead>
+      <tbody id="templateRepTableBody"></tbody>
+    </table>
+    <div class="template-subtitle">Festivita</div>
+    <table class="template-rep-table">
+      <thead>
+        <tr>
+          <th>Col.</th><th>Lunedì</th><th>Martedì</th><th>Mercoledì</th>
+          <th>Giovedì</th><th>Venerdì</th><th>Sabato</th><th>Domenica</th>
+        </tr>
+      </thead>
+      <tbody id="templateFestTableBody"></tbody>
+    </table>
+    <div class="template-actions">
+      <button class="btn primary" onclick="saveTemplate()">💾 Salva template</button>
+      <button class="btn" onclick="document.getElementById('templateOverlay').classList.remove('open')">✕ Annulla</button>
+      <button class="btn" onclick="clearTemplateDateRange()" style="background:#334155;color:#e2e8f0;border-color:#1e293b">♻️ Reset date</button>
+    </div>
+    <div id="templateResult" style="margin-top:12px;font-size:0.85rem;color:#d1d5db"></div>
+  </div>
+</div>
+
+<!-- LOG PANEL -->
+<div id="logPanel">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+    <h3 style="font-size:0.9rem;font-weight:700">📋 Log</h3>
+    <button onclick="toggleLog()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">✕</button>
+  </div>
+  <!-- Tab switcher -->
+  <div style="display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px">
+    <button id="logTabTurni" onclick="switchLogTab('turni')"
+      style="background:var(--accent);color:white;border:none;border-radius:6px;padding:5px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all .15s">
+      ✏️ Turni
+    </button>
+    <button id="logTabFerie" onclick="switchLogTab('ferie')"
+      style="background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all .15s">
+      📅 Ferie
+    </button>
+  </div>
+  <div id="logContentTurni" style="font-size:0.78rem;color:var(--muted)">Caricamento…</div>
+  <div id="logContentFerie" style="font-size:0.78rem;color:var(--muted);display:none">Caricamento…</div>
+</div>
+
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <a href="/"><span class="icon">🗓</span><span>Turni</span></a>
+    <a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a>
+    <a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a>
+    <a href="/turni-team.html" class="active"><span class="icon">👥</span><span>Team</span></a>
+    <a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a>
+    <a href="/admin.html" id="adminMobileBtn" class="admin-link"><span class="icon">🔧</span><span>Admin</span></a>
+  </div>
+</nav>
+
+<script>
+const MESI_IT    = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+const GIORNI_SHORT = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+
+let anno = new Date().getFullYear();
+let mese = new Date().getMonth() + 1;
+let isEditor = false;
+let operatori = [];
+let datiMese = null;
+let setupOperatorCount = 0;
+
+// Stato picker
+let pickerTarget = null;   // { data, opId, col }
+let pickerFlags  = { smart:false, rep:false, F:false, M:false };
+let pickerTurnoSelected = undefined;
+let pickerMode = 'table';          // 'table' | 'template'
+let pickerTemplateTarget = null;   // { dow, pos }
+let tplData = {};                  // tplData[dow][pos] = { turno_base, flags }
+let tplRepData = {};               // tplRepData[dow] = { rep1_pos, rep2_pos, rep3_pos, fest_m1_pos, fest_m2_pos, fest_p1_pos, fest_p2_pos }
+let tplSlotCount = 13;
+let teamContext = { linked_operatore_id:null, linked_operatore_nome:'', can_request_ferie:false, ferie_pending_count:0 };
+let ferieMode = false;
+let ferieAdds = new Set();
+let ferieRemovals = new Set();
+let teamFerieLogData = { pending: [], logs: [] };
+let teamFerieFilters = { name: '', status: 'all' };
+let teamTableResizeBound = false;
+let teamTableResizeObserver = null;
+
+function getOperatorSlotCount(extraPositions = []) {
+  const opMax = operatori.reduce((max, op) => Math.max(max, Number(op.posizione) || 0), 0);
+  const extraMax = extraPositions.reduce((max, pos) => Math.max(max, Number(pos) || 0), 0);
+  return Math.max(opMax, extraMax, 1);
+}
+
+function updateSetupHelpText() {
+  const el = document.getElementById('setupHelpText');
+  if (el) el.textContent = `Inserisci i nomi degli operatori nell'ordine delle colonne della tabella (${setupOperatorCount} posizioni).`;
+}
+
+function buildTeamTableColgroup(operatorCount = 0) {
+  let html = '<colgroup><col class="col-date"><col class="col-day">';
+  for (let i = 0; i < operatorCount; i += 1) html += '<col class="col-slot"><col class="col-slot">';
+  html += '<col class="col-sep">';
+  for (let i = 0; i < 3; i += 1) html += '<col class="col-side">';
+  html += '<col class="col-sep">';
+  for (let i = 0; i < 4; i += 1) html += '<col class="col-side">';
+  html += '</colgroup>';
+  return html;
+}
+
+function applyResponsiveTeamLayout() {
+  const wrap = document.getElementById('tableWrap');
+  const table = wrap?.querySelector('.team-table');
+  const operatorCount = datiMese?.operatori?.length || operatori.length || 0;
+  if (!wrap || !table || !operatorCount) return;
+
+  const containerWidth = Math.max(Math.floor(wrap.clientWidth || 0), 320);
+  const dateW = 50;
+  const dayW = 32;
+  const sepW = 2;
+  const sideW = containerWidth >= 1700 ? 26 : containerWidth >= 1450 ? 24 : containerWidth >= 1250 ? 22 : 20;
+  const fixedWidth = dateW + dayW + (sepW * 2) + (sideW * 7);
+  const slotCount = operatorCount * 2;
+  const slotW = Math.max(28, Math.floor((containerWidth - fixedWidth) / Math.max(slotCount, 1)));
+
+  let slotFont = 0.72;
+  let slotVarFont = 0.80;
+  let opNameFont = 0.62;
+  if (slotW <= 38) {
+    slotFont = 0.68;
+    slotVarFont = 0.75;
+    opNameFont = 0.58;
+  }
+  if (slotW <= 34) {
+    slotFont = 0.62;
+    slotVarFont = 0.69;
+    opNameFont = 0.54;
+  }
+  if (slotW <= 30) {
+    slotFont = 0.58;
+    slotVarFont = 0.64;
+    opNameFont = 0.50;
+  }
+
+  wrap.style.setProperty('--date-w', `${dateW}px`);
+  wrap.style.setProperty('--day-w', `${dayW}px`);
+  wrap.style.setProperty('--sep-w', `${sepW}px`);
+  wrap.style.setProperty('--side-w', `${sideW}px`);
+  wrap.style.setProperty('--slot-w', `${slotW}px`);
+  wrap.style.setProperty('--slot-font', `${slotFont}rem`);
+  wrap.style.setProperty('--slot-var-font', `${slotVarFont}rem`);
+  wrap.style.setProperty('--op-name-font', `${opNameFont}rem`);
+}
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+function getToken() { return localStorage.getItem('token'); }
+function logout()   {
+  localStorage.removeItem('token');
+  localStorage.removeItem('username');
+  localStorage.removeItem('nome');
+  localStorage.removeItem('is_admin');
+  window.location.href='/login.html';
+}
+async function fetchCurrentUserOrNull() {
+  const res = await fetch('/api/auth/me');
+  if (res.status === 401) { logout(); return null; }
+  if (!res.ok) throw new Error(`Auth check failed: ${res.status}`);
+  return res.json();
+}
+
+const _origFetch = window.fetch.bind(window);
+window.fetch = function(url, opts={}) {
+  const token = getToken();
+  if (token && typeof url==='string' && url.startsWith('/api/')) {
+    opts.headers = { ...(opts.headers||{}), 'Authorization': 'Bearer '+token };
+  }
+  return _origFetch(url, opts).then(res => {
+    if (res.status===401 && typeof url==='string' && url.startsWith('/api/')) { logout(); }
+    return res;
+  });
+};
+
+// ── USER MENU ─────────────────────────────────────────────────────────────────
+function toggleUserMenu(e) { e.stopPropagation(); document.getElementById('userDropdown').classList.toggle('open'); }
+document.addEventListener('click', () => document.getElementById('userDropdown')?.classList.remove('open'));
+document.addEventListener('click', e => {
+  const p = document.getElementById('turnoPicker');
+  if (p && p.style.display !== 'none' && !p.contains(e.target)) closePicker();
+});
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+(async function() {
+  if (!getToken()) { window.location.href='/login.html'; return; }
+  try {
+    const me = await fetchCurrentUserOrNull();
+    if (!me) return;
+    if (!me.id) throw new Error('Auth payload non valido');
+    const nome = me.nome || me.username || '';
+    const initiali = nome.split(' ').map(p=>p[0]||'').join('').slice(0,2).toUpperCase();
+    document.getElementById('userNameLabel').textContent = nome.split(' ')[0];
+    document.getElementById('userAvatar').textContent   = initiali || '?';
+    document.getElementById('udName').textContent       = nome;
+    document.getElementById('udUsername').textContent   = me.username;
+
+    const teamMe = await fetch('/api/team/me').then(r=>r.json());
+    isEditor = teamMe.is_editor;
+    teamContext = { ...(teamContext || {}), ...(teamMe || {}) };
+    if (isEditor) document.getElementById('editorBar').style.display = 'flex';
+    if (me.is_admin) {
+      const lnk = document.getElementById('adminNavLink');
+      if (lnk) lnk.style.setProperty('display','inline-block','important');
+      const mob = document.getElementById('adminMobileBtn');
+      if (mob) mob.style.display = 'flex';
+    }
+
+    const sel = document.getElementById('selAnno');
+    for (let y=2024; y<=2030; y++) {
+      const o = document.createElement('option');
+      o.value=y; o.textContent=y; if(y===anno) o.selected=true;
+      sel.appendChild(o);
+    }
+    buildMonthTabs();
+    await loadOperatori();
+    updateFerieUi();
+    load();
+  } catch(e) { console.error(e); }
+})();
+
+function changeAnno(d) {
+  anno += d;
+  document.getElementById('selAnno').value = anno;
+  buildMonthTabs(); load();
+}
+
+function buildMonthTabs() {
+  const c = document.getElementById('monthTabs');
+  c.innerHTML = '';
+  MESI_IT.forEach((m, i) => {
+    const d = document.createElement('div');
+    d.className = 'month-tab' + (i+1===mese ? ' active' : '');
+    d.textContent = m;
+    d.onclick = () => { mese=i+1; document.querySelectorAll('.month-tab').forEach((t,j)=>t.classList.toggle('active',j===i)); load(); };
+    c.appendChild(d);
+  });
+}
+
+async function downloadTeamPdf() {
+  const btn = document.getElementById('downloadPdfBtn');
+  if (!btn) return;
+  const previousLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'PDF...';
+  try {
+    const response = await fetch(`/api/team/turni/${anno}/${mese}/pdf`);
+    if (!response.ok) {
+      if (response.status === 401) { logout(); return; }
+      const text = await response.text();
+      throw new Error(text || `Errore ${response.status}`);
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `turni-team-${anno}-${String(mese).padStart(2, '0')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert('Impossibile generare il PDF del mese selezionato.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = previousLabel;
+  }
+}
+
+function getTeamPrintStyle(pageWidthMm, pageHeightMm, pageMarginMm) {
+  const appStyle = Array.from(document.querySelectorAll('style')).map(s => s.textContent || '').join('\n');
+  return `
+    ${appStyle}
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      forced-color-adjust: none !important;
+    }
+    html, body {
+      background:#ffffff !important;
+      color:#0f172a !important;
+      margin:0;
+      padding:0;
+      font-family:'Segoe UI', system-ui, sans-serif;
+      width:${pageWidthMm}mm;
+      height:${pageHeightMm}mm;
+    }
+    body { padding:${pageMarginMm}mm; overflow:visible; }
+    .print-page {
+      width:calc(${pageWidthMm}mm - ${pageMarginMm * 2}mm);
+      min-height:calc(${pageHeightMm}mm - ${pageMarginMm * 2}mm);
+      overflow:visible;
+    }
+    .print-shell {
+      display:block;
+      width:max-content;
+    }
+    .print-head { margin-bottom:14px; }
+    .print-title {
+      font-size:1.15rem;
+      font-weight:800;
+      color:#0f172a;
+      margin-bottom:4px;
+    }
+    .print-meta {
+      font-size:0.78rem;
+      color:#475569;
+    }
+    .table-wrap {
+      overflow:visible !important;
+      background:#ffffff !important;
+      height:auto !important;
+      max-height:none !important;
+    }
+    .team-table {
+      font-size:0.78rem !important;
+      border-collapse:collapse !important;
+      width:auto !important;
+    }
+    .team-table th,
+    .team-table td {
+      position:static !important;
+      filter:none !important;
+      box-shadow:none !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .team-table th {
+      top:auto !important;
+      left:auto !important;
+    }
+    .team-table td.td-data,
+    .team-table td.td-giorno,
+    .team-table th.sticky-left,
+    .team-table th.col-giorno {
+      left:auto !important;
+    }
+    .team-table tr:hover td { filter:none !important; }
+    .cella,
+    .tpl-cella {
+      min-width:56px !important;
+      min-height:22px !important;
+      font-size:0.76rem !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    .cella.var-cell.filled {
+      font-size:0.82rem !important;
+    }
+    .th-op-nome {
+      max-width:none !important;
+      overflow:visible !important;
+      text-overflow:clip !important;
+    }
+    .print-legend {
+      margin-top:18px;
+      font-size:0.78rem;
+      color:#475569;
+    }
+    @page {
+      size: ${pageWidthMm}mm ${pageHeightMm}mm;
+      margin: ${pageMarginMm}mm;
+    }
+    @media print {
+      html, body {
+        width:${pageWidthMm}mm;
+        height:${pageHeightMm}mm;
+        overflow:visible;
+      }
+      body { padding:0; }
+      .print-page { width:auto; min-height:auto; }
+    }
+  `;
+}
+
+function buildTeamPrintHtml() {
+  const wrap = document.getElementById('tableWrap');
+  const table = wrap?.querySelector('.team-table');
+  if (!wrap || !table) {
+    throw new Error('Tabella team non disponibile');
+  }
+  const pxToMm = 25.4 / 96;
+  const contentWidthPx = Math.ceil(table.scrollWidth);
+  const contentHeightPx = Math.ceil(wrap.scrollHeight);
+  const pageMarginMm = 8;
+  const pageWidthMm = Math.max(297, Math.ceil(contentWidthPx * pxToMm) + (pageMarginMm * 2));
+  const pageHeightMm = Math.max(210, Math.ceil(contentHeightPx * pxToMm) + (pageMarginMm * 2));
+  const now = new Date();
+  const generated = now.toLocaleDateString('it-IT') + ' ' + now.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
+  const title = `Turni team - ${MESI_IT[mese - 1]} ${anno}`;
+  const meta = `Generato ${generated} | Operatori ${operatori.length}`;
+  return `<!DOCTYPE html>
+  <html lang="it">
+  <head>
+    <meta charset="UTF-8">
+    <title>${title}</title>
+    <style>${getTeamPrintStyle(pageWidthMm, pageHeightMm, pageMarginMm)}</style>
+  </head>
+  <body>
+    <div class="print-page">
+      <div class="print-shell" id="printShell">
+        <div class="print-head">
+          <div class="print-title">${title}</div>
+          <div class="print-meta">${meta}</div>
+        </div>
+        <div class="table-wrap">${wrap.innerHTML}</div>
+        <div class="print-legend">R=rep&nbsp;&nbsp; #=smart&nbsp;&nbsp; m/f=mod</div>
+      </div>
+    </div>
+    <script>
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          window.print();
+        }, 300);
+      });
+    <\/script>
+  </body>
+  </html>`;
+}
+
+async function openTeamPrintView() {
+  if (!datiMese?.giorni?.length) {
+    await load();
+  }
+  let frame = document.getElementById('teamPrintFrame');
+  if (frame) frame.remove();
+  frame = document.createElement('iframe');
+  frame.id = 'teamPrintFrame';
+  frame.style.position = 'fixed';
+  frame.style.left = '-20000px';
+  frame.style.top = '0';
+  frame.style.width = `${Math.max(window.innerWidth, 2200)}px`;
+  frame.style.height = `${Math.max(window.innerHeight, 1400)}px`;
+  frame.style.opacity = '0';
+  frame.style.pointerEvents = 'none';
+  frame.style.border = '0';
+  document.body.appendChild(frame);
+
+  const html = buildTeamPrintHtml();
+  await new Promise((resolve, reject) => {
+    const cleanup = () => {
+      frame.onload = null;
+    };
+    frame.onload = () => {
+      cleanup();
+      resolve();
+    };
+    try {
+      const doc = frame.contentWindow?.document;
+      if (!doc) throw new Error('Frame di stampa non disponibile');
+      doc.open();
+      doc.write(html);
+      doc.close();
+    } catch (err) {
+      cleanup();
+      reject(err);
+    }
+  });
+
+  const printWindow = frame.contentWindow;
+  if (!printWindow) throw new Error('Finestra di stampa non disponibile');
+  printWindow.focus();
+  printWindow.print();
+
+  window.setTimeout(() => {
+    const existing = document.getElementById('teamPrintFrame');
+    if (existing) existing.remove();
+  }, 60000);
+}
+
+async function loadOperatori() {
+  operatori = await fetch('/api/team/operatori').then(r=>r.json()).catch(()=>[]);
+}
+
+// ── RENDER TABELLA ────────────────────────────────────────────────────────────
+async function load() {
+  const wrap = document.getElementById('tableWrap');
+  wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">Caricamento…</div>';
+
+  if (operatori.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center;padding:60px;color:var(--muted)">
+      <p style="font-size:1rem;margin-bottom:12px">👥 Nessun operatore configurato</p>
+      ${isEditor ? '<button class="btn-editor primary" onclick="openSetupOperatori()" style="margin:0 auto">Imposta operatori</button>' : '<p>Contatta l\'editor per configurare la tabella.</p>'}
+    </div>`;
+    return;
+  }
+
+  const response = await fetch(`/api/team/turni/${anno}/${mese}`).catch(()=>({ok:false,status:0}));
+  if (!response || response.ok===false && response.status===0) {
+    wrap.innerHTML = `<div style="text-align:center;padding:60px;color:#fca5a5">Errore caricamento: impossibile contattare il server.</div>`;
+    return;
+  }
+  if (!response.ok) {
+    if (response.status===401) { logout(); return; }
+    const text = await response.text();
+    wrap.innerHTML = `<div style="text-align:center;padding:60px;color:#fca5a5">Errore ${response.status}: ${text}</div>`;
+    return;
+  }
+
+  const data = await response.json();
+  datiMese = data;
+  const ops = data.operatori;
+  if (!ops || ops.length===0) {
+    wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">Nessun operatore configurato</div>';
+    return;
+  }
+
+  let html = '<table class="team-table"><thead><tr>';
+  html += '<th class="col-data sticky-left">Data</th>';
+  html += '<th class="col-giorno">Gg</th>';
+  ops.forEach(op => {
+    html += `<th colspan="2" class="col-op" title="${op.nome}">
+      <div style="font-size:0.62rem;color:#6b7280;font-weight:800;background:#e5e7eb;border-radius:3px;padding:0 4px;display:inline-block;margin-bottom:1px">${op.posizione}</div>
+      <div class="th-op-nome">${op.nome}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;margin-top:2px;font-size:0.55rem;color:#9ca3af">
+        <span>TAB</span><span>VAR</span>
+      </div>
+    </th>`;
+  });
+  html += '<th class="td-sep-destra" style="width:2px;padding:0"></th>';
+  html += '<th class="col-destra" style="font-size:0.6rem">Rep<br>1°</th>';
+  html += '<th class="col-destra" style="font-size:0.6rem">Rep<br>2°</th>';
+  html += '<th class="col-destra" style="font-size:0.6rem">Rep<br>3°</th>';
+  html += '<th class="td-sep-destra" style="width:2px;padding:0"></th>';
+  html += '<th colspan="4" class="col-destra" style="text-align:center;font-size:0.6rem">FESTIVITÀ<br><span style="font-size:0.55rem;opacity:.7">M&nbsp;M&nbsp;P&nbsp;P</span></th>';
+  html += '</tr></thead><tbody>';
+
+  data.giorni.forEach((g, idx) => {
+    const d = new Date(g.data + 'T12:00:00');
+    const dayName = GIORNI_SHORT[g.dow];
+    const dayNum  = d.getDate();
+    const monthShort = MESI_IT[mese-1].slice(0,3);
+
+    let rowClass = 'week-block';
+    if (g.is_domenica) rowClass += ' domenica';
+    else if (g.is_sabato) rowClass += ' sabato';
+    if (g.is_festivo) rowClass += ' festivo';
+    if (g.dow === 0 || idx === 0) rowClass += ' week-start';
+    if (g.dow === 6 || idx === data.giorni.length - 1) rowClass += ' week-end';
+
+    html += `<tr class="${rowClass}" data-data="${g.data}">`;
+    html += `<td class="td-data">${dayNum} ${monthShort}</td>`;
+    html += `<td class="td-giorno">${dayName}</td>`;
+
+    g.turni.forEach(t => {
+      html += `<td style="padding:2px 1px">${renderCella(t.turno_base, t.flags_base, g.data, t.operatore_id, 'base', t.turno_var)}</td>`;
+      html += `<td style="padding:2px 1px;border-right:2px solid rgba(51,65,85,0.78)">${renderCella(t.turno_var, t.flags_var, g.data, t.operatore_id, 'var')}</td>`;
+    });
+
+    const cd = g.colonne_destra;
+    html += '<td class="td-sep-destra"></td>';
+    ['rep1','rep2','rep3'].forEach(k => {
+      html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'—'}</td>`;
+    });
+    html += '<td class="td-sep-destra"></td>';
+    ['fest_m1','fest_m2','fest_p1','fest_p2'].forEach(k => {
+      html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'—'}</td>`;
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+  applySpecialTurnoStyles(wrap);
+}
+
+function buildTeamRowHtml(g, idx, totalRows = (datiMese?.giorni?.length || 0)) {
+  const d = new Date(g.data + 'T12:00:00');
+  const dayName = GIORNI_SHORT[g.dow];
+  const dayNum  = d.getDate();
+  const monthShort = MESI_IT[mese-1].slice(0,3);
+
+  let rowClass = 'week-block';
+  if (g.is_domenica) rowClass += ' domenica';
+  else if (g.is_sabato) rowClass += ' sabato';
+  if (g.is_festivo) rowClass += ' festivo';
+  if (g.dow === 0 || idx === 0) rowClass += ' week-start';
+  if (g.dow === 6 || idx === totalRows - 1) rowClass += ' week-end';
+
+  let html = `<tr class="${rowClass}" data-data="${g.data}">`;
+  html += `<td class="td-data">${dayNum} ${monthShort}</td>`;
+  html += `<td class="td-giorno">${dayName}</td>`;
+
+  g.turni.forEach(t => {
+    html += `<td style="padding:2px 1px">${renderCella(t.turno_base, t.flags_base, g.data, t.operatore_id, 'base', t.turno_var)}</td>`;
+    html += `<td style="padding:2px 1px;border-right:2px solid rgba(51,65,85,0.78)">${renderCella(t.turno_var, t.flags_var, g.data, t.operatore_id, 'var')}</td>`;
+  });
+
+  const cd = g.colonne_destra;
+  html += '<td class="td-sep-destra"></td>';
+  ['rep1','rep2','rep3'].forEach(k => {
+    html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'â€”'}</td>`;
+  });
+  html += '<td class="td-sep-destra"></td>';
+  ['fest_m1','fest_m2','fest_p1','fest_p2'].forEach(k => {
+    html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'â€”'}</td>`;
+  });
+  html += '</tr>';
+  return html;
+}
+
+function refreshTeamRow(dataStr) {
+  const idx = datiMese?.giorni?.findIndex(g => g.data === dataStr);
+  if (idx == null || idx < 0) return;
+  const rowEl = document.querySelector(`tr[data-data="${dataStr}"]`);
+  if (!rowEl) return;
+  const tmp = document.createElement('tbody');
+  tmp.innerHTML = buildTeamRowHtml(datiMese.giorni[idx], idx, datiMese.giorni.length);
+  if (tmp.firstElementChild) {
+    rowEl.replaceWith(tmp.firstElementChild);
+    applySpecialTurnoStyles(document.getElementById('tableWrap'));
+  }
+}
+
+// ── RENDER CELLA ──────────────────────────────────────────────────────────────
+function renderCella(turno, flags, data, opId, col, turnoVar) {
+  const isEmpty  = !turno;
+  const edClass  = isEditor ? ' editable' : '';
+  const colClass = col === 'var' ? ' var-cell' : '';
+  const clickEvt = isEditor ? `onclick="openPicker('${data}',${opId},'${col}',event)"` : '';
+  const turnoNorm = (turno || '').trim().toUpperCase();
+  const isRep    = flags && flags.includes('rep');
+  const isSmart  = flags && flags.includes('smart');
+  const isF      = flags && flags.includes('F');
+  const isM      = flags && flags.includes('M');
+  const isFestTurno = ['F', 'RF', 'EX FEST', 'EX F.', 'LUTTO'].includes(turnoNorm);
+  const isMalTurno = turnoNorm === 'MAL';
+
+  // Ogni colonna mostra il proprio simbolo di reperibilità in base ai flag dedicati
+  const showRep = isRep;
+
+  // Ordine: turno → m → f → ® → #
+  const mfHtml   = (isM ? '<span class="mf-inline">m</span>' : '') +
+                   (isF ? '<span class="mf-inline">f</span>' : '');
+  const repIcon  = showRep ? '<span class="cella-rep-icon">®</span>' : '';
+  const smartHtml = isSmart ? '<span class="smart-inline">#</span>' : '';
+  const extras   = mfHtml + repIcon + smartHtml;
+  const hasExtras = !!extras;
+
+  // BASE sbarrata quando c'è una variazione
+  if (col === 'base' && turnoVar) {
+    if (isEmpty) return `<div class="cella-base-sbarrata${edClass}" ${clickEvt}>—${extras}</div>`;
+    return `<div class="cella-base-sbarrata${edClass}" ${clickEvt}>${turno}${extras}</div>`;
+  }
+
+  if (isEmpty) {
+    const repClass = showRep ? ' rep' : '';
+    const smartClass = isSmart ? ' smart' : '';
+    const specialClass = isFestTurno ? ' special-fest' : (isMalTurno ? ' special-mal' : '');
+    const filledClass = hasExtras ? ' filled' : ' empty';
+    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${filledClass}" ${clickEvt}>—${extras}</div>`;
+  }
+
+  // Background giallo reperibilità solo se rep è attivo su questa colonna
+  const repClass    = (showRep) ? ' rep' : '';
+  const smartClass  = isSmart ? ' smart' : '';
+  const filledClass = ' filled';
+  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${filledClass}" ${clickEvt}>${turno}${extras}</div>`;
+}
+
+function renderCella(turno, flags, data, opId, col, turnoVar) {
+  const isEmpty  = !turno;
+  const edClass  = isEditor ? ' editable' : '';
+  const colClass = col === 'var' ? ' var-cell' : '';
+  const clickEvt = isEditor ? `onclick="openPicker('${data}',${opId},'${col}',event)"` : '';
+  const turnoNorm = (turno || '').trim().toUpperCase();
+  const isRep    = flags && flags.includes('rep');
+  const isSmart  = flags && flags.includes('smart');
+  const isF      = flags && flags.includes('F');
+  const isM      = flags && flags.includes('M');
+  const isFestTurno = ['F', 'RF', 'EX FEST', 'EX F.', 'LUTTO'].includes(turnoNorm);
+  const isMalTurno = turnoNorm === 'MAL';
+  const showRep = isRep;
+  const mfHtml   = (isM ? '<span class="mf-inline">m</span>' : '') +
+                   (isF ? '<span class="mf-inline">f</span>' : '');
+  const repIcon  = showRep ? '<span class="cella-rep-icon">Â®</span>' : '';
+  const smartHtml = isSmart ? '<span class="smart-inline">#</span>' : '';
+  const extras   = mfHtml + repIcon + smartHtml;
+  const specialClass = isFestTurno ? ' special-fest' : (isMalTurno ? ' special-mal' : '');
+
+  if (col === 'base' && turnoVar) {
+    const repClass = showRep ? ' rep' : '';
+    const smartClass = isSmart ? ' smart' : '';
+    const filledClass = isEmpty && !extras ? ' empty' : ' filled';
+    const value = isEmpty ? 'â€”' : turno;
+    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${filledClass}" ${clickEvt}>${value}${extras}</div>`;
+  }
+
+  if (isEmpty) {
+    const repClass = showRep ? ' rep' : '';
+    const smartClass = isSmart ? ' smart' : '';
+    const filledClass = extras ? ' filled' : ' empty';
+    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${filledClass}" ${clickEvt}>â€”${extras}</div>`;
+  }
+
+  const repClass = showRep ? ' rep' : '';
+  const smartClass = isSmart ? ' smart' : '';
+  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass} filled" ${clickEvt}>${turno}${extras}</div>`;
+}
+
+function applySpecialTurnoStyles(root = document) {
+  const festTurns = new Set(['F', 'RF', 'EX FEST', 'EX F.', 'LUTTO']);
+  root.querySelectorAll('.cella.filled, .cella-base-sbarrata, .tpl-cella.filled').forEach(el => {
+    // Legge solo i text node diretti della cella, ignorando span figli
+    // (ferie-marker, mf-inline, cella-rep-icon, smart-inline) per evitare falsi match
+    // es: cella "R" + ferie-marker "F" non deve diventare "RF" = special-fest
+    let rawText = '';
+    el.childNodes.forEach(node => {
+      if (node.nodeType === Node.TEXT_NODE) rawText += node.textContent;
+    });
+    const raw = rawText.trim().toUpperCase();
+    const turno = raw.split(/\s+/)[0] || '';
+    el.classList.remove('special-fest', 'special-mal');
+    if (raw.startsWith('EX FEST') || raw.startsWith('EX F.') || festTurns.has(turno)) {
+      el.classList.add('special-fest');
+      return;
+    }
+    if (turno === 'MAL') el.classList.add('special-mal');
+  });
+}
+
+// ── PICKER ────────────────────────────────────────────────────────────────────
+function openPicker(data, opId, col, evt) {
+  closePicker();
+  pickerMode = 'table';
+  pickerTarget = { data, opId, col };
+
+  // Carica flags correnti dalla riga
+  const giorno  = datiMese?.giorni.find(g => g.data === data);
+  const turnoData = giorno?.turni.find(t => t.operatore_id === opId);
+  const curFlags  = col === 'base' ? (turnoData?.flags_base || '') : (turnoData?.flags_var || '');
+  pickerFlags = { smart: curFlags.includes('smart'), rep: curFlags.includes('rep'), F: curFlags.includes('F'), M: curFlags.includes('M') };
+
+  // Pre-carica il turno attuale della cella (così non serve riselezionarlo)
+  const curTurno = col === 'base' ? (turnoData?.turno_base ?? '') : (turnoData?.turno_var ?? '');
+  pickerTurnoSelected = curTurno !== '' ? curTurno : undefined;
+
+  // Aggiorna label colonna
+  const colLabel = document.getElementById('pickerColLabel');
+  if (colLabel) {
+    colLabel.textContent = col === 'var' ? 'VAR' : 'BASE';
+    colLabel.style.color = col === 'var' ? '#60a5fa' : '#94a3b8';
+  }
+
+  // Reset e aggiorna preview con turno attuale
+  const preview = document.getElementById('pickerPreview');
+  if (preview) {
+    if (curTurno) {
+      preview.textContent = curTurno;
+      preview.style.color = '#60a5fa';
+    } else {
+      preview.textContent = '—';
+      preview.style.color = '#475569';
+    }
+  }
+
+  // Marca il bottone attivo se il turno corrisponde
+  document.querySelectorAll('.turno-picker .sb').forEach(b => {
+    b.classList.toggle('active', b.dataset.t === curTurno);
+  });
+
+  updatePickerFlagBtns();
+
+  const picker = document.getElementById('turnoPicker');
+  picker.style.display = 'flex';
+
+  const rect = evt.currentTarget.getBoundingClientRect();
+  let top = rect.bottom + 6, left = rect.left;
+  if (left + 310 > window.innerWidth) left = window.innerWidth - 314;
+  if (top + 440 > window.innerHeight) top = Math.max(10, rect.top - 446);
+  picker.style.top  = top  + window.scrollY + 'px';
+  picker.style.left = left + 'px';
+
+  evt.stopPropagation();
+}
+
+function closePicker() {
+  const picker = document.getElementById('turnoPicker');
+  picker.style.display = 'none';
+  picker.style.zIndex = '500';
+  pickerTarget = null;
+  pickerMode = 'table';
+}
+
+function updatePickerFlagBtns() {
+  const map = { smart:'modSmart', rep:'modRep', F:'modF', M:'modM' };
+  const cls = { smart:'chip-smart', rep:'chip-rep', F:'chip-F', M:'chip-M' };
+  Object.entries(map).forEach(([flag, id]) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    Object.values(cls).forEach(c => btn.classList.remove(c));
+    if (pickerFlags[flag]) btn.classList.add(cls[flag]);
+  });
+}
+
+function pickerToggleFlag(flag, event) {
+  pickerFlags[flag] = !pickerFlags[flag];
+  updatePickerFlagBtns();
+  if (event) event.stopPropagation();
+}
+
+function pickerSetTurno(turno, btn) {
+  pickerTurnoSelected = turno;
+  document.querySelectorAll('.turno-picker .sb').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const preview = document.getElementById('pickerPreview');
+  if (preview) {
+    preview.textContent = turno !== '' ? (turno || '—') : '(vuoto)';
+    preview.style.color = turno ? '#ffffff' : '#64748b';
+  }
+  if (event) event.stopPropagation();
+}
+
+function pickerAnnulla() {
+  closePicker();
+}
+
+function pickerCancella() {
+  // Cancella: svuota la cella corrente (base o var)
+  pickerFlags = { smart:false, rep:false, F:false, M:false };
+  updatePickerFlagBtns();
+  pickerTurnoSelected = '';
+  pickerConferma();
+}
+
+async function pickerConferma() {
+  const hasFlags = Object.values(pickerFlags).some(Boolean);
+  const turno = pickerTurnoSelected === undefined ? (hasFlags ? '' : undefined) : pickerTurnoSelected;
+  if (turno === undefined) { alert('Seleziona prima un turno o almeno un indicatore'); return; }
+
+  // ── MODALITÀ TEMPLATE ──
+  if (pickerMode === 'template') {
+    const { dow, pos } = pickerTemplateTarget;
+    const flags = Object.entries(pickerFlags).filter(([,v])=>v).map(([k])=>k).join(',');
+    if (!tplData[dow]) tplData[dow] = {};
+    tplData[dow][pos] = { turno_base: turno, flags };
+    closePicker();
+    const tdEl = document.getElementById(`tpl_td_${dow}_${pos}`);
+    if (tdEl) tdEl.innerHTML = renderTplCella(dow, pos);
+    return;
+  }
+
+  if (!pickerTarget) return;
+
+  const { data, opId, col } = pickerTarget;
+  const flags = Object.entries(pickerFlags).filter(([,v])=>v).map(([k])=>k).join(',');
+
+  // Recupera turno esistente per preservare l'altro campo
+  const giorno    = datiMese?.giorni.find(g => g.data === data);
+  const turnoData = giorno?.turni.find(t => t.operatore_id === opId);
+
+  // ── FIX CRITICO: preserva la colonna non modificata ──
+  const payload = {
+    data,
+    operatore_id: opId,
+    col,
+    flags_base: col === 'base' ? flags : (turnoData?.flags_base ?? ''),
+    flags_var:  col === 'var'  ? flags : (turnoData?.flags_var  ?? ''),
+    turno_base: col === 'base' ? turno : (turnoData?.turno_base ?? ''),
+    turno_var:  col === 'var'  ? turno : (turnoData?.turno_var  ?? ''),
+  };
+  const prevState = turnoData ? {
+    turno_base: turnoData.turno_base ?? '',
+    turno_var: turnoData.turno_var ?? '',
+    flags_base: turnoData.flags_base ?? '',
+    flags_var: turnoData.flags_var ?? '',
+  } : null;
+
+  // Aggiornamento locale immediato (ottimistico)
+  if (turnoData) {
+    if (col === 'base') { turnoData.turno_base = turno; turnoData.flags_base = flags; }
+    else                { turnoData.turno_var  = turno; turnoData.flags_var  = flags; }
+  }
+  refreshTeamRow(data);
+
+  closePicker();
+
+  const saveRes = await fetch('/api/team/turni', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(r=>r.json()).catch(()=>({ok:false}));
+
+  const ts = new Date().toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+  const lbl = document.getElementById('lastSaveLabel');
+  if (!saveRes.ok) {
+    if (turnoData && prevState) {
+      turnoData.turno_base = prevState.turno_base;
+      turnoData.turno_var = prevState.turno_var;
+      turnoData.flags_base = prevState.flags_base;
+      turnoData.flags_var = prevState.flags_var;
+      refreshTeamRow(data);
+    }
+    if (lbl) lbl.textContent = '⚠️ Errore salvataggio ' + ts;
+    return;
+  }
+  if (lbl) lbl.textContent = '💾 Salvato ' + ts;
+
+}
+
+// ── COLONNE DESTRA ────────────────────────────────────────────────────────────
+async function editColonnaDestra(data, campo, td) {
+  const giorno = datiMese?.giorni?.find(g => g.data === data);
+  const current = td.textContent.trim() === '—' ? '' : td.textContent.trim();
+  const val = prompt(`Valore per ${campo} del ${data}:`, current);
+  if (val === null) return;
+  td.textContent = val || '—';
+
+  const row = td.closest('tr');
+  const tds = row.querySelectorAll('.td-destra');
+  const keys = ['rep1','rep2','rep3','fest_m1','fest_m2','fest_p1','fest_p2'];
+  const payload = { data };
+  tds.forEach((cell, i) => {
+    if (keys[i]) payload[keys[i]] = cell.textContent.trim() === '—' ? '' : cell.textContent.trim();
+  });
+  payload[campo] = val || '';
+
+  await fetch('/api/team/colonne-destra', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+}
+
+// ── SETUP OPERATORI ───────────────────────────────────────────────────────────
+function renderSetupOperatorRows(values = []) {
+  const rows = document.getElementById('opRows');
+  rows.innerHTML = '';
+  updateSetupHelpText();
+  for (let i=0; i<setupOperatorCount; i++) {
+    const nome = (values[i] ?? operatori.find(op => Number(op.posizione) === i + 1)?.nome) || '';
+    rows.innerHTML += `<div class="op-row">
+      <span class="op-pos">${i+1}</span>
+      <input type="text" placeholder="Nome operatore ${i+1}" value="${nome}" id="op_${i}"
+        oninput="this.value=this.value.toUpperCase()" style="text-transform:uppercase">
+    </div>`;
+  }
+}
+
+function getSetupValues() {
+  return Array.from({length: setupOperatorCount}, (_, i) => document.getElementById(`op_${i}`)?.value || '');
+}
+
+function openSetupOperatori() {
+  setupOperatorCount = Math.max(getOperatorSlotCount(), 13);
+  renderSetupOperatorRows();
+  document.getElementById('setupOverlay').classList.add('open');
+}
+
+function addOperatoreRow() {
+  const values = getSetupValues();
+  setupOperatorCount = Math.max(setupOperatorCount + 1, 1);
+  renderSetupOperatorRows(values);
+}
+
+function removeOperatoreRow() {
+  if (setupOperatorCount <= 1) return;
+  const values = getSetupValues();
+  setupOperatorCount -= 1;
+  renderSetupOperatorRows(values);
+}
+
+async function saveOperatori() {
+  const ops = [];
+  for (let i=0; i<setupOperatorCount; i++) {
+    const v = document.getElementById(`op_${i}`)?.value.trim();
+    if (v) ops.push({ nome: v, posizione: i+1 });
+  }
+  await fetch('/api/team/operatori', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ operatori: ops })
+  });
+  document.getElementById('setupOverlay').classList.remove('open');
+  await loadOperatori();
+  load();
+}
+
+// ── TEMPLATE SETTIMANA ────────────────────────────────────────────────────────
+
+function renderTplCella(dow, pos) {
+  const d = (tplData[dow] && tplData[dow][pos]) || { turno_base: '', flags: '' };
+  const flags = d.flags || '';
+  const turno = d.turno_base || '';
+  const isRep   = flags.includes('rep');
+  const isSmart = flags.includes('smart');
+  const isF     = flags.includes('F');
+  const isM     = flags.includes('M');
+  const mfHtml  = (isM ? '<span class="mf-inline">m</span>' : '') + (isF ? '<span class="mf-inline">f</span>' : '');
+  const repIcon  = isRep ? '<span class="cella-rep-icon">®</span>' : '';
+  const smartHtml = isSmart ? '<span class="smart-inline">#</span>' : '';
+  const repClass  = isRep ? ' rep' : '';
+  const smartClass = isSmart ? ' smart' : '';
+  const stateClass = turno ? ' filled' : ' empty';
+  return `<div class="cella tpl-cella${repClass}${smartClass}${stateClass}" onclick="openPickerForTemplate(${dow},${pos},event)">${turno||'—'}${mfHtml}${repIcon}${smartHtml}</div>`;
+}
+
+function openPickerForTemplate(dow, pos, evt) {
+  closePicker();
+  pickerMode = 'template';
+  pickerTemplateTarget = { dow, pos };
+
+  const d = (tplData[dow] && tplData[dow][pos]) || { turno_base: '', flags: '' };
+  const flags = d.flags || '';
+  pickerFlags = { smart: flags.includes('smart'), rep: flags.includes('rep'), F: flags.includes('F'), M: flags.includes('M') };
+  const curTurno = d.turno_base || '';
+  pickerTurnoSelected = curTurno !== '' ? curTurno : undefined;
+
+  const colLabel = document.getElementById('pickerColLabel');
+  if (colLabel) { colLabel.textContent = 'TPL'; colLabel.style.color = '#a78bfa'; }
+
+  const preview = document.getElementById('pickerPreview');
+  if (preview) {
+    preview.textContent = curTurno || '—';
+    preview.style.color = curTurno ? '#ffffff' : '#475569';
+  }
+
+  document.querySelectorAll('.turno-picker .sb').forEach(b => b.classList.toggle('active', b.dataset.t === curTurno));
+  updatePickerFlagBtns();
+
+  const picker = document.getElementById('turnoPicker');
+  picker.style.display = 'flex';
+  picker.style.zIndex  = '600';
+
+  const rect = evt.currentTarget.getBoundingClientRect();
+  let top = rect.bottom + 6, left = rect.left;
+  if (left + 310 > window.innerWidth) left = window.innerWidth - 314;
+  if (top + 440 > window.innerHeight) top = Math.max(10, rect.top - 446);
+  picker.style.top  = top  + window.scrollY + 'px';
+  picker.style.left = left + 'px';
+  evt.stopPropagation();
+}
+
+async function openTemplate() {
+  tplData = {};
+  tplRepData = {};
+  const template = await fetch('/api/team/template-week').then(r=>r.json()).catch(()=>({posizioni:{}, reperibili:{}}));
+  const posizioni = template.posizioni || {};
+  const reperibili = template.reperibili || {};
+  const slotCount = getOperatorSlotCount();
+  tplSlotCount = slotCount;
+
+  // Carica i dati nel tplData
+  for (let dow=0; dow<7; dow++) {
+    tplData[dow] = {};
+    tplRepData[dow] = {
+      rep1_pos: Number(reperibili[dow]?.rep1_pos) <= slotCount ? (reperibili[dow]?.rep1_pos ?? '') : '',
+      rep2_pos: Number(reperibili[dow]?.rep2_pos) <= slotCount ? (reperibili[dow]?.rep2_pos ?? '') : '',
+      rep3_pos: Number(reperibili[dow]?.rep3_pos) <= slotCount ? (reperibili[dow]?.rep3_pos ?? '') : '',
+      fest_m1_pos: Number(reperibili[dow]?.fest_m1_pos) <= slotCount ? (reperibili[dow]?.fest_m1_pos ?? '') : '',
+      fest_m2_pos: Number(reperibili[dow]?.fest_m2_pos) <= slotCount ? (reperibili[dow]?.fest_m2_pos ?? '') : '',
+      fest_p1_pos: Number(reperibili[dow]?.fest_p1_pos) <= slotCount ? (reperibili[dow]?.fest_p1_pos ?? '') : '',
+      fest_p2_pos: Number(reperibili[dow]?.fest_p2_pos) <= slotCount ? (reperibili[dow]?.fest_p2_pos ?? '') : '',
+    };
+    for (let pos=1; pos<=slotCount; pos++) {
+      const ex = posizioni[dow]?.find(p=>p.posizione===pos) || { turno_base:'', flags:'' };
+      tplData[dow][pos] = { turno_base: ex.turno_base || '', flags: ex.flags || '' };
+    }
+  }
+
+  // Renderizza la tabella
+  const GIORNI = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+  const tbody = document.getElementById('templateTableBody');
+  tbody.innerHTML = '';
+  for (let pos=1; pos<=slotCount; pos++) {
+    let row = `<tr><td class="template-pos-label">${pos}</td>`;
+    for (let dow=0; dow<7; dow++) {
+      row += `<td id="tpl_td_${dow}_${pos}">${renderTplCella(dow, pos)}</td>`;
+    }
+    row += '</tr>';
+    tbody.innerHTML += row;
+  }
+
+  const repBody = document.getElementById('templateRepTableBody');
+  repBody.innerHTML = '';
+  [
+    ['rep1_pos', '1° rep'],
+    ['rep2_pos', '2° rep'],
+    ['rep3_pos', '3° rep'],
+  ].forEach(([key, label]) => {
+    let row = `<tr><td class="template-rep-label">${label}</td>`;
+    for (let dow=0; dow<7; dow++) {
+      row += `<td><input type="number" min="1" max="${slotCount}" value="${tplRepData[dow]?.[key] ?? ''}" oninput="updateTemplateRep(${dow},'${key}',this.value,${slotCount})"></td>`;
+    }
+    row += '</tr>';
+    repBody.innerHTML += row;
+  });
+
+  const festBody = document.getElementById('templateFestTableBody');
+  festBody.innerHTML = '';
+  [
+    ['fest_m1_pos', 'Fest M1'],
+    ['fest_m2_pos', 'Fest M2'],
+    ['fest_p1_pos', 'Fest P1'],
+    ['fest_p2_pos', 'Fest P2'],
+  ].forEach(([key, label]) => {
+    let row = `<tr><td class="template-rep-label">${label}</td>`;
+    for (let dow=0; dow<7; dow++) {
+      row += `<td><input type="number" min="1" max="${slotCount}" value="${tplRepData[dow]?.[key] ?? ''}" oninput="updateTemplateRep(${dow},'${key}',this.value,${slotCount})"></td>`;
+    }
+    row += '</tr>';
+    festBody.innerHTML += row;
+  });
+
+  document.getElementById('tpl_start_date').value = template.start_date || '';
+  document.getElementById('tpl_end_date').value   = template.end_date || '';
+
+  applySpecialTurnoStyles(document.getElementById('templateOverlay'));
+  document.getElementById('templateOverlay').classList.add('open');
+}
+
+function updateTemplateRep(dow, key, value, maxPos) {
+  if (!tplRepData[dow]) tplRepData[dow] = {
+    rep1_pos:'', rep2_pos:'', rep3_pos:'',
+    fest_m1_pos:'', fest_m2_pos:'', fest_p1_pos:'', fest_p2_pos:'',
+  };
+  const num = parseInt(value, 10);
+  tplRepData[dow][key] = Number.isFinite(num) && num >= 1 && num <= maxPos ? num : '';
+}
+
+async function saveTemplate() {
+  const slotCount = tplSlotCount || getOperatorSlotCount();
+  const posizioni = {};
+  for (let dow=0; dow<7; dow++) {
+    posizioni[dow] = [];
+    for (let pos=1; pos<=slotCount; pos++) {
+      const d = (tplData[dow] && tplData[dow][pos]) || { turno_base:'', flags:'' };
+      posizioni[dow].push({
+        posizione:  pos,
+        turno_base: d.turno_base || '',
+        turno_var:  '',
+        flags:      d.flags || '',
+      });
+    }
+  }
+  const reperibili = {};
+  for (let dow=0; dow<7; dow++) {
+    const rep = tplRepData[dow] || {};
+    reperibili[dow] = {
+      rep1_pos: rep.rep1_pos || null,
+      rep2_pos: rep.rep2_pos || null,
+      rep3_pos: rep.rep3_pos || null,
+      fest_m1_pos: rep.fest_m1_pos || null,
+      fest_m2_pos: rep.fest_m2_pos || null,
+      fest_p1_pos: rep.fest_p1_pos || null,
+      fest_p2_pos: rep.fest_p2_pos || null,
+    };
+  }
+
+  const newStart = document.getElementById('tpl_start_date').value;
+  const newEnd   = document.getElementById('tpl_end_date').value;
+  if (newStart && newEnd && newStart > newEnd) { alert('La data inizio non può essere successiva alla data fine.'); return; }
+
+  const res = await fetch('/api/team/template-week', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ posizioni, reperibili, start_date: newStart || null, end_date: newEnd || null })
+  }).then(r=>r.json());
+
+  if (res.ok) {
+    document.getElementById('templateResult').textContent = '✅ Template salvato!';
+    document.getElementById('templateOverlay').classList.remove('open');
+    await load();
+  } else {
+    document.getElementById('templateResult').textContent = '❌ Errore nel salvataggio.';
+  }
+}
+
+function clearTemplateDateRange() {
+  document.getElementById('tpl_start_date').value = '';
+  document.getElementById('tpl_end_date').value   = '';
+  document.getElementById('templateResult').textContent = '🧹 Intervallo date resettato.';
+}
+
+// ── LOG ───────────────────────────────────────────────────────────────────────
+let logOpen = false;
+async function toggleLog() {
+  logOpen = !logOpen;
+  const panel = document.getElementById('logPanel');
+  panel.style.display = logOpen ? 'block' : 'none';
+  if (logOpen) await loadLog();
+}
+
+async function loadLog() {
+  const logs = await fetch('/api/team/log?limit=200').then(r=>r.json()).catch(()=>[]);
+  const el = document.getElementById('logContent');
+  if (!logs.length) { el.innerHTML = '<p style="color:var(--muted)">Nessuna modifica registrata</p>'; return; }
+  el.innerHTML = logs.map(l => {
+    const color = l.nuovo_valore ? '#34D399' : '#EF4444';
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+        <span style="font-weight:700;color:var(--text)">${l.operatore_nome||''}</span>
+        <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
+      </div>
+      <div style="font-size:0.72rem">
+        📅 ${l.data_turno||''} &nbsp;·&nbsp; ${l.campo||''}
+        &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span>
+        → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
+      </div>
+      <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente||'?'}</div>
+    </div>`;
+  }).join('');
+}
+
+// Override pulito dei renderer: evita simboli corrotti e mantiene TAB invariata salvo la diagonale
+function renderCella(turno, flags, data, opId, col, turnoVar) {
+  const isEmpty = !turno;
+  const edClass = isEditor ? ' editable' : '';
+  const colClass = col === 'var' ? ' var-cell' : '';
+  const clickEvt = isEditor ? `onclick="openPicker('${data}',${opId},'${col}',event)"` : '';
+  const turnoNorm = (turno || '').trim().toUpperCase();
+  const isRep = flags && flags.includes('rep');
+  const isSmart = flags && flags.includes('smart');
+  const isF = flags && flags.includes('F');
+  const isM = flags && flags.includes('M');
+  const isFestTurno = ['F', 'RF', 'EX FEST', 'EX F.', 'LUTTO'].includes(turnoNorm);
+  const isMalTurno = turnoNorm === 'MAL';
+
+  const repClass = isRep ? ' rep' : '';
+  const smartClass = isSmart ? ' smart' : '';
+  const specialClass = isFestTurno ? ' special-fest' : (isMalTurno ? ' special-mal' : '');
+  const mfHtml = (isM ? '<span class="mf-inline">m</span>' : '') +
+                 (isF ? '<span class="mf-inline">f</span>' : '');
+  const repIcon = isRep ? '<span class="cella-rep-icon">&reg;</span>' : '';
+  const smartHtml = isSmart ? '<span class="smart-inline">#</span>' : '';
+  const extras = mfHtml + repIcon + smartHtml;
+  const value = isEmpty ? '' : turno;
+
+  if (col === 'base' && turnoVar) {
+    const filledClass = isEmpty && !extras ? ' empty' : ' filled';
+    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${filledClass}" ${clickEvt}>${value}${extras}</div>`;
+  }
+
+  if (isEmpty) {
+    const filledClass = extras ? ' filled' : ' empty';
+  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${filledClass}" ${clickEvt}>${value}${extras}</div>`;
+  }
+
+  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass} filled" ${clickEvt}>${turno}${extras}</div>`;
+}
+
+function renderTplCella(dow, pos) {
+  const d = (tplData[dow] && tplData[dow][pos]) || { turno_base: '', flags: '' };
+  const flags = d.flags || '';
+  const turno = d.turno_base || '';
+  const turnoNorm = turno.trim().toUpperCase();
+  const isRep = flags.includes('rep');
+  const isSmart = flags.includes('smart');
+  const isF = flags.includes('F');
+  const isM = flags.includes('M');
+  const isFestTurno = ['F', 'RF', 'EX FEST', 'EX F.', 'LUTTO'].includes(turnoNorm);
+  const isMalTurno = turnoNorm === 'MAL';
+  const repClass = isRep ? ' rep' : '';
+  const smartClass = isSmart ? ' smart' : '';
+  const specialClass = isFestTurno ? ' special-fest' : (isMalTurno ? ' special-mal' : '');
+  const stateClass = turno || isRep || isSmart || isF || isM ? ' filled' : ' empty';
+  const mfHtml = (isM ? '<span class="mf-inline">m</span>' : '') + (isF ? '<span class="mf-inline">f</span>' : '');
+  const repIcon = isRep ? '<span class="cella-rep-icon">&reg;</span>' : '';
+  const smartHtml = isSmart ? '<span class="smart-inline">#</span>' : '';
+  return `<div class="cella tpl-cella${repClass}${smartClass}${specialClass}${stateClass}" onclick="openPickerForTemplate(${dow},${pos},event)">${turno || ''}${mfHtml}${repIcon}${smartHtml}</div>`;
+}
+
+function updateFerieUi() {
+  const hint      = document.getElementById('ferieModeHint');
+  const toggleBtn = document.getElementById('ferieToggleBtn');
+  const submitBtn = document.getElementById('ferieSubmitBtn');
+  const cancelBtn = document.getElementById('ferieCancelBtn');
+  const badge     = document.getElementById('ferieAlertBadge');
+  if (!hint || !toggleBtn || !submitBtn || !cancelBtn || !badge) return;
+  const canRequest   = !!teamContext?.can_request_ferie;
+  const linkedName   = teamContext?.linked_operatore_nome || '';
+  const pendingCount = Number(teamContext?.ferie_pending_count || 0);
+
+  if (ferieMode) {
+    // In modalità ferie: solo hint contatore + Invia + Annulla
+    toggleBtn.style.display = 'none';
+    submitBtn.style.display = 'inline-flex';
+    cancelBtn.style.display = 'inline-flex';
+    hint.textContent = `${ferieAdds.size} da aggiungere · ${ferieRemovals.size} da rimuovere`;
+    hint.style.display = ferieAdds.size || ferieRemovals.size ? 'inline' : 'none';
+  } else {
+    // Fuori modalità: solo bottone "Ferie" (disabilitato se non associato)
+    toggleBtn.style.display = 'inline-flex';
+    toggleBtn.disabled = !canRequest;
+    toggleBtn.textContent = '📅 Ferie';
+    toggleBtn.title = canRequest
+      ? (linkedName ? `Colonna assegnata: ${linkedName}` : 'Richiesta ferie')
+      : 'Chiedi al tuo amministratore di associarti a un operatore del team';
+    submitBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+    hint.style.display = 'none';
+  }
+
+  badge.textContent = pendingCount > 99 ? '99+' : String(pendingCount || '');
+  badge.classList.toggle('show', pendingCount > 0);
+}
+
+function toggleFerieMode() {
+  if (!teamContext?.can_request_ferie) return;
+  ferieMode = !ferieMode;
+  if (!ferieMode) {
+    ferieAdds.clear();
+    ferieRemovals.clear();
+  }
+  updateFerieUi();
+  if (datiMese) load();
+}
+
+function cancelFerieMode() {
+  ferieMode = false;
+  ferieAdds.clear();
+  ferieRemovals.clear();
+  updateFerieUi();
+  if (datiMese) load();
+}
+
+function toggleFerieDate(dataStr) {
+  const giorno = datiMese?.giorni?.find(g => g.data === dataStr);
+  const row = giorno?.turni?.find(t => t.operatore_id === teamContext?.linked_operatore_id);
+  const hasExisting = !!row?.ferie_request;
+  if (hasExisting) {
+    if (ferieRemovals.has(dataStr)) ferieRemovals.delete(dataStr); else ferieRemovals.add(dataStr);
+    ferieAdds.delete(dataStr);
+  } else {
+    if (ferieAdds.has(dataStr)) ferieAdds.delete(dataStr); else ferieAdds.add(dataStr);
+    ferieRemovals.delete(dataStr);
+  }
+  updateFerieUi();
+  refreshTeamRow(dataStr);
+}
+
+async function submitFerieRequest() {
+  if (!teamContext?.can_request_ferie) return;
+  if (!ferieAdds.size && !ferieRemovals.size) {
+    alert('Seleziona almeno un giorno da aggiungere o rimuovere.');
+    return;
+  }
+  const res = await fetch('/api/team/ferie/request-batch', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ add_dates: Array.from(ferieAdds), remove_dates: Array.from(ferieRemovals) })
+  }).then(r=>r.json()).catch(()=>({ok:false}));
+  if (!res.ok) {
+    alert(res.detail || 'Errore durante il salvataggio della richiesta ferie.');
+    return;
+  }
+  ferieMode = false;
+  ferieAdds.clear();
+  ferieRemovals.clear();
+  const teamMe = await fetch('/api/team/me').then(r=>r.json()).catch(()=>null);
+  if (teamMe) teamContext = { ...(teamContext || {}), ...(teamMe || {}) };
+  updateFerieUi();
+  await load();
+}
+
+function renderFerieMarker(request, dataStr, opId) {
+  // L'anteprima ferie (ferieAdds/ferieRemovals) si mostra solo sulla colonna dell'utente corrente
+  const isOwnColumn = opId === teamContext?.linked_operatore_id;
+  if (isOwnColumn && ferieRemovals.has(dataStr)) return '<span class="ferie-marker rejected" title="Richiesta ferie da rimuovere">F-</span>';
+  if (isOwnColumn && ferieAdds.has(dataStr)) return '<span class="ferie-marker pending" title="Richiesta ferie da inviare">F+</span>';
+  if (!request) return '';
+  const status = (request?.stato || 'pending').toLowerCase();
+  const title = status === 'approved' ? 'Ferie approvate' : status === 'rejected' ? 'Ferie respinte' : 'Richiesta ferie pendente';
+  return `<span class="ferie-marker ${status}" title="${title}">F</span>`;
+}
+
+buildTeamRowHtml = function(g, idx, totalRows = (datiMese?.giorni?.length || 0)) {
+  const d = new Date(g.data + 'T12:00:00');
+  const dayName = GIORNI_SHORT[g.dow];
+  const dayNum  = d.getDate();
+  const monthShort = MESI_IT[mese-1].slice(0,3);
+  let rowClass = 'week-block';
+  if (g.is_domenica) rowClass += ' domenica';
+  else if (g.is_sabato) rowClass += ' sabato';
+  if (g.is_festivo) rowClass += ' festivo';
+  if (g.dow === 0 || idx === 0) rowClass += ' week-start';
+  if (g.dow === 6 || idx === totalRows - 1) rowClass += ' week-end';
+  let html = `<tr class="${rowClass}" data-data="${g.data}">`;
+  html += `<td class="td-data">${dayNum} ${monthShort}</td>`;
+  html += `<td class="td-giorno">${dayName}</td>`;
+  g.turni.forEach(t => {
+    html += `<td style="padding:2px 0">${renderCella(t.turno_base, t.flags_base, g.data, t.operatore_id, 'base', t.turno_var, t.ferie_request)}</td>`;
+    html += `<td style="padding:2px 0;border-right:2px solid rgba(51,65,85,0.78)">${renderCella(t.turno_var, t.flags_var, g.data, t.operatore_id, 'var', '', t.ferie_request)}</td>`;
+  });
+  const cd = g.colonne_destra;
+  html += '<td class="td-sep-destra"></td>';
+  ['rep1','rep2','rep3'].forEach(k => {
+    html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'—'}</td>`;
+  });
+  html += '<td class="td-sep-destra"></td>';
+  ['fest_m1','fest_m2','fest_p1','fest_p2'].forEach(k => {
+    html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'—'}</td>`;
+  });
+  html += '</tr>';
+  return html;
+};
+
+refreshTeamRow = function(dataStr) {
+  const idx = datiMese?.giorni?.findIndex(g => g.data === dataStr);
+  if (idx == null || idx < 0) return;
+  const rowEl = document.querySelector(`tr[data-data="${dataStr}"]`);
+  if (!rowEl) return;
+  const tmp = document.createElement('tbody');
+  tmp.innerHTML = buildTeamRowHtml(datiMese.giorni[idx], idx, datiMese.giorni.length);
+  if (tmp.firstElementChild) {
+    rowEl.replaceWith(tmp.firstElementChild);
+    applySpecialTurnoStyles(document.getElementById('tableWrap'));
+  }
+};
+
+load = async function() {
+  const wrap = document.getElementById('tableWrap');
+  wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">Caricamento...</div>';
+  if (operatori.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center;padding:60px;color:var(--muted)"><p style="font-size:1rem;margin-bottom:12px">Nessun operatore configurato</p>${isEditor ? '<button class="btn-editor primary" onclick="openSetupOperatori()" style="margin:0 auto">Imposta operatori</button>' : "<p>Contatta l'editor per configurare la tabella.</p>"}</div>`;
+    return;
+  }
+  const response = await fetch(`/api/team/turni/${anno}/${mese}`).catch(()=>({ok:false,status:0}));
+  if (!response || response.ok===false && response.status===0) {
+    wrap.innerHTML = '<div style="text-align:center;padding:60px;color:#fca5a5">Errore caricamento: impossibile contattare il server.</div>';
+    return;
+  }
+  if (!response.ok) {
+    const text = await response.text();
+    wrap.innerHTML = `<div style="text-align:center;padding:60px;color:#fca5a5">Errore ${response.status}: ${text}</div>`;
+    return;
+  }
+  const data = await response.json();
+  datiMese = data;
+  let html = `<table class="team-table">${buildTeamTableColgroup(data.operatori.length)}<thead><tr>`;
+  html += '<th class="col-data sticky-left">Data</th><th class="col-giorno">Gg</th>';
+  data.operatori.forEach(op => {
+    html += `<th colspan="2" class="col-op" title="${op.nome}"><div style="font-size:0.58rem;color:#6b7280;font-weight:800;background:#e5e7eb;border-radius:3px;padding:0 3px;display:inline-block;margin-bottom:1px">${op.posizione}</div><div class="th-op-nome">${op.nome}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:1px;font-size:0.5rem;color:#9ca3af"><span>TAB</span><span>VAR</span></div></th>`;
+  });
+  html += '<th class="td-sep-destra" style="width:2px;padding:0"></th><th class="col-destra" style="font-size:0.56rem">Rep<br>1°</th><th class="col-destra" style="font-size:0.56rem">Rep<br>2°</th><th class="col-destra" style="font-size:0.56rem">Rep<br>3°</th><th class="td-sep-destra" style="width:2px;padding:0"></th><th colspan="4" class="col-destra" style="text-align:center;font-size:0.56rem">FESTIVITA<br><span style="font-size:0.5rem;opacity:.7">M M P P</span></th></tr></thead><tbody>';
+  data.giorni.forEach((g, idx) => { html += buildTeamRowHtml(g, idx, data.giorni.length); });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+  applyResponsiveTeamLayout();
+  if (!teamTableResizeBound) {
+    window.addEventListener('resize', applyResponsiveTeamLayout);
+    teamTableResizeBound = true;
+  }
+  if (window.ResizeObserver) {
+    if (teamTableResizeObserver) teamTableResizeObserver.disconnect();
+    teamTableResizeObserver = new ResizeObserver(() => applyResponsiveTeamLayout());
+    teamTableResizeObserver.observe(wrap);
+  }
+  applySpecialTurnoStyles(wrap);
+};
+
+function normalizeTeamFerieText(value) {
+  return String(value || '').toLowerCase();
+}
+
+function getTeamFerieStatusMeta(status) {
+  const key = normalizeTeamFerieText(status);
+  if (key === 'approved') return { key, label: 'Approvata' };
+  if (key === 'rejected') return { key, label: 'Rifiutata' };
+  if (key === 'pending') return { key, label: 'In attesa' };
+  return { key: 'neutral', label: 'Nessuno stato' };
+}
+
+function getTeamFerieActionLabel(action, statusTo) {
+  const actionKey = normalizeTeamFerieText(action);
+  if (actionKey === 'requested') return 'Richiesta inviata';
+  if (actionKey === 'removed') return 'Richiesta rimossa';
+  if (actionKey === 'reviewed') {
+    const meta = getTeamFerieStatusMeta(statusTo);
+    if (meta.key === 'approved') return 'Richiesta approvata';
+    if (meta.key === 'rejected') return 'Richiesta rifiutata';
+    return 'Richiesta revisionata';
+  }
+  return 'Aggiornamento richiesta';
+}
+
+function getTeamFerieHistoryLine(row) {
+  const fromMeta = getTeamFerieStatusMeta(row.status_from);
+  const toMeta = getTeamFerieStatusMeta(row.status_to);
+  return `${row.username || '-'} · ${fromMeta.label} → ${toMeta.label} · da ${row.actor_username || '?'}`;
+}
+
+function rerenderTeamFerieWithFocus(fieldId, selectionStart, selectionEnd) {
+  renderTeamFerieLogContent();
+  if (!fieldId) return;
+  const field = document.getElementById(fieldId);
+  if (!field) return;
+  field.focus();
+  if (typeof selectionStart === 'number' && typeof selectionEnd === 'number' && field.setSelectionRange) {
+    field.setSelectionRange(selectionStart, selectionEnd);
+  }
+}
+
+function filterTeamFeriePending(rows) {
+  const needle = normalizeTeamFerieText(teamFerieFilters.name);
+  const status = teamFerieFilters.status || 'all';
+  if (status !== 'all' && status !== 'pending') return [];
+  return (rows || []).filter(row => {
+    if (!needle) return true;
+    return normalizeTeamFerieText(`${row.operatore_nome} ${row.username}`).includes(needle);
+  });
+}
+
+function filterTeamFerieLogs(rows) {
+  const needle = normalizeTeamFerieText(teamFerieFilters.name);
+  const status = teamFerieFilters.status || 'all';
+  return (rows || []).filter(row => {
+    const matchesName = !needle || normalizeTeamFerieText(`${row.operatore_nome} ${row.username} ${row.actor_username}`).includes(needle);
+    const rowStatus = normalizeTeamFerieText(row.status_to || '');
+    const matchesStatus = status === 'all' || rowStatus === status;
+    return matchesName && matchesStatus;
+  });
+}
+
+function renderTeamFerieLogContent() {
+  const elFerie = document.getElementById('logContentFerie');
+  if (!elFerie) return;
+  const pending = filterTeamFeriePending(teamFerieLogData.pending || []);
+  const ferieLogs = filterTeamFerieLogs(teamFerieLogData.logs || []);
+  const sections = [];
+  sections.push(`
+    <div class="ferie-filter-bar">
+      <input id="teamFerieNameFilter" type="text" placeholder="Filtra per richiedente" value="${teamFerieFilters.name}">
+      <select id="teamFerieStatusFilter">
+        <option value="all"${teamFerieFilters.status === 'all' ? ' selected' : ''}>Tutti gli stati</option>
+        <option value="pending"${teamFerieFilters.status === 'pending' ? ' selected' : ''}>Richieste</option>
+        <option value="approved"${teamFerieFilters.status === 'approved' ? ' selected' : ''}>Accettate</option>
+        <option value="rejected"${teamFerieFilters.status === 'rejected' ? ' selected' : ''}>Rifiutate</option>
+      </select>
+    </div>`);
+  sections.push('<div class="ferie-log-scroll">');
+  if (isEditor && pending.length) {
+    sections.push(`
+      <div style="margin-bottom:14px">
+        <div style="font-size:0.78rem;color:#ccfbf1;font-weight:800;margin-bottom:8px">In attesa di revisione</div>
+        ${pending.map(p => `
+          <div class="ferie-pending-card">
+            <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
+            <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} Â· ${p.giorni || 0} giorni</div>
+            <div style="font-size:0.72rem;color:#bfdbfe;margin-top:6px">
+              ${p.first_day || ''}${p.last_day && p.last_day !== p.first_day ? ` â†’ ${p.last_day}` : ''}
+            </div>
+            <div class="ferie-pending-actions">
+              <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>âœ… Approva</button>
+              <button class="btn-editor" style="color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>âœ• Rifiuta</button>
+            </div>
+          </div>`).join('')}
+      </div>`);
+  }
+  if (ferieLogs.length) {
+    sections.push(`
+      <div>
+        <div style="font-size:0.78rem;color:#cbd5e1;font-weight:800;margin-bottom:8px">Storico ferie</div>
+        ${ferieLogs.slice(0, 120).map(l => `
+          <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;gap:12px">
+              <span style="font-weight:700;color:var(--text)">${l.operatore_nome || '-'}</span>
+              <span style="color:var(--muted);font-size:0.7rem">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
+            </div>
+            <div style="margin-top:4px;font-size:0.72rem;color:#dbeafe">
+              <span class="ferie-log-type">${l.action || 'ferie'}</span> ${l.data_turno || ''}
+            </div>
+            <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">
+              ${l.username || '-'} Â· ${l.status_from || 'vuoto'} â†’ ${l.status_to || 'vuoto'} Â· da ${l.actor_username || '?'}
+            </div>
+          </div>`).join('')}
+      </div>`);
+  }
+  sections.push('</div>');
+  if ((!isEditor || !pending.length) && !ferieLogs.length) {
+    sections.push('<p style="color:var(--muted);margin-top:12px">Nessuna richiesta ferie registrata per il filtro selezionato</p>');
+  }
+  elFerie.innerHTML = sections.join('');
+  document.getElementById('teamFerieNameFilter')?.addEventListener('input', e => {
+    teamFerieFilters.name = e.target.value || '';
+    renderTeamFerieLogContent();
+  });
+  document.getElementById('teamFerieStatusFilter')?.addEventListener('change', e => {
+    teamFerieFilters.status = e.target.value || 'all';
+    renderTeamFerieLogContent();
+  });
+}
+
+renderTeamFerieLogContent = function() {
+  const elFerie = document.getElementById('logContentFerie');
+  if (!elFerie) return;
+  const pending = filterTeamFeriePending(teamFerieLogData.pending || []);
+  const ferieLogs = filterTeamFerieLogs(teamFerieLogData.logs || []);
+  const sections = [];
+  sections.push(`
+    <div class="ferie-filter-bar">
+      <input id="teamFerieNameFilter" type="text" placeholder="Filtra per richiedente" value="${teamFerieFilters.name}">
+      <select id="teamFerieStatusFilter">
+        <option value="all"${teamFerieFilters.status === 'all' ? ' selected' : ''}>Tutti gli stati</option>
+        <option value="pending"${teamFerieFilters.status === 'pending' ? ' selected' : ''}>Richieste</option>
+        <option value="approved"${teamFerieFilters.status === 'approved' ? ' selected' : ''}>Accettate</option>
+        <option value="rejected"${teamFerieFilters.status === 'rejected' ? ' selected' : ''}>Rifiutate</option>
+      </select>
+    </div>`);
+  sections.push('<div class="ferie-log-scroll">');
+  if (isEditor && pending.length) {
+    sections.push(`
+      <div style="margin-bottom:14px">
+        <div style="font-size:0.78rem;color:#fef08a;font-weight:800;margin-bottom:8px">In attesa di revisione</div>
+        ${pending.map(p => `
+          <div class="ferie-pending-card" style="border-color:rgba(250,204,21,.28)">
+            <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
+            <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} · ${p.giorni || 0} giorni</div>
+            <div style="font-size:0.72rem;color:#bfdbfe;margin-top:6px">
+              ${p.first_day || ''}${p.last_day && p.last_day !== p.first_day ? ` → ${p.last_day}` : ''}
+            </div>
+            <div class="ferie-pending-actions">
+              <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>Approva</button>
+              <button class="btn-editor" style="color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>Rifiuta</button>
+            </div>
+          </div>`).join('')}
+      </div>`);
+  }
+  if (ferieLogs.length) {
+    sections.push(`
+      <div>
+        <div style="font-size:0.78rem;color:#cbd5e1;font-weight:800;margin-bottom:8px">Storico ferie</div>
+        ${ferieLogs.slice(0, 120).map(l => {
+          const statusMeta = getTeamFerieStatusMeta(l.status_to);
+          return `
+          <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;gap:12px">
+              <span style="font-weight:700;color:var(--text)">${l.operatore_nome || '-'}</span>
+              <span style="color:var(--muted);font-size:0.7rem">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
+            </div>
+            <div style="margin-top:4px;font-size:0.72rem;color:#dbeafe;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+              <span>${getTeamFerieActionLabel(l.action, l.status_to)} · ${l.data_turno || ''}</span>
+              <span class="ferie-log-type ${statusMeta.key}">${statusMeta.label}</span>
+            </div>
+            <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">
+              ${getTeamFerieHistoryLine(l)}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`);
+  }
+  sections.push('</div>');
+  if ((!isEditor || !pending.length) && !ferieLogs.length) {
+    sections.push('<p style="color:var(--muted);margin-top:12px">Nessuna richiesta ferie registrata per il filtro selezionato</p>');
+  }
+  elFerie.innerHTML = sections.join('');
+  document.getElementById('teamFerieNameFilter')?.addEventListener('input', e => {
+    teamFerieFilters.name = e.target.value || '';
+    rerenderTeamFerieWithFocus('teamFerieNameFilter', e.target.selectionStart, e.target.selectionEnd);
+  });
+  document.getElementById('teamFerieStatusFilter')?.addEventListener('change', e => {
+    teamFerieFilters.status = e.target.value || 'all';
+    rerenderTeamFerieWithFocus('teamFerieStatusFilter');
+  });
+}
+
+loadLog = async function() {
+  const [logs, ferieDash] = await Promise.all([
+    fetch('/api/team/log?limit=120').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/team/ferie/dashboard').then(r=>r.json()).catch(()=>({pending:[], recent_log:[]})),
+  ]);
+  const pending   = ferieDash.pending     || [];
+  const ferieLogs = ferieDash.recent_log  || [];
+
+  // ── TAB TURNI ────────────────────────────────────────────
+  const elTurni = document.getElementById('logContentTurni');
+  if (elTurni) {
+    if (!logs.length) {
+      elTurni.innerHTML = '<p style="color:var(--muted)">Nessuna modifica ai turni registrata</p>';
+    } else {
+      elTurni.innerHTML = logs.slice(0, 80).map(l => {
+        const color = l.nuovo_valore ? '#34D399' : '#EF4444';
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-weight:700;color:var(--text)">${l.operatore_nome||''}</span>
+            <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
+          </div>
+          <div style="font-size:0.72rem">
+            📅 ${l.data_turno||''} &nbsp;·&nbsp; ${l.campo||''}
+            &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span>
+            → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
+          </div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente||'?'}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // ── TAB FERIE ────────────────────────────────────────────
+  const elFerie = document.getElementById('logContentFerie');
+  if (elFerie) {
+    const sections = [];
+    if (isEditor && pending.length) {
+      sections.push(`
+        <div style="margin-bottom:14px">
+          <div style="font-size:0.78rem;color:#ccfbf1;font-weight:800;margin-bottom:8px">In attesa di revisione</div>
+          ${pending.map(p => `
+            <div class="ferie-pending-card">
+              <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
+              <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} · ${p.giorni || 0} giorni</div>
+              <div style="font-size:0.72rem;color:#bfdbfe;margin-top:6px">
+                ${p.first_day || ''}${p.last_day && p.last_day !== p.first_day ? ` → ${p.last_day}` : ''}
+              </div>
+              <div class="ferie-pending-actions">
+                <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>✅ Approva</button>
+                <button class="btn-editor" style="color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>✕ Rifiuta</button>
+              </div>
+            </div>`).join('')}
+        </div>`);
+    }
+    if (ferieLogs.length) {
+      sections.push(`
+        <div>
+          <div style="font-size:0.78rem;color:#cbd5e1;font-weight:800;margin-bottom:8px">Storico ferie</div>
+          ${ferieLogs.slice(0, 60).map(l => `
+            <div style="padding:8px 0;border-bottom:1px solid var(--border)">
+              <div style="display:flex;justify-content:space-between;gap:12px">
+                <span style="font-weight:700;color:var(--text)">${l.operatore_nome || '-'}</span>
+                <span style="color:var(--muted);font-size:0.7rem">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
+              </div>
+              <div style="margin-top:4px;font-size:0.72rem;color:#dbeafe">
+                <span class="ferie-log-type">${l.action || 'ferie'}</span> ${l.data_turno || ''}
+              </div>
+              <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">
+                ${l.username || '-'} · ${l.status_from || 'vuoto'} → ${l.status_to || 'vuoto'} · da ${l.actor_username || '?'}
+              </div>
+            </div>`).join('')}
+        </div>`);
+    }
+    elFerie.innerHTML = sections.length
+      ? sections.join('')
+      : '<p style="color:var(--muted)">Nessuna richiesta ferie registrata</p>';
+  }
+
+  // Badge contatore ferie pendenti nell'intestazione log btn
+  if (pending.length) {
+    const badge = document.getElementById('ferieAlertBadge');
+    if (badge) { badge.textContent = pending.length; badge.classList.add('show'); }
+  }
+};
+
+loadLog = async function() {
+  const [logs, ferieDash] = await Promise.all([
+    fetch('/api/team/log?limit=120').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/team/ferie/dashboard').then(r=>r.json()).catch(()=>({pending:[], recent_log:[]})),
+  ]);
+  const pending = ferieDash.pending || [];
+  const ferieLogs = ferieDash.recent_log || [];
+
+  const elTurni = document.getElementById('logContentTurni');
+  if (elTurni) {
+    if (!logs.length) {
+      elTurni.innerHTML = '<p style="color:var(--muted)">Nessuna modifica ai turni registrata</p>';
+    } else {
+      elTurni.innerHTML = logs.slice(0, 80).map(l => {
+        const color = l.nuovo_valore ? '#34D399' : '#EF4444';
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-weight:700;color:var(--text)">${l.operatore_nome||''}</span>
+            <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
+          </div>
+          <div style="font-size:0.72rem">
+            ðŸ“… ${l.data_turno||''} &nbsp;Â·&nbsp; ${l.campo||''}
+            &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'â€”'}</span>
+            â†’ <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
+          </div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente||'?'}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  teamFerieLogData = { pending, logs: ferieLogs };
+  renderTeamFerieLogContent();
+
+  const badge = document.getElementById('ferieAlertBadge');
+  if (badge) {
+    if (pending.length) {
+      badge.textContent = pending.length;
+      badge.classList.add('show');
+    } else {
+      badge.textContent = '';
+      badge.classList.remove('show');
+    }
+  }
+};
+
+reviewPendingFerie = async function(operatoreId, dates, status) {
+  const res = await fetch('/api/team/ferie/review', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ operatore_id: operatoreId, dates, status })
+  }).then(r=>r.json()).catch(()=>({ok:false}));
+  if (!res.ok) {
+    alert(res.detail || 'Errore durante la revisione della richiesta ferie.');
+    return;
+  }
+  const teamMe = await fetch('/api/team/me').then(r=>r.json()).catch(()=>null);
+  if (teamMe) teamContext = { ...(teamContext || {}), ...(teamMe || {}) };
+  updateFerieUi();
+  await load();
+  await loadLog();
+};
+
+toggleLog = async function() {
+  logOpen = !logOpen;
+  const panel = document.getElementById('logPanel');
+  panel.style.display = logOpen ? 'block' : 'none';
+  if (logOpen) await loadLog();
+};
+
+function switchLogTab(tab) {
+  const tTurni = document.getElementById('logContentTurni');
+  const tFerie = document.getElementById('logContentFerie');
+  const bTurni = document.getElementById('logTabTurni');
+  const bFerie = document.getElementById('logTabFerie');
+  if (!tTurni || !tFerie || !bTurni || !bFerie) return;
+  const isTurni = tab === 'turni';
+  tTurni.style.display = isTurni ? '' : 'none';
+  tFerie.style.display = isTurni ? 'none' : '';
+  bTurni.style.background = isTurni ? 'var(--accent)' : 'var(--card2)';
+  bTurni.style.color = isTurni ? 'white' : 'var(--muted)';
+  bTurni.style.border = isTurni ? 'none' : '1px solid var(--border)';
+  bFerie.style.background = isTurni ? 'var(--card2)' : 'var(--accent)';
+  bFerie.style.color = isTurni ? 'var(--muted)' : 'white';
+  bFerie.style.border = isTurni ? '1px solid var(--border)' : 'none';
+}
+
+renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
+  const isEmpty = !turno;
+  const turnoNorm = (turno || '').trim().toUpperCase();
+  const isRep = flags && flags.includes('rep');
+  const isSmart = flags && flags.includes('smart');
+  const isF = flags && flags.includes('F');
+  const isM = flags && flags.includes('M');
+  const isFestTurno = ['F', 'RF', 'EX FEST', 'EX F.', 'LUTTO'].includes(turnoNorm);
+  const isMalTurno = turnoNorm === 'MAL';
+  const rfRepClass = turnoNorm === 'RF' && isRep ? ' rf-rep' : '';
+  const repClass = isRep ? ' rep' : '';
+  const smartClass = isSmart ? ' smart' : '';
+  const specialClass = isFestTurno ? ' special-fest' : (isMalTurno ? ' special-mal' : '');
+  const mfHtml = (isM ? '<span class="mf-inline">m</span>' : '') + (isF ? '<span class="mf-inline">f</span>' : '');
+  const repIcon = isRep ? '<span class="cella-rep-icon">&reg;</span>' : '';
+  const smartHtml = isSmart ? '<span class="smart-inline">#</span>' : '';
+  const extras = mfHtml + repIcon + smartHtml;
+  const ownFerieCell = col === 'base' && ferieMode && teamContext?.linked_operatore_id === opId;
+  const clickEvt = isEditor ? `onclick="openPicker('${data}',${opId},'${col}',event)"` : (ownFerieCell ? `onclick="toggleFerieDate('${data}')"` : '');
+  const edClass = isEditor ? ' editable' : '';
+  const ferieClass = ownFerieCell ? ' ferie-cell-selectable' : '';
+  const selectedClass = ownFerieCell && (ferieAdds.has(data) || ferieRemovals.has(data)) ? ' ferie-cell-selected' : '';
+  const marker = col === 'base' ? renderFerieMarker(ferieRequest, data, opId) : '';
+  const colClass = col === 'var' ? ' var-cell' : '';
+  const value = isEmpty ? '' : turno;
+  if (col === 'base' && turnoVar) {
+    const filledClass = isEmpty && !extras ? ' empty' : ' filled';
+    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${selectedClass}${filledClass}" ${clickEvt}>${value}${extras}${marker}</div>`;
+  }
+  if (isEmpty) {
+    const filledClass = extras || marker ? ' filled' : ' empty';
+    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${selectedClass}${filledClass}" ${clickEvt}>${value}${extras}${marker}</div>`;
+  }
+  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${selectedClass} filled" ${clickEvt}>${turno}${extras}${marker}</div>`;
+};
+
+renderTplCella = function(dow, pos) {
+  const d = (tplData[dow] && tplData[dow][pos]) || { turno_base: '', flags: '' };
+  const flags = d.flags || '';
+  const turno = d.turno_base || '';
+  const turnoNorm = turno.trim().toUpperCase();
+  const isRep = flags.includes('rep');
+  const isSmart = flags.includes('smart');
+  const isF = flags.includes('F');
+  const isM = flags.includes('M');
+  const isFestTurno = ['F', 'RF', 'EX FEST', 'EX F.', 'LUTTO'].includes(turnoNorm);
+  const isMalTurno = turnoNorm === 'MAL';
+  const rfRepClass = turnoNorm === 'RF' && isRep ? ' rf-rep' : '';
+  const repClass = isRep ? ' rep' : '';
+  const smartClass = isSmart ? ' smart' : '';
+  const specialClass = isFestTurno ? ' special-fest' : (isMalTurno ? ' special-mal' : '');
+  const stateClass = turno || isRep || isSmart || isF || isM ? ' filled' : ' empty';
+  const mfHtml = (isM ? '<span class="mf-inline">m</span>' : '') + (isF ? '<span class="mf-inline">f</span>' : '');
+  const repIcon = isRep ? '<span class="cella-rep-icon">&reg;</span>' : '';
+  const smartHtml = isSmart ? '<span class="smart-inline">#</span>' : '';
+  return `<div class="cella tpl-cella${repClass}${smartClass}${specialClass}${rfRepClass}${stateClass}" onclick="openPickerForTemplate(${dow},${pos},event)">${turno || ''}${mfHtml}${repIcon}${smartHtml}</div>`;
+};
+
+loadLog = async function() {
+  const [logs, ferieDash] = await Promise.all([
+    fetch('/api/team/log?limit=120').then(r => r.json()).catch(() => []),
+    fetch('/api/team/ferie/dashboard').then(r => r.json()).catch(() => ({pending: [], recent_log: []})),
+  ]);
+  const pending = ferieDash.pending || [];
+  const ferieLogs = ferieDash.recent_log || [];
+
+  const elTurni = document.getElementById('logContentTurni');
+  if (elTurni) {
+    if (!logs.length) {
+      elTurni.innerHTML = '<p style="color:var(--muted)">Nessuna modifica ai turni registrata</p>';
+    } else {
+      elTurni.innerHTML = logs.slice(0, 80).map(l => {
+        const color = l.nuovo_valore ? '#34D399' : '#EF4444';
+        const oldValue = l.vecchio_valore || '-';
+        const newValue = l.nuovo_valore || '(vuoto)';
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+            <span style="font-weight:700;color:var(--text)">${l.operatore_nome || ''}</span>
+            <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica || '').slice(0,10)}</span>
+          </div>
+          <div style="font-size:0.72rem">
+            ${l.data_turno || ''} - ${l.campo || ''}
+            <span style="text-decoration:line-through;color:#EF4444">${oldValue}</span>
+            -> <span style="color:${color};font-weight:700">${newValue}</span>
+          </div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente || '?'}</div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  teamFerieLogData = { pending, logs: ferieLogs };
+  renderTeamFerieLogContent();
+
+  const badge = document.getElementById('ferieAlertBadge');
+  if (badge) {
+    if (pending.length) {
+      badge.textContent = pending.length;
+      badge.classList.add('show');
+    } else {
+      badge.textContent = '';
+      badge.classList.remove('show');
+    }
+  }
+};
+
+</script>
+</body>
+</html>
