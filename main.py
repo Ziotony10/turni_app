@@ -7,6 +7,7 @@ from typing import Optional, List
 from calendar import monthrange
 import sqlite3, os, time
 import io
+from html import escape
 from datetime import date, datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -26,6 +27,12 @@ PG_IDLE_IN_TX_TIMEOUT_MS = int(os.environ.get("PG_IDLE_IN_TX_TIMEOUT_MS", "15000
 
 if USE_PG:
     import psycopg2, psycopg2.extras, psycopg2.pool
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except Exception:
+    sync_playwright = None
+    PLAYWRIGHT_AVAILABLE = False
 
 # ─── Connection Pool (PostgreSQL) ──────────────────────────────────────────────
 _pg_pool = None
@@ -392,7 +399,7 @@ def _team_pdf_fit_text(value, max_width: float, font_size: float, mono: bool = F
     text = _team_pdf_clean_text(value)
     if not text:
         return ""
-    char_factor = 0.60 if mono else 0.52
+    char_factor = 0.54 if mono else 0.50
     max_chars = max(int(max_width / max(font_size * char_factor, 0.1)), 1)
     if len(text) <= max_chars:
         return text
@@ -425,6 +432,18 @@ def _team_pdf_rect_cmd(x: float, y: float, w: float, h: float,
     cmds.append(f"{x:.2f} {y:.2f} {w:.2f} {h:.2f} re {op}")
     return "\n".join(cmds)
 
+def _team_pdf_line_cmd(x1: float, y1: float, x2: float, y2: float,
+                       color=(0, 0, 0), line_width: float = 0.5,
+                       dash: Optional[List[float]] = None) -> str:
+    cmds = [f"{line_width:.2f} w", f"{color[0]:.3f} {color[1]:.3f} {color[2]:.3f} RG"]
+    if dash:
+        dash_text = " ".join(f"{d:.2f}" for d in dash)
+        cmds.append(f"[{dash_text}] 0 d")
+    cmds.append(f"{x1:.2f} {y1:.2f} m {x2:.2f} {y2:.2f} l S")
+    if dash:
+        cmds.append("[] 0 d")
+    return "\n".join(cmds)
+
 def _team_pdf_cell_value(turno: str, flags: str) -> str:
     base = (turno or "").strip()
     suffix = []
@@ -438,6 +457,58 @@ def _team_pdf_cell_value(turno: str, flags: str) -> str:
         if "F" in flags:
             suffix.append("f")
     return f"{base}{''.join(suffix)}" if base or suffix else ""
+
+def _team_pdf_hex_to_rgb(value: str):
+    value = (value or "").strip().lstrip("#")
+    if len(value) != 6:
+        return (1.0, 1.0, 1.0)
+    return tuple(int(value[i:i + 2], 16) / 255 for i in (0, 2, 4))
+
+def _team_pdf_is_fest_turno(turno: str) -> bool:
+    return (turno or "").strip().upper() in {"F", "RF", "EX FEST", "EX F.", "LUTTO"}
+
+def _team_pdf_cell_style(turno: str, flags: str, is_var: bool = False):
+    turno_norm = (turno or "").strip().upper()
+    flags_text = flags or ""
+    is_rep = "rep" in flags_text
+    is_smart = "smart" in flags_text
+    is_rf = turno_norm == "RF"
+    is_fest = _team_pdf_is_fest_turno(turno_norm)
+    is_mal = turno_norm == "MAL"
+
+    fill = (1.0, 1.0, 1.0)
+    text = (0.10, 0.16, 0.24)
+    stroke = (0.77, 0.82, 0.88)
+
+    if is_smart:
+        fill = _team_pdf_hex_to_rgb("#FED7AA")
+        text = _team_pdf_hex_to_rgb("#C2410C")
+        stroke = _team_pdf_hex_to_rgb("#FDBA74")
+    if is_rep:
+        fill = _team_pdf_hex_to_rgb("#FEF9C3")
+        text = _team_pdf_hex_to_rgb("#B91C1C")
+        stroke = _team_pdf_hex_to_rgb("#FACC15")
+    if is_fest and not is_rf:
+        fill = _team_pdf_hex_to_rgb("#FF0000")
+        text = (1.0, 1.0, 1.0)
+        stroke = _team_pdf_hex_to_rgb("#B91C1C")
+    if is_rf and not is_rep:
+        fill = _team_pdf_hex_to_rgb("#FF0000")
+        text = (1.0, 1.0, 1.0)
+        stroke = _team_pdf_hex_to_rgb("#B91C1C")
+    if is_mal:
+        fill = _team_pdf_hex_to_rgb("#93C5FD")
+        text = _team_pdf_hex_to_rgb("#FF0000")
+        stroke = _team_pdf_hex_to_rgb("#60A5FA")
+    if turno_norm in {"RC", "R", "ROT"} and not is_rep and not is_smart:
+        fill = (0.985, 0.989, 0.995)
+        text = (0.17, 0.24, 0.35)
+        stroke = (0.82, 0.86, 0.91)
+
+    if is_var and not (is_fest or is_rf or is_mal):
+        text = _team_pdf_hex_to_rgb("#FF0000")
+
+    return {"fill": fill, "text": text, "stroke": stroke}
 
 def _build_minimal_pdf(page_streams: List[str], page_width: int, page_height: int) -> bytes:
     font_objects = {
@@ -486,21 +557,22 @@ def _build_minimal_pdf(page_streams: List[str], page_width: int, page_height: in
     return bytes(pdf)
 
 def _build_team_month_pdf(payload: dict) -> bytes:
-    page_width = 842
-    page_height = 595
-    margin_x = 20
-    margin_bottom = 22
-    title_y = page_height - 28
-    meta_y = page_height - 43
-    table_top = page_height - 70
-    date_w = 42
-    day_w = 26
-    sep_w = 4
-    side_w = 24
-    max_ops_per_page = 6
     operatori = payload.get("operatori") or []
-    giorni = payload.get("giorni") or []
     total_ops = len(operatori)
+    pair_target_w = 56
+    fixed_width = 34 + 18 + (2 * 2) + (7 * 16)
+    page_width = max(900, min(1400, int(28 + fixed_width + (max(total_ops, 1) * pair_target_w))))
+    page_height = 595
+    margin_x = 14
+    margin_bottom = 16
+    title_y = page_height - 20
+    meta_y = page_height - 31
+    table_top = page_height - 44
+    date_w = 34
+    day_w = 18
+    sep_w = 2
+    side_w = 16
+    giorni = payload.get("giorni") or []
     if not operatori:
         page_streams = [
             "\n".join([
@@ -510,7 +582,7 @@ def _build_team_month_pdf(payload: dict) -> bytes:
         ]
         return _build_minimal_pdf(page_streams, page_width, page_height)
 
-    operator_chunks = [operatori[i:i + max_ops_per_page] for i in range(0, total_ops, max_ops_per_page)]
+    operator_chunks = [operatori]
     month_label = f"{MESI_IT[payload['mese'] - 1]} {payload['anno']}"
     generated_label = datetime.now().strftime("%d/%m/%Y %H:%M")
     page_streams = []
@@ -521,53 +593,51 @@ def _build_team_month_pdf(payload: dict) -> bytes:
         available_width = page_width - (2 * margin_x) - fixed_width
         pair_w = available_width / chunk_size
         slot_w = pair_w / 2
-        header_main_h = 22
-        header_sub_h = 16
-        row_h = min(15.0, max(12.0, (table_top - margin_bottom - header_main_h - header_sub_h) / max(len(giorni), 1)))
+        header_main_h = 18
+        header_sub_h = 11
+        row_h = min(16.0, max(13.0, (table_top - margin_bottom - header_main_h - header_sub_h) / max(len(giorni), 1)))
         table_left = margin_x
         table_width = page_width - (2 * margin_x)
         commands = []
 
-        commands.append(_team_pdf_text_cmd(margin_x, title_y, f"Turni team - {month_label}", "F2", 16))
-        chunk_start = (chunk_index - 1) * max_ops_per_page + 1
-        chunk_end = chunk_start + len(ops_chunk) - 1
-        meta_text = f"Operatori {chunk_start}-{chunk_end} di {total_ops}  |  Generato {generated_label}  |  Pagina {chunk_index}/{len(operator_chunks)}"
-        commands.append(_team_pdf_text_cmd(margin_x, meta_y, meta_text, "F1", 9, color=(0.35, 0.35, 0.35)))
+        commands.append(_team_pdf_text_cmd(margin_x, title_y, f"Turni team - {month_label}", "F2", 11.0))
+        meta_text = f"Generato {generated_label}  |  Operatori {len(ops_chunk)}"
+        commands.append(_team_pdf_text_cmd(margin_x, meta_y, meta_text, "F1", 6.0, color=(0.35, 0.35, 0.35)))
 
         x = table_left
         y_header1 = table_top - header_main_h
         y_header2 = y_header1 - header_sub_h
         commands.append(_team_pdf_rect_cmd(x, y_header2, date_w, header_main_h + header_sub_h, fill=(0.89, 0.92, 0.96), stroke=(0.55, 0.60, 0.67)))
-        commands.append(_team_pdf_text_cmd(x + 2, y_header2 + 11, "Data", "F2", 8, width=date_w - 4))
+        commands.append(_team_pdf_text_cmd(x + 1, y_header2 + 9, "Data", "F2", 6.2, width=date_w - 2))
         x += date_w
         commands.append(_team_pdf_rect_cmd(x, y_header2, day_w, header_main_h + header_sub_h, fill=(0.89, 0.92, 0.96), stroke=(0.55, 0.60, 0.67)))
-        commands.append(_team_pdf_text_cmd(x, y_header2 + 11, "Gg", "F2", 8, align="center", width=day_w))
+        commands.append(_team_pdf_text_cmd(x, y_header2 + 9, "Gg", "F2", 6.0, align="center", width=day_w))
         x += day_w
 
         for op in ops_chunk:
             commands.append(_team_pdf_rect_cmd(x, y_header1, pair_w, header_main_h, fill=(0.90, 0.92, 0.95), stroke=(0.55, 0.60, 0.67)))
             header_name = f"{op.get('posizione', '')} {op.get('nome', '')}".strip()
-            commands.append(_team_pdf_text_cmd(x + 3, y_header1 + 8, header_name, "F2", 7.5, width=pair_w - 6))
+            commands.append(_team_pdf_text_cmd(x + 2, y_header1 + 6.5, header_name, "F2", 6.2, width=pair_w - 4))
             commands.append(_team_pdf_rect_cmd(x, y_header2, slot_w, header_sub_h, fill=(0.96, 0.97, 0.99), stroke=(0.55, 0.60, 0.67)))
             commands.append(_team_pdf_rect_cmd(x + slot_w, y_header2, slot_w, header_sub_h, fill=(0.96, 0.97, 0.99), stroke=(0.55, 0.60, 0.67)))
-            commands.append(_team_pdf_text_cmd(x, y_header2 + 5.5, "TAB", "F2", 6.5, align="center", width=slot_w))
-            commands.append(_team_pdf_text_cmd(x + slot_w, y_header2 + 5.5, "VAR", "F2", 6.5, align="center", width=slot_w))
+            commands.append(_team_pdf_text_cmd(x, y_header2 + 3.4, "TAB", "F2", 4.7, align="center", width=slot_w))
+            commands.append(_team_pdf_text_cmd(x + slot_w, y_header2 + 3.4, "VAR", "F2", 4.7, align="center", width=slot_w))
             x += pair_w
 
         commands.append(_team_pdf_rect_cmd(x, y_header2, sep_w, header_main_h + header_sub_h, fill=(0.10, 0.14, 0.20), stroke=(0.10, 0.14, 0.20)))
         x += sep_w
 
-        for label in ["Rep1", "Rep2", "Rep3"]:
+        for label in ["1", "2", "3"]:
             commands.append(_team_pdf_rect_cmd(x, y_header2, side_w, header_main_h + header_sub_h, fill=(0.86, 0.92, 0.99), stroke=(0.55, 0.66, 0.84)))
-            commands.append(_team_pdf_text_cmd(x, y_header2 + 11, label, "F2", 6.5, align="center", width=side_w))
+            commands.append(_team_pdf_text_cmd(x, y_header2 + 9, label, "F2", 5.4, align="center", width=side_w))
             x += side_w
 
         commands.append(_team_pdf_rect_cmd(x, y_header2, sep_w, header_main_h + header_sub_h, fill=(0.10, 0.14, 0.20), stroke=(0.10, 0.14, 0.20)))
         x += sep_w
 
-        for label in ["FM1", "FM2", "FP1", "FP2"]:
+        for label in ["M1", "M2", "P1", "P2"]:
             commands.append(_team_pdf_rect_cmd(x, y_header2, side_w, header_main_h + header_sub_h, fill=(0.86, 0.92, 0.99), stroke=(0.55, 0.66, 0.84)))
-            commands.append(_team_pdf_text_cmd(x, y_header2 + 11, label, "F2", 6.5, align="center", width=side_w))
+            commands.append(_team_pdf_text_cmd(x, y_header2 + 9, label, "F2", 4.8, align="center", width=side_w))
             x += side_w
 
         y_cursor = y_header2
@@ -575,20 +645,22 @@ def _build_team_month_pdf(payload: dict) -> bytes:
         op_ids = [op["id"] for op in ops_chunk]
         for row in giorni:
             y_cursor -= row_h
-            if row.get("is_festivo"):
-                row_fill = (1.00, 0.87, 0.90)
-            elif row.get("is_sabato"):
-                row_fill = (0.89, 0.95, 0.82)
-            elif row.get("is_domenica"):
-                row_fill = (0.98, 0.89, 0.93)
-            else:
-                row_fill = (1.00, 1.00, 1.00)
-            commands.append(_team_pdf_rect_cmd(table_left, y_cursor, table_width, row_h, fill=row_fill, stroke=(0.84, 0.87, 0.91), line_width=0.3))
-
+            commands.append(_team_pdf_rect_cmd(table_left, y_cursor, table_width, row_h, fill=(1.00, 1.00, 1.00), stroke=(0.84, 0.87, 0.91), line_width=0.3))
             x = table_left
-            commands.append(_team_pdf_text_cmd(x + 2, y_cursor + 4.2, f"{row['giorno']:02d} {month_short}", "F1", 7.2, width=date_w - 4))
+            if row.get("is_festivo") or row.get("is_domenica"):
+                left_fill = _team_pdf_hex_to_rgb("#FF99CC")
+                left_text = _team_pdf_hex_to_rgb("#9D174D")
+            elif row.get("is_sabato"):
+                left_fill = _team_pdf_hex_to_rgb("#C6E0B4")
+                left_text = _team_pdf_hex_to_rgb("#3F6212")
+            else:
+                left_fill = _team_pdf_hex_to_rgb("#F8FAFC")
+                left_text = _team_pdf_hex_to_rgb("#475569")
+            commands.append(_team_pdf_rect_cmd(x, y_cursor, date_w, row_h, fill=left_fill, stroke=(0.84, 0.87, 0.91), line_width=0.3))
+            commands.append(_team_pdf_text_cmd(x + 1, y_cursor + 4.4, f"{row['giorno']:02d}", "F2", 7.0, color=left_text, width=date_w - 2))
             x += date_w
-            commands.append(_team_pdf_text_cmd(x, y_cursor + 4.2, GIORNI_SHORT[row["dow"]], "F1", 7.2, align="center", width=day_w))
+            commands.append(_team_pdf_rect_cmd(x, y_cursor, day_w, row_h, fill=left_fill, stroke=(0.84, 0.87, 0.91), line_width=0.3))
+            commands.append(_team_pdf_text_cmd(x, y_cursor + 4.4, GIORNI_SHORT[row["dow"]][0], "F2", 6.5, color=left_text, align="center", width=day_w))
             x += day_w
 
             turni_per_op = {t["operatore_id"]: t for t in row.get("turni", [])}
@@ -596,31 +668,234 @@ def _build_team_month_pdf(payload: dict) -> bytes:
                 turno = turni_per_op.get(op_id, {})
                 base_value = _team_pdf_cell_value(turno.get("turno_base", ""), turno.get("flags_base", ""))
                 var_value = _team_pdf_cell_value(turno.get("turno_var", ""), turno.get("flags_var", ""))
-                commands.append(_team_pdf_text_cmd(x, y_cursor + 4.0, base_value or "-", "F3", 6.3, align="center", width=slot_w, mono=True))
-                commands.append(_team_pdf_text_cmd(x + slot_w, y_cursor + 4.0, var_value or "-", "F3", 6.3, align="center", width=slot_w, mono=True))
+                base_style = _team_pdf_cell_style(turno.get("turno_base", ""), turno.get("flags_base", ""), is_var=False)
+                var_style = _team_pdf_cell_style(turno.get("turno_var", ""), turno.get("flags_var", ""), is_var=True)
+                pill_pad_x = 1.5
+                pill_pad_y = 1.5
+                pill_h = max(row_h - (2 * pill_pad_y), 8)
+                base_x = x + pill_pad_x
+                var_x = x + slot_w + pill_pad_x
+                pill_w = max(slot_w - (2 * pill_pad_x), 6)
+                pill_y = y_cursor + pill_pad_y
+                commands.append(_team_pdf_rect_cmd(base_x, pill_y, pill_w, pill_h, fill=base_style["fill"], stroke=base_style["stroke"], line_width=0.45))
+                commands.append(_team_pdf_rect_cmd(var_x, pill_y, pill_w, pill_h, fill=var_style["fill"], stroke=var_style["stroke"], line_width=0.45))
+                if turno.get("turno_var"):
+                    commands.append(_team_pdf_line_cmd(base_x + 1.0, pill_y + 2.0, base_x + pill_w - 1.0, pill_y + pill_h - 2.0, color=_team_pdf_hex_to_rgb("#FF0000"), line_width=0.7, dash=[2.0, 1.2]))
+                commands.append(_team_pdf_text_cmd(base_x, y_cursor + 4.25, base_value or "", "F2", 6.9, color=base_style["text"], align="center", width=pill_w, mono=True))
+                commands.append(_team_pdf_text_cmd(var_x, y_cursor + 4.25, var_value or "", "F2", 6.9, color=var_style["text"], align="center", width=pill_w, mono=True))
                 x += pair_w
 
             x += sep_w
             cd = row.get("colonne_destra", {})
             for key in ["rep1", "rep2", "rep3"]:
-                commands.append(_team_pdf_text_cmd(x, y_cursor + 4.0, cd.get(key) or "-", "F3", 6.1, align="center", width=side_w, mono=True))
+                commands.append(_team_pdf_text_cmd(x, y_cursor + 4.25, cd.get(key) or "-", "F2", 6.0, align="center", width=side_w, mono=True))
                 x += side_w
             x += sep_w
             for key in ["fest_m1", "fest_m2", "fest_p1", "fest_p2"]:
-                commands.append(_team_pdf_text_cmd(x, y_cursor + 4.0, cd.get(key) or "-", "F3", 6.1, align="center", width=side_w, mono=True))
+                commands.append(_team_pdf_text_cmd(x, y_cursor + 4.25, cd.get(key) or "-", "F2", 5.8, align="center", width=side_w, mono=True))
                 x += side_w
 
         commands.append(_team_pdf_text_cmd(
             margin_x,
-            10,
-            "Legenda: R=rep  #=smart  m/f=modificatori  |  PDF generato al volo, non salvato nel database",
+            7,
+            "R=rep  #=smart  m/f=mod",
             "F1",
-            8,
+            6.2,
             color=(0.35, 0.35, 0.35),
         ))
         page_streams.append("\n".join(commands))
 
     return _build_minimal_pdf(page_streams, page_width, page_height)
+
+def _team_pdf_html_cell(turno: str, flags: str, *, is_var: bool = False, has_var: bool = False) -> str:
+    value = _team_pdf_cell_value(turno, flags)
+    turno_norm = (turno or "").strip().upper()
+    classes = ["cella"]
+    if value:
+        classes.append("filled")
+    else:
+        classes.append("empty")
+    if is_var:
+        classes.append("var-cell")
+    if "rep" in (flags or ""):
+        classes.append("rep")
+    if "smart" in (flags or ""):
+        classes.append("smart")
+    if turno_norm == "RF" and "rep" in (flags or ""):
+        classes.append("rf-rep")
+    elif _team_pdf_is_fest_turno(turno_norm):
+        classes.append("special-fest")
+    elif turno_norm == "MAL":
+        classes.append("special-mal")
+    if has_var and not is_var:
+        classes.append("cella-base-sbarrata")
+    return f'<div class="{" ".join(classes)}">{escape(value or "")}</div>'
+
+def _build_team_month_pdf_html(payload: dict):
+    operatori = payload.get("operatori") or []
+    giorni = payload.get("giorni") or []
+    date_w = 50
+    day_w = 32
+    sep_w = 2
+    side_w = 24
+    slot_w = 38 if len(operatori) >= 13 else 42
+    table_width = date_w + day_w + (sep_w * 2) + (side_w * 7) + (len(operatori) * 2 * slot_w)
+    row_h = 26
+    page_margin_mm = 8
+    px_to_mm = 25.4 / 96
+    page_width_mm = max(297, int((table_width * px_to_mm) + (page_margin_mm * 2) + 6))
+    page_height_mm = max(210, int((((len(giorni) + 5) * row_h) * px_to_mm) + (page_margin_mm * 2) + 8))
+    month_label = f"{MESI_IT[payload['mese'] - 1]} {payload['anno']}"
+    generated_label = datetime.now().strftime("%d/%m/%Y %H:%M")
+
+    rows_html = []
+    for row in giorni:
+        row_classes = ["week-block"]
+        if row.get("is_domenica"):
+            row_classes.append("domenica")
+        elif row.get("is_sabato"):
+            row_classes.append("sabato")
+        if row.get("is_festivo"):
+            row_classes.append("festivo")
+        turni_per_op = {t["operatore_id"]: t for t in row.get("turni", [])}
+        month_short = MESI_IT[payload["mese"] - 1][:3]
+        html_parts = [f'<tr class="{" ".join(row_classes)}">']
+        html_parts.append(f'<td class="td-data">{row["giorno"]:02d} {escape(month_short)}</td>')
+        html_parts.append(f'<td class="td-giorno">{escape(GIORNI_SHORT[row["dow"]])}</td>')
+        for op in operatori:
+            turno = turni_per_op.get(op["id"], {})
+            html_parts.append('<td class="td-slot">')
+            html_parts.append(_team_pdf_html_cell(
+                turno.get("turno_base", ""),
+                turno.get("flags_base", ""),
+                is_var=False,
+                has_var=bool(turno.get("turno_var", "")),
+            ))
+            html_parts.append('</td>')
+            html_parts.append('<td class="td-slot td-slot-var">')
+            html_parts.append(_team_pdf_html_cell(
+                turno.get("turno_var", ""),
+                turno.get("flags_var", ""),
+                is_var=True,
+                has_var=False,
+            ))
+            html_parts.append('</td>')
+        cd = row.get("colonne_destra", {})
+        html_parts.append('<td class="td-sep-destra"></td>')
+        for key in ["rep1", "rep2", "rep3"]:
+            html_parts.append(f'<td class="td-destra">{escape((cd.get(key) or "-"))}</td>')
+        html_parts.append('<td class="td-sep-destra"></td>')
+        for key in ["fest_m1", "fest_m2", "fest_p1", "fest_p2"]:
+            html_parts.append(f'<td class="td-destra">{escape((cd.get(key) or "-"))}</td>')
+        html_parts.append('</tr>')
+        rows_html.append("".join(html_parts))
+
+    colgroup = ['<colgroup><col style="width:50px"><col style="width:32px">']
+    for _ in operatori:
+        colgroup.append(f'<col style="width:{slot_w}px"><col style="width:{slot_w}px">')
+    colgroup.append('<col style="width:2px">')
+    for _ in range(3):
+        colgroup.append(f'<col style="width:{side_w}px">')
+    colgroup.append('<col style="width:2px">')
+    for _ in range(4):
+        colgroup.append(f'<col style="width:{side_w}px">')
+    colgroup.append('</colgroup>')
+
+    header_ops = []
+    for op in operatori:
+        header_ops.append(
+            f'<th colspan="2" class="col-op" title="{escape(op.get("nome", ""))}">'
+            f'<div class="op-pos">{escape(str(op.get("posizione", "")))}</div>'
+            f'<div class="th-op-nome">{escape(op.get("nome", ""))}</div>'
+            f'<div class="op-sub"><span>TAB</span><span>VAR</span></div>'
+            f'</th>'
+        )
+
+    html = f"""<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * {{ box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }}
+    html, body {{ margin:0; padding:0; font-family:'Segoe UI', system-ui, sans-serif; background:#fff; color:#0f172a; }}
+    body {{ padding:{page_margin_mm}mm; }}
+    .page-title {{ font-size:18px; font-weight:800; margin-bottom:4px; }}
+    .page-meta {{ font-size:12px; color:#475569; margin-bottom:12px; }}
+    table {{ border-collapse:collapse; table-layout:fixed; width:auto; background:#fff; }}
+    th {{ background:#f1f5f9; color:#475569; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:.03em; padding:6px 3px; text-align:center; border-bottom:2px solid #334155; }}
+    th.col-data {{ min-width:50px; text-align:left; padding-left:7px; background:#e2e8f0; }}
+    th.col-giorno {{ min-width:32px; background:#e2e8f0; }}
+    th.col-op {{ border-left:1px solid #334155; }}
+    th.col-destra {{ background:#dbeafe; color:#1e40af; border-left:1px solid #bfdbfe; font-weight:800; }}
+    .op-pos {{ font-size:9px; color:#6b7280; font-weight:800; background:#e5e7eb; border-radius:3px; padding:0 3px; display:inline-block; margin-bottom:1px; }}
+    .th-op-nome {{ font-size:10px; color:#1e293b; font-weight:700; }}
+    .op-sub {{ display:grid; grid-template-columns:1fr 1fr; gap:0; margin-top:1px; font-size:8px; color:#9ca3af; }}
+    td {{ padding:2px 0; border-bottom:1px solid #e2e8f0; text-align:center; vertical-align:middle; background:#fff; }}
+    td.td-data {{ text-align:left; padding-left:6px; font-size:11px; color:#475569; font-weight:700; background:#f8fafc; min-width:50px; border-right:1px solid #e2e8f0; }}
+    td.td-giorno {{ font-size:11px; color:#64748b; background:#f8fafc; min-width:32px; border-right:1px solid #e2e8f0; }}
+    tr.domenica td.td-data, tr.domenica td.td-giorno, tr.festivo td.td-data, tr.festivo td.td-giorno {{ color:#9d174d; background:#FF99CC; }}
+    tr.sabato td.td-data, tr.sabato td.td-giorno {{ color:#3f6212; background:#C6E0B4; }}
+    .td-sep-destra {{ background:#0F172A; width:2px; padding:0; }}
+    .td-destra {{ width:{side_w}px; min-width:{side_w}px; max-width:{side_w}px; padding:2px 1px; font-size:11px; color:#334155; background:#f8fafc; border-left:1px solid #cbd5e1; font-weight:600; }}
+    .td-slot-var {{ border-right:2px solid rgba(51,65,85,0.78); }}
+    .cella {{ display:inline-flex; align-items:center; justify-content:center; width:{slot_w - 2}px; min-height:23px; padding:2px 3px; border-radius:5px; border:1px solid transparent; font-size:11px; font-weight:700; line-height:1.1; white-space:nowrap; color:#1a2535; position:relative; }}
+    .cella.empty {{ background:transparent; border:1px dashed #94a3b8; color:#64748b; }}
+    .cella.filled {{ border:1px solid rgba(100,116,139,0.18); }}
+    .cella.rep {{ background:#fef9c3; }}
+    .cella.smart {{ background:#fed7aa; }}
+    .cella.rf-rep {{ background:#fef9c3 !important; color:#FF0000 !important; border:1px solid rgba(250,204,21,0.5) !important; }}
+    .cella.special-fest {{ background:#FF0000; color:#fff !important; border:1px solid rgba(127,29,29,0.22); }}
+    .cella.special-mal {{ background:#93c5fd; color:#FF0000 !important; border:1px solid rgba(59,130,246,0.28); }}
+    .cella.var-cell {{ color:#FF0000; font-weight:900; }}
+    .cella-base-sbarrata::after {{ content:''; position:absolute; left:-12%; top:50%; width:124%; border-top:2px dashed #FF0000; transform:rotate(-19deg); opacity:.95; }}
+    .legend {{ margin-top:18px; font-size:12px; color:#475569; }}
+    @page {{ size: {page_width_mm}mm {page_height_mm}mm; margin:{page_margin_mm}mm; }}
+  </style>
+</head>
+<body>
+  <div class="page-title">Turni team - {escape(month_label)}</div>
+  <div class="page-meta">Generato {escape(generated_label)} | Operatori {len(operatori)}</div>
+  <table class="team-table">
+    {''.join(colgroup)}
+    <thead>
+      <tr>
+        <th class="col-data">Data</th>
+        <th class="col-giorno">Gg</th>
+        {''.join(header_ops)}
+        <th class="td-sep-destra"></th>
+        <th class="col-destra">Rep<br>1°</th>
+        <th class="col-destra">Rep<br>2°</th>
+        <th class="col-destra">Rep<br>3°</th>
+        <th class="td-sep-destra"></th>
+        <th colspan="4" class="col-destra">Festivita<br><span style="font-size:8px;opacity:.7">M M P P</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {''.join(rows_html)}
+    </tbody>
+  </table>
+  <div class="legend">R=rep  #=smart  m/f=mod</div>
+</body>
+</html>"""
+    return html, page_width_mm, page_height_mm
+
+def _build_team_month_pdf_playwright(payload: dict) -> bytes:
+    html, page_width_mm, page_height_mm = _build_team_month_pdf_html(payload)
+    launch_args = ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True, args=launch_args)
+        page = browser.new_page(viewport={"width": max(1600, int((page_width_mm / 25.4) * 96)), "height": max(900, int((page_height_mm / 25.4) * 96))})
+        page.emulate_media(media="screen")
+        page.set_content(html, wait_until="load")
+        pdf_bytes = page.pdf(
+            width=f"{page_width_mm}mm",
+            height=f"{page_height_mm}mm",
+            print_background=True,
+            prefer_css_page_size=True,
+            margin={"top": "0mm", "right": "0mm", "bottom": "0mm", "left": "0mm"},
+        )
+        browser.close()
+    return pdf_bytes
 
 def get_user_record(conn, user_id: int):
     return fetchone(conn, "SELECT id, username, nome, is_admin, is_editor, is_team_editor FROM utenti WHERE id=?", (user_id,))
@@ -864,7 +1139,6 @@ def init_db():
         # Indici per le query piu' frequenti su admin, log e ferie.
         ex(conn, "CREATE INDEX IF NOT EXISTS idx_log_accessi_timestamp ON log_accessi(timestamp DESC)")
         ex(conn, "CREATE INDEX IF NOT EXISTS idx_login_page_visits_timestamp ON login_page_visits(timestamp DESC)")
-        ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_operatori_active_link ON team_operatori(attivo, linked_user_id)")
         ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_log_data_modifica ON team_log(data_modifica DESC)")
         ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_log_data_turno ON team_log(data_turno)")
         ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_ferie_requests_status_operatore_data ON team_ferie_requests(stato, operatore_id, data)")
@@ -895,6 +1169,7 @@ def init_db():
             op_cols = [r[1] for r in conn.execute("PRAGMA table_info(team_operatori)").fetchall()]
             if "linked_user_id" not in op_cols:
                 conn.execute("ALTER TABLE team_operatori ADD COLUMN linked_user_id INTEGER")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_team_operatori_active_link ON team_operatori(attivo, linked_user_id)")
 
             tpl_rep_cols = [r[1] for r in conn.execute("PRAGMA table_info(team_template_reperibili_weekly)").fetchall()]
             for col in ["fest_m1_pos", "fest_m2_pos", "fest_p1_pos", "fest_p2_pos"]:
@@ -944,6 +1219,7 @@ def init_db():
                 "ALTER TABLE utenti ADD COLUMN IF NOT EXISTS is_admin INTEGER DEFAULT 0",
                 "ALTER TABLE utenti ADD COLUMN IF NOT EXISTS is_editor INTEGER DEFAULT 0",
                 "ALTER TABLE utenti ADD COLUMN IF NOT EXISTS is_team_editor INTEGER DEFAULT 0",
+                "ALTER TABLE team_operatori ADD COLUMN IF NOT EXISTS linked_user_id INTEGER",
                 "ALTER TABLE team_turni ADD COLUMN IF NOT EXISTS flags_base TEXT DEFAULT ''",
                 "ALTER TABLE team_turni ADD COLUMN IF NOT EXISTS flags_var TEXT DEFAULT ''",
                 "ALTER TABLE team_template_reperibili_weekly ADD COLUMN IF NOT EXISTS fest_m1_pos INTEGER",
@@ -955,6 +1231,10 @@ def init_db():
                     ex(conn, col_def)
                 except:
                     conn.rollback()
+            try:
+                ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_operatori_active_link ON team_operatori(attivo, linked_user_id)")
+            except:
+                conn.rollback()
             try:
                 ex(conn, """
                     UPDATE team_turni
@@ -2169,7 +2449,13 @@ def get_team_turni(anno: int, mese: int,
 def download_team_turni_pdf(anno: int, mese: int, user=Depends(get_current_user)):
     try:
         payload = _build_team_turni_payload(anno, mese, user)
-        pdf_bytes = _build_team_month_pdf(payload)
+        if PLAYWRIGHT_AVAILABLE:
+            try:
+                pdf_bytes = _build_team_month_pdf_playwright(payload)
+            except Exception:
+                pdf_bytes = _build_team_month_pdf(payload)
+        else:
+            pdf_bytes = _build_team_month_pdf(payload)
         filename = f"turni-team-{anno:04d}-{mese:02d}.pdf"
         headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
         return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers=headers)
