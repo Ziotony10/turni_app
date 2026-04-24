@@ -75,14 +75,19 @@
   .table-wrap {
     --date-w:50px; --day-w:32px; --sep-w:2px; --side-w:24px; --slot-w:42px;
     --slot-font:0.72rem; --slot-var-font:0.8rem; --op-name-font:0.62rem;
+    --team-table-min-width:0px;
     flex:1; overflow:auto; position:relative; background:white; overscroll-behavior:contain;
   }
-  .team-table { width:100%; table-layout:fixed; border-collapse:collapse; font-size:0.78rem; white-space:nowrap; background:white; }
+  .team-table { width:100%; min-width:100%; table-layout:fixed; border-collapse:collapse; font-size:0.78rem; white-space:nowrap; background:white; }
   .team-table col.col-date { width:var(--date-w); }
   .team-table col.col-day { width:var(--day-w); }
   .team-table col.col-slot { width:var(--slot-w); }
   .team-table col.col-sep { width:var(--sep-w); }
   .team-table col.col-side { width:var(--side-w); }
+  .table-wrap.is-scroll-mode .team-table {
+    width:var(--team-table-min-width);
+    min-width:var(--team-table-min-width);
+  }
   .team-table th {
     background:#f1f5f9; color:#475569; font-weight:700;
     font-size:0.64rem; text-transform:uppercase; letter-spacing:.03em;
@@ -100,6 +105,8 @@
   .team-table td { padding:2px 2px; border-bottom:1px solid #e2e8f0; border-right:none; text-align:center; vertical-align:middle; background:white; }
   .team-table td.td-data { text-align:left; padding-left:6px; font-size:0.68rem; color:#475569; font-weight:700; background:#f8fafc; position:sticky; left:0; z-index:3; border-right:1px solid #e2e8f0; min-width:50px; }
   .team-table td.td-giorno { font-size:0.7rem; color:#64748b; background:#f8fafc; min-width:32px; position:sticky; left:50px; z-index:3; border-right:1px solid #e2e8f0; }
+  .team-table td.td-turno { padding:2px 1px !important; }
+  .team-table td.td-turno.td-turno-var { border-right:2px solid rgba(51,65,85,0.78); }
   .team-table tr.domenica td.td-data,
   .team-table tr.domenica td.td-giorno { color:#9d174d; background:#FF99CC; }
   .team-table tr.sabato td.td-data,
@@ -114,8 +121,8 @@
 
   /* Celle turno */
   .cella {
-    display:inline-flex; align-items:center; justify-content:center;
-    width:calc(var(--slot-w) - 2px); border-radius:5px; padding:2px 3px; font-size:var(--slot-font); font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+    width:100%; border-radius:5px; padding:2px 1px; font-size:var(--slot-font); font-weight:700;
     color:#1a2535; min-width:0; min-height:23px; position:relative;
     cursor:default; line-height:1.1; background:transparent; border:1px solid transparent;
     gap:0; flex-wrap:nowrap; white-space:nowrap;
@@ -217,10 +224,16 @@
   .smart-inline { font-size:0.78rem; font-weight:900; color:#FF0000; margin-left:0; line-height:1; }
 
   /* Colonne destra */
-  .td-destra { width:var(--side-w); min-width:var(--side-w); max-width:var(--side-w); padding:2px 1px !important; font-size:0.68rem; color:#334155; background:#f8fafc; border-left:1px solid #cbd5e1; font-weight:600; }
+  .td-destra { width:var(--side-w); min-width:var(--side-w); max-width:var(--side-w); padding:2px 0 !important; font-size:0.68rem; color:#334155; background:#f8fafc; border-left:1px solid #cbd5e1; font-weight:600; }
   .td-destra.editable { cursor:pointer; }
   .td-destra.editable:hover { background:#e2e8f0; color:#1f2937; }
   .td-sep-destra { background:#334155; width:var(--sep-w); min-width:var(--sep-w); max-width:var(--sep-w); padding:0; }
+  .td-sep-fest { background:#94a3b8; box-shadow:inset 1px 0 0 rgba(255,255,255,0.34), inset -1px 0 0 rgba(255,255,255,0.34); }
+  .team-table thead th:nth-last-child(5),
+  .team-table tbody td:nth-last-child(5) {
+    background:#94a3b8;
+    box-shadow:inset 1px 0 0 rgba(255,255,255,0.34), inset -1px 0 0 rgba(255,255,255,0.34);
+  }
 
   /* ── TURNO PICKER REDESIGN ── */
   .turno-picker {
@@ -327,13 +340,31 @@
   .nav-badge { display:none; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#ef4444; color:#fff; font-size:0.68rem; font-weight:800; align-items:center; justify-content:center; line-height:1; }
   .nav-badge.show { display:inline-flex; }
   .ferie-mini { font-size:0.72rem; color:#bfdbfe; }
-  .ferie-marker { position:absolute; right:2px; top:2px; z-index:2; min-width:18px; height:18px; padding:0 5px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-size:0.66rem; font-weight:900; letter-spacing:.02em; border:1px solid rgba(15,23,42,.14); }
-  .ferie-marker.pending { background:#ccfbf1; color:#115e59; }
-  .ferie-marker.approved { background:#d9f99d; color:#365314; }
-  .ferie-marker.rejected { background:#fecaca; color:#991b1b; }
   .ferie-cell-selectable { box-shadow:inset 0 0 0 1px rgba(20,184,166,.28); }
   .ferie-cell-selectable:hover { background:rgba(20,184,166,.12) !important; border-color:rgba(20,184,166,.32) !important; }
+  .cella.ferie-request-pending,
+  .cella-base-sbarrata.ferie-request-pending {
+    border-color:#facc15 !important;
+    box-shadow:inset 0 0 0 1px rgba(250,204,21,.24);
+  }
+  .cella.ferie-request-approved,
+  .cella-base-sbarrata.ferie-request-approved {
+    border-color:#22c55e !important;
+    box-shadow:inset 0 0 0 1px rgba(34,197,94,.22);
+  }
+  .cella.ferie-request-rejected,
+  .cella-base-sbarrata.ferie-request-rejected {
+    border-color:#ef4444 !important;
+    box-shadow:inset 0 0 0 1px rgba(239,68,68,.22);
+  }
   .ferie-cell-selected { background:rgba(20,184,166,.18) !important; border-color:#14b8a6 !important; }
+  .ferie-marker-pending {
+    position:absolute; left:3px; bottom:3px; z-index:2;
+    width:6px; min-width:6px; height:6px; border-radius:999px;
+    background:#facc15; border:1px solid rgba(255,255,255,.88);
+    box-shadow:0 0 0 1px rgba(15,23,42,.18);
+    pointer-events:none;
+  }
   .ferie-pending-card { border:1px solid rgba(20,184,166,.2); border-radius:12px; background:rgba(15,23,42,.38); padding:12px; margin-bottom:10px; }
   .ferie-pending-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
   .ferie-log-type { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:999px; font-size:0.68rem; font-weight:700; background:rgba(59,130,246,.16); color:#bfdbfe; }
@@ -346,6 +377,22 @@
   .ferie-filter-bar input { flex:1 1 220px; }
   .ferie-filter-bar select { flex:0 0 180px; }
   .ferie-log-scroll { max-height:460px; overflow-y:auto; padding-right:4px; }
+  .ferie-group-card { border:1px solid rgba(100,116,139,.24); border-radius:12px; background:rgba(15,23,42,.34); margin-bottom:10px; overflow:hidden; }
+  .ferie-group-card.pending { border-color:rgba(250,204,21,.28); }
+  .ferie-group-card.approved { border-color:rgba(34,197,94,.24); }
+  .ferie-group-card.rejected { border-color:rgba(239,68,68,.24); }
+  .ferie-group-card.neutral { border-color:rgba(148,163,184,.22); }
+  .ferie-group-summary { list-style:none; cursor:pointer; padding:12px 14px; display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .ferie-group-summary::-webkit-details-marker { display:none; }
+  .ferie-group-summary-main { min-width:0; flex:1; }
+  .ferie-group-title { font-size:0.82rem; font-weight:800; color:var(--text); display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .ferie-group-meta { margin-top:4px; font-size:0.72rem; color:var(--muted); display:flex; gap:10px; flex-wrap:wrap; }
+  .ferie-group-chevron { color:var(--muted); font-size:0.86rem; line-height:1; transition:transform .15s ease; }
+  .ferie-group-card[open] .ferie-group-chevron { transform:rotate(90deg); }
+  .ferie-group-body { padding:0 14px 14px; border-top:1px solid rgba(100,116,139,.16); }
+  .ferie-date-list { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .ferie-date-chip { display:inline-flex; align-items:center; padding:4px 8px; border-radius:999px; background:rgba(30,41,59,.9); border:1px solid rgba(100,116,139,.28); color:#dbeafe; font-size:0.72rem; font-weight:700; }
+  .ferie-group-history { font-size:0.7rem; color:var(--muted); margin-top:10px; }
 
   /* ── SETUP OPERATORI ── */
   .setup-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:400; align-items:center; justify-content:center; }
@@ -422,8 +469,12 @@
     .editor-bar { flex-wrap:wrap; gap:6px; }
     #logPanel { left:0; right:0; width:auto; top:48px; bottom:64px; border-left:none; border-top:1px solid var(--border); box-shadow:none; }
     /* Scorrimento orizzontale su mobile come nel formato precedente */
-    .team-table { width:auto !important; table-layout:auto !important; }
-    .cella { min-width:60px; width:auto; font-size:0.78rem; padding:3px 5px; min-height:25px; }
+    .team-table {
+      width:var(--team-table-min-width, 100%) !important;
+      min-width:var(--team-table-min-width, 100%) !important;
+      table-layout:fixed !important;
+    }
+    .cella { min-width:0; width:100%; font-size:0.78rem; padding:3px 1px; min-height:25px; }
     .td-destra { min-width:36px; font-size:0.74rem; }
     .team-table th.col-destra { min-width:36px; width:auto; }
   }
@@ -809,13 +860,16 @@ function applyResponsiveTeamLayout() {
   if (!wrap || !table || !operatorCount) return;
 
   const containerWidth = Math.max(Math.floor(wrap.clientWidth || 0), 320);
+  const slotCount = operatorCount * 2;
+  const fluidBreakpoint = 1800;
+  const layoutWidth = Math.max(containerWidth, fluidBreakpoint);
+  const isFluidMode = containerWidth >= fluidBreakpoint;
   const dateW = 50;
   const dayW = 32;
   const sepW = 2;
-  const sideW = containerWidth >= 1700 ? 26 : containerWidth >= 1450 ? 24 : containerWidth >= 1250 ? 22 : 20;
+  const sideW = layoutWidth >= 2200 ? 28 : layoutWidth >= 2000 ? 26 : 24;
   const fixedWidth = dateW + dayW + (sepW * 2) + (sideW * 7);
-  const slotCount = operatorCount * 2;
-  const slotW = Math.max(28, Math.floor((containerWidth - fixedWidth) / Math.max(slotCount, 1)));
+  const slotW = Math.max(28, Math.floor((layoutWidth - fixedWidth) / Math.max(slotCount, 1)));
 
   let slotFont = 0.72;
   let slotVarFont = 0.80;
@@ -844,6 +898,8 @@ function applyResponsiveTeamLayout() {
   wrap.style.setProperty('--slot-font', `${slotFont}rem`);
   wrap.style.setProperty('--slot-var-font', `${slotVarFont}rem`);
   wrap.style.setProperty('--op-name-font', `${opNameFont}rem`);
+  wrap.style.setProperty('--team-table-min-width', `${Math.max(fluidBreakpoint, fixedWidth + (slotCount * slotW))}px`);
+  wrap.classList.toggle('is-scroll-mode', !isFluidMode);
 }
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
@@ -1223,7 +1279,7 @@ async function load() {
   html += '<th class="col-destra" style="font-size:0.6rem">Rep<br>1°</th>';
   html += '<th class="col-destra" style="font-size:0.6rem">Rep<br>2°</th>';
   html += '<th class="col-destra" style="font-size:0.6rem">Rep<br>3°</th>';
-  html += '<th class="td-sep-destra" style="width:2px;padding:0"></th>';
+  html += '<th class="td-sep-destra td-sep-fest" style="width:2px;padding:0"></th>';
   html += '<th class="col-destra" style="font-size:0.6rem;text-align:center">FEST<br><span style="font-size:0.62rem;font-weight:900">M</span></th>';
   html += '<th class="col-destra" style="font-size:0.6rem;text-align:center">FEST<br><span style="font-size:0.62rem;font-weight:900">M</span></th>';
   html += '<th class="col-destra" style="font-size:0.6rem;text-align:center">FEST<br><span style="font-size:0.62rem;font-weight:900">P</span></th>';
@@ -1248,12 +1304,12 @@ async function load() {
     html += `<td class="td-giorno">${dayName}</td>`;
 
     g.turni.forEach(t => {
-      html += `<td style="padding:2px 1px">${renderCella(t.turno_base, t.flags_base, g.data, t.operatore_id, 'base', t.turno_var)}</td>`;
-      html += `<td style="padding:2px 1px;border-right:2px solid rgba(51,65,85,0.78)">${renderCella(t.turno_var, t.flags_var, g.data, t.operatore_id, 'var')}</td>`;
+      html += `<td class="td-turno">${renderCella(t.turno_base, t.flags_base, g.data, t.operatore_id, 'base', t.turno_var)}</td>`;
+      html += `<td class="td-turno td-turno-var">${renderCella(t.turno_var, t.flags_var, g.data, t.operatore_id, 'var')}</td>`;
     });
 
     const cd = g.colonne_destra;
-    html += '<td class="td-sep-destra"></td>';
+    html += '<td class="td-sep-destra td-sep-fest"></td>';
     ['rep1','rep2','rep3'].forEach(k => {
       html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'—'}</td>`;
     });
@@ -1287,12 +1343,12 @@ function buildTeamRowHtml(g, idx, totalRows = (datiMese?.giorni?.length || 0)) {
   html += `<td class="td-giorno">${dayName}</td>`;
 
   g.turni.forEach(t => {
-    html += `<td style="padding:2px 1px">${renderCella(t.turno_base, t.flags_base, g.data, t.operatore_id, 'base', t.turno_var)}</td>`;
-    html += `<td style="padding:2px 1px;border-right:2px solid rgba(51,65,85,0.78)">${renderCella(t.turno_var, t.flags_var, g.data, t.operatore_id, 'var')}</td>`;
+    html += `<td class="td-turno">${renderCella(t.turno_base, t.flags_base, g.data, t.operatore_id, 'base', t.turno_var)}</td>`;
+    html += `<td class="td-turno td-turno-var">${renderCella(t.turno_var, t.flags_var, g.data, t.operatore_id, 'var')}</td>`;
   });
 
   const cd = g.colonne_destra;
-  html += '<td class="td-sep-destra"></td>';
+  html += '<td class="td-sep-destra td-sep-fest"></td>';
   ['rep1','rep2','rep3'].forEach(k => {
     html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'â€”'}</td>`;
   });
@@ -2057,14 +2113,29 @@ async function submitFerieRequest() {
 }
 
 function renderFerieMarker(request, dataStr, opId) {
-  // L'anteprima ferie (ferieAdds/ferieRemovals) si mostra solo sulla colonna dell'utente corrente
+  if (isEditor) return '';
   const isOwnColumn = opId === teamContext?.linked_operatore_id;
-  if (isOwnColumn && ferieRemovals.has(dataStr)) return '<span class="ferie-marker rejected" title="Richiesta ferie da rimuovere">F-</span>';
-  if (isOwnColumn && ferieAdds.has(dataStr)) return '<span class="ferie-marker pending" title="Richiesta ferie da inviare">F+</span>';
+  if (!isOwnColumn) return '';
+  if (ferieAdds.has(dataStr) || ferieRemovals.has(dataStr)) {
+    return '<span class="ferie-marker-pending" title="Richiesta ferie in attesa"></span>';
+  }
+  const status = normalizeTeamFerieText(request?.stato || '');
+  if (status === 'pending') {
+    return '<span class="ferie-marker-pending" title="Richiesta ferie in attesa"></span>';
+  }
+  return '';
+}
+
+function getFerieRequestCellClass(request, dataStr, opId, col) {
+  if (col !== 'base') return '';
+  const isOwnColumn = opId === teamContext?.linked_operatore_id;
+  if (isOwnColumn && ferieRemovals.has(dataStr)) return ' ferie-request-rejected';
+  if (isOwnColumn && ferieAdds.has(dataStr)) return ' ferie-request-pending';
   if (!request) return '';
   const status = (request?.stato || 'pending').toLowerCase();
-  const title = status === 'approved' ? 'Ferie approvate' : status === 'rejected' ? 'Ferie respinte' : 'Richiesta ferie pendente';
-  return `<span class="ferie-marker ${status}" title="${title}">F</span>`;
+  if (status === 'approved') return ' ferie-request-approved';
+  if (status === 'rejected') return ' ferie-request-rejected';
+  return ' ferie-request-pending';
 }
 
 buildTeamRowHtml = function(g, idx, totalRows = (datiMese?.giorni?.length || 0)) {
@@ -2082,11 +2153,11 @@ buildTeamRowHtml = function(g, idx, totalRows = (datiMese?.giorni?.length || 0))
   html += `<td class="td-data">${dayNum} ${monthShort}</td>`;
   html += `<td class="td-giorno">${dayName}</td>`;
   g.turni.forEach(t => {
-    html += `<td style="padding:2px 0">${renderCella(t.turno_base, t.flags_base, g.data, t.operatore_id, 'base', t.turno_var, t.ferie_request)}</td>`;
-    html += `<td style="padding:2px 0;border-right:2px solid rgba(51,65,85,0.78)">${renderCella(t.turno_var, t.flags_var, g.data, t.operatore_id, 'var', '', t.ferie_request)}</td>`;
+    html += `<td class="td-turno">${renderCella(t.turno_base, t.flags_base, g.data, t.operatore_id, 'base', t.turno_var, t.ferie_request)}</td>`;
+    html += `<td class="td-turno td-turno-var">${renderCella(t.turno_var, t.flags_var, g.data, t.operatore_id, 'var', '', t.ferie_request)}</td>`;
   });
   const cd = g.colonne_destra;
-  html += '<td class="td-sep-destra"></td>';
+  html += '<td class="td-sep-destra td-sep-fest"></td>';
   ['rep1','rep2','rep3'].forEach(k => {
     html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'—'}</td>`;
   });
@@ -2181,6 +2252,53 @@ function getTeamFerieHistoryLine(row) {
   const fromMeta = getTeamFerieStatusMeta(row.status_from);
   const toMeta = getTeamFerieStatusMeta(row.status_to);
   return `${row.username || '-'} · ${fromMeta.label} → ${toMeta.label} · da ${row.actor_username || '?'}`;
+}
+
+function renderTeamFerieDateChips(dates) {
+  const items = Array.from(new Set((dates || []).filter(Boolean))).sort();
+  if (!items.length) return '<div class="ferie-group-history">Nessun giorno disponibile</div>';
+  return `<div class="ferie-date-list">${items.map(date => `<span class="ferie-date-chip">${date}</span>`).join('')}</div>`;
+}
+
+function groupTeamFerieLogs(rows) {
+  const map = new Map();
+  (rows || []).forEach(row => {
+    const createdAt = String(row.created_at || '');
+    const createdKey = createdAt.slice(0, 16);
+    const statusMeta = getTeamFerieStatusMeta(row.status_to);
+    const actionLabel = getTeamFerieActionLabel(row.action, row.status_to);
+    const key = [
+      row.operatore_id || '',
+      row.username || '',
+      row.actor_username || '',
+      row.action || '',
+      row.status_to || '',
+      createdKey
+    ].join('|');
+    if (!map.has(key)) {
+      map.set(key, {
+        key,
+        operatoreNome: row.operatore_nome || '-',
+        username: row.username || '-',
+        actorUsername: row.actor_username || '?',
+        createdAt,
+        createdLabel: createdKey.replace('T', ' '),
+        statusMeta,
+        actionLabel,
+        rows: [],
+        dates: []
+      });
+    }
+    const group = map.get(key);
+    group.rows.push(row);
+    if (row.data_turno) group.dates.push(row.data_turno);
+  });
+  return Array.from(map.values())
+    .map(group => ({
+      ...group,
+      dates: Array.from(new Set(group.dates)).sort()
+    }))
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
 }
 
 function rerenderTeamFerieWithFocus(fieldId, selectionStart, selectionEnd) {
@@ -2344,6 +2462,96 @@ renderTeamFerieLogContent = function() {
   }
   sections.push('</div>');
   if ((!isEditor || !pending.length) && !ferieLogs.length) {
+    sections.push('<p style="color:var(--muted);margin-top:12px">Nessuna richiesta ferie registrata per il filtro selezionato</p>');
+  }
+  elFerie.innerHTML = sections.join('');
+  document.getElementById('teamFerieNameFilter')?.addEventListener('input', e => {
+    teamFerieFilters.name = e.target.value || '';
+    rerenderTeamFerieWithFocus('teamFerieNameFilter', e.target.selectionStart, e.target.selectionEnd);
+  });
+  document.getElementById('teamFerieStatusFilter')?.addEventListener('change', e => {
+    teamFerieFilters.status = e.target.value || 'all';
+    rerenderTeamFerieWithFocus('teamFerieStatusFilter');
+  });
+}
+
+renderTeamFerieLogContent = function() {
+  const elFerie = document.getElementById('logContentFerie');
+  if (!elFerie) return;
+  const pending = filterTeamFeriePending(teamFerieLogData.pending || []);
+  const ferieLogs = filterTeamFerieLogs(teamFerieLogData.logs || []);
+  const groupedLogs = groupTeamFerieLogs(ferieLogs).slice(0, 60);
+  const sections = [];
+  sections.push(`
+    <div class="ferie-filter-bar">
+      <input id="teamFerieNameFilter" type="text" placeholder="Filtra per richiedente" value="${teamFerieFilters.name}">
+      <select id="teamFerieStatusFilter">
+        <option value="all"${teamFerieFilters.status === 'all' ? ' selected' : ''}>Tutti gli stati</option>
+        <option value="pending"${teamFerieFilters.status === 'pending' ? ' selected' : ''}>Richieste</option>
+        <option value="approved"${teamFerieFilters.status === 'approved' ? ' selected' : ''}>Accettate</option>
+        <option value="rejected"${teamFerieFilters.status === 'rejected' ? ' selected' : ''}>Rifiutate</option>
+      </select>
+    </div>`);
+  sections.push('<div class="ferie-log-scroll">');
+  if (isEditor && pending.length) {
+    sections.push(`
+      <div style="margin-bottom:14px">
+        <div style="font-size:0.78rem;color:#fef08a;font-weight:800;margin-bottom:8px">In attesa di revisione</div>
+        ${pending.map(p => `
+          <details class="ferie-group-card pending"${teamFerieFilters.status === 'pending' ? ' open' : ''}>
+            <summary class="ferie-group-summary">
+              <div class="ferie-group-summary-main">
+                <div class="ferie-group-title">
+                  <span>${p.operatore_nome || '-'}</span>
+                  <span class="ferie-log-type pending">In attesa</span>
+                </div>
+                <div class="ferie-group-meta">
+                  <span>${p.username || '-'}</span>
+                  <span>${p.giorni || 0} giorni</span>
+                  <span>${p.first_day || ''}${p.last_day && p.last_day !== p.first_day ? ` -> ${p.last_day}` : ''}</span>
+                </div>
+              </div>
+              <span class="ferie-group-chevron">></span>
+            </summary>
+            <div class="ferie-group-body">
+              ${renderTeamFerieDateChips(p.dates || [])}
+              <div class="ferie-pending-actions">
+                <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>Approva</button>
+                <button class="btn-editor" style="color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>Rifiuta</button>
+              </div>
+            </div>
+          </details>`).join('')}
+      </div>`);
+  }
+  if (groupedLogs.length) {
+    sections.push(`
+      <div>
+        <div style="font-size:0.78rem;color:#cbd5e1;font-weight:800;margin-bottom:8px">Storico ferie</div>
+        ${groupedLogs.map(group => `
+          <details class="ferie-group-card ${group.statusMeta.key}">
+            <summary class="ferie-group-summary">
+              <div class="ferie-group-summary-main">
+                <div class="ferie-group-title">
+                  <span>${group.operatoreNome}</span>
+                  <span class="ferie-log-type ${group.statusMeta.key}">${group.statusMeta.label}</span>
+                </div>
+                <div class="ferie-group-meta">
+                  <span>${group.actionLabel}</span>
+                  <span>${group.dates.length} giorni</span>
+                  <span>${group.createdLabel || '-'}</span>
+                </div>
+              </div>
+              <span class="ferie-group-chevron">></span>
+            </summary>
+            <div class="ferie-group-body">
+              ${renderTeamFerieDateChips(group.dates)}
+              <div class="ferie-group-history">${group.username || '-'} - da ${group.actorUsername || '?'}</div>
+            </div>
+          </details>`).join('')}
+      </div>`);
+  }
+  sections.push('</div>');
+  if ((!isEditor || !pending.length) && !groupedLogs.length) {
     sections.push('<p style="color:var(--muted);margin-top:12px">Nessuna richiesta ferie registrata per il filtro selezionato</p>');
   }
   elFerie.innerHTML = sections.join('');
@@ -2813,18 +3021,19 @@ renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const edClass = isEditor ? ' editable' : '';
   const ferieClass = ownFerieCell ? ' ferie-cell-selectable' : '';
   const selectedClass = ownFerieCell && (ferieAdds.has(data) || ferieRemovals.has(data)) ? ' ferie-cell-selected' : '';
+  const ferieStatusClass = getFerieRequestCellClass(ferieRequest, data, opId, col);
   const marker = col === 'base' ? renderFerieMarker(ferieRequest, data, opId) : '';
   const colClass = col === 'var' ? ' var-cell' : '';
   const value = isEmpty ? '' : turno;
   if (col === 'base' && turnoVar) {
     const filledClass = isEmpty && !extras ? ' empty' : ' filled';
-    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${selectedClass}${filledClass}" ${clickEvt}>${value}${extras}${marker}</div>`;
+    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${ferieStatusClass}${selectedClass}${filledClass}" ${clickEvt}>${value}${extras}${marker}</div>`;
   }
   if (isEmpty) {
-    const filledClass = extras || marker ? ' filled' : ' empty';
-    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${selectedClass}${filledClass}" ${clickEvt}>${value}${extras}${marker}</div>`;
+    const filledClass = extras || ferieStatusClass || marker ? ' filled' : ' empty';
+    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${ferieStatusClass}${selectedClass}${filledClass}" ${clickEvt}>${value}${extras}${marker}</div>`;
   }
-  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${selectedClass} filled" ${clickEvt}>${turno}${extras}${marker}</div>`;
+  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${ferieStatusClass}${selectedClass} filled" ${clickEvt}>${turno}${extras}${marker}</div>`;
 };
 
 renderTplCella = function(dow, pos) {
