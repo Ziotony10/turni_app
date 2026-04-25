@@ -137,6 +137,20 @@ def get_db():
             try:
                 conn = pool.getconn()
                 conn.cursor_factory = psycopg2.extras.RealDictCursor
+                # ── Bug 3 fix: valida la connessione prima di usarla.
+                # Il pool può contenere connessioni "morte" (Supabase chiude
+                # le connessioni idle lato server dopo un certo timeout).
+                try:
+                    conn.rollback()                 # pulisce eventuale stato residuo
+                    conn.cursor().execute("SELECT 1")
+                except Exception:
+                    # Connessione morta: scartala e riprendi il loop
+                    try:
+                        pool.putconn(conn, close=True)
+                    except Exception:
+                        pass
+                    time.sleep(0.1)
+                    continue
                 return conn
             except psycopg2.pool.PoolError:
                 if attempt < 9:
@@ -148,6 +162,10 @@ def get_db():
 def release_db(conn, discard: bool = False):
     """Rilascia la connessione al pool (PG) o la chiude (SQLite)."""
     if USE_PG:
+        # ── Bug 2 fix: ex() può aver già restituito la connessione al pool
+        # (marcandola con _pool_returned). In quel caso non richiamare putconn.
+        if getattr(conn, "_pool_returned", False):
+            return
         try:
             is_closed = getattr(conn, "closed", 1) != 0
             if not discard and not is_closed:
@@ -175,10 +193,14 @@ def ex(conn, sql, params=()):
             cur = conn.cursor()
             cur.execute(q(sql), params)
             return cur
-        except (psycopg2.OperationalError, psycopg2.InterfaceError):
+        except (psycopg2.DatabaseError, psycopg2.InterfaceError):
+            # ── Bug 1 fix: il traceback mostra psycopg2.DatabaseError (genitore
+            # di OperationalError). Catturare solo OperationalError non basta.
+            # ── Bug 2 fix: restituiamo la connessione al pool prima di sollevare,
+            # altrimenti il pool la considera ancora in uso → leak di connessioni.
             try:
-                if getattr(conn, "closed", 1) == 0:
-                    conn.close()
+                get_pg_pool().putconn(conn, close=True)
+                conn._pool_returned = True   # segnale a release_db di non fare putconn di nuovo
             except Exception:
                 pass
             raise HTTPException(503, "Connessione database temporaneamente non disponibile, riprova tra un momento")
