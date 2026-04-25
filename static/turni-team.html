@@ -345,7 +345,7 @@
   .cella.ferie-request-pending,
   .cella-base-sbarrata.ferie-request-pending {
     border-color:#facc15 !important;
-    box-shadow:inset 0 0 0 1px rgba(250,204,21,.24);
+    box-shadow:inset 0 0 0 2px rgba(250,204,21,.9); background:#fefce8 !important;
   }
   .cella.ferie-request-approved,
   .cella-base-sbarrata.ferie-request-approved {
@@ -2261,44 +2261,83 @@ function renderTeamFerieDateChips(dates) {
 }
 
 function groupTeamFerieLogs(rows) {
-  const map = new Map();
+  // The backend writes one DB row per day per action.
+  // Example: operator requests 5 days → 5 rows (action='requested', status_to='pending').
+  //          editor approves     → 5 rows (action='reviewed', status_to='approved').
+  // We want ONE card per holiday request, showing the latest status.
+  //
+  // PASS 1 — cluster individual day-rows into "batches":
+  //   same operatore_id + same action + same status_to + same actor + same minute → same batch.
+  // PASS 2 — for each operator, find batches that share the same set of dates
+  //   (the reviewed batch has the same dates as the requested batch) and collapse them
+  //   into a single card keeping only the latest status.
+
+  const batchMap = new Map(); // batchKey → batch
   (rows || []).forEach(row => {
-    const createdAt = String(row.created_at || '');
-    const createdKey = createdAt.slice(0, 16);
-    const statusMeta = getTeamFerieStatusMeta(row.status_to);
-    const actionLabel = getTeamFerieActionLabel(row.action, row.status_to);
-    const key = [
+    const minute = String(row.created_at || '').slice(0, 16); // "2024-06-01T14:32"
+    const batchKey = [
       row.operatore_id || '',
-      row.username || '',
-      row.actor_username || '',
       row.action || '',
       row.status_to || '',
-      createdKey
+      row.actor_username || '',
+      minute
     ].join('|');
-    if (!map.has(key)) {
-      map.set(key, {
-        key,
+    if (!batchMap.has(batchKey)) {
+      batchMap.set(batchKey, {
+        batchKey,
+        operatoreId: String(row.operatore_id || ''),
         operatoreNome: row.operatore_nome || '-',
         username: row.username || '-',
         actorUsername: row.actor_username || '?',
-        createdAt,
-        createdLabel: createdKey.replace('T', ' '),
-        statusMeta,
-        actionLabel,
-        rows: [],
+        action: row.action || '',
+        statusTo: row.status_to || '',
+        createdAt: String(row.created_at || ''),
+        minute,
         dates: []
       });
     }
-    const group = map.get(key);
-    group.rows.push(row);
-    if (row.data_turno) group.dates.push(row.data_turno);
+    const b = batchMap.get(batchKey);
+    if (row.data_turno) b.dates.push(row.data_turno);
   });
-  return Array.from(map.values())
-    .map(group => ({
-      ...group,
-      dates: Array.from(new Set(group.dates)).sort()
-    }))
-    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+
+  // Normalise date lists in every batch
+  batchMap.forEach(b => {
+    b.dates = Array.from(new Set(b.dates)).sort();
+    b.dateKey = b.dates.join(','); // fingerprint for matching request↔review
+  });
+
+  // PASS 2 — group batches by operator; merge request+review pairs that share dates.
+  // Key: operatore_id + dateKey → card (we keep the latest-status batch's meta).
+  const cardMap = new Map();
+  const batches = Array.from(batchMap.values())
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt)); // asc → last write wins
+
+  batches.forEach(batch => {
+    const cardKey = `${batch.operatoreId}|${batch.dateKey}`;
+    if (!cardMap.has(cardKey)) {
+      cardMap.set(cardKey, { cardKey, batch });
+    } else {
+      // Overwrite with the newer batch (latest action/status wins)
+      cardMap.get(cardKey).batch = batch;
+    }
+  });
+
+  return Array.from(cardMap.values()).map(({ batch }) => {
+    const statusMeta = getTeamFerieStatusMeta(batch.statusTo);
+    const actionLabel = getTeamFerieActionLabel(batch.action, batch.statusTo);
+    return {
+      key: batch.batchKey,
+      operatoreNome: batch.operatoreNome,
+      username: batch.username,
+      actorUsername: batch.actorUsername,
+      createdAt: batch.createdAt,
+      latestCreatedAt: batch.createdAt,
+      createdLabel: batch.minute.replace('T', ' '),
+      statusMeta,
+      actionLabel,
+      dates: batch.dates
+    };
+  }).sort((a, b) => b.latestCreatedAt.localeCompare(a.latestCreatedAt));
 }
 
 function rerenderTeamFerieWithFocus(fieldId, selectionStart, selectionEnd) {
@@ -2328,6 +2367,9 @@ function filterTeamFerieLogs(rows) {
   return (rows || []).filter(row => {
     const matchesName = !needle || normalizeTeamFerieText(`${row.operatore_nome} ${row.username} ${row.actor_username}`).includes(needle);
     const rowStatus = normalizeTeamFerieText(row.status_to || '');
+    // When filter is 'all', exclude pure-pending entries from storico
+    // (they appear in the "In attesa" section above to avoid duplication).
+    if (status === 'all' && rowStatus === 'pending') return false;
     const matchesStatus = status === 'all' || rowStatus === status;
     return matchesName && matchesStatus;
   });
@@ -3017,7 +3059,7 @@ renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const smartHtml = isSmart ? '<span class="smart-inline">#</span>' : '';
   const extras = mfHtml + repIcon + smartHtml;
   const ownFerieCell = col === 'base' && ferieMode && teamContext?.linked_operatore_id === opId;
-  const clickEvt = isEditor ? `onclick="openPicker('${data}',${opId},'${col}',event)"` : (ownFerieCell ? `onclick="toggleFerieDate('${data}')"` : '');
+  const clickEvt = ownFerieCell ? `onclick="toggleFerieDate('${data}')"` : (isEditor ? `onclick="openPicker('${data}',${opId},'${col}',event)"` : '');
   const edClass = isEditor ? ' editable' : '';
   const ferieClass = ownFerieCell ? ' ferie-cell-selectable' : '';
   const selectedClass = ownFerieCell && (ferieAdds.has(data) || ferieRemovals.has(data)) ? ' ferie-cell-selected' : '';
