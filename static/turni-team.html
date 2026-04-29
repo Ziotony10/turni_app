@@ -2876,6 +2876,15 @@ async function executePrint() {
     .map(s => s.textContent || '')
     .join('\n');
 
+  // Calcola scala per adattare la tabella ad A4 landscape (area utile 287×200mm)
+  const tableW = wrap.scrollWidth;
+  const tableH = wrap.scrollHeight + 20; // +20 per header
+  const pageWpx = 287 * 3.7795;  // 287mm in px a 96dpi (~1085px)
+  const pageHpx = 200 * 3.7795;  // 200mm in px a 96dpi (~756px)
+  const scaleW = pageWpx / tableW;
+  const scaleH = pageHpx / tableH;
+  const scale = Math.min(1, scaleW, scaleH).toFixed(4);
+
   const printHtml = `<!DOCTYPE html>
 <html lang="it">
 <head>
@@ -2885,7 +2894,7 @@ async function executePrint() {
 <style>
 ${appStyle}
 
-/* RESET PRINT */
+/* RESET */
 * {
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
@@ -2893,12 +2902,25 @@ ${appStyle}
   box-sizing: border-box;
 }
 
-html, body {
+/* PAGINA: A4 landscape, margini 5mm → area utile 287×200mm */
+@page {
+  size: A4 landscape;
+  margin: 5mm;
+}
+
+html {
+  margin: 0;
+  padding: 0;
+}
+
+body {
   margin: 0;
   padding: 0;
   background: #fff !important;
   color: #0f172a !important;
   font-family: 'Segoe UI', system-ui, sans-serif;
+  width: 287mm;
+  overflow: hidden;
 }
 
 /* NASCONDI UI */
@@ -2916,17 +2938,17 @@ header,
 /* HEADER */
 .print-header {
   display: block;
-  text-align: left;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: #dc2626 !important;
-  opacity: 1 !important;
 }
 
-/* SCALA (FIX PDF TESTO) */
-.print-container {
-  zoom: 0.8;
+/* WRAPPER DI SCALA: si adatta dinamicamente */
+.scale-wrapper {
+  transform: scale(${scale});
+  transform-origin: 0 0;
+  width: calc(287mm / ${scale});
 }
 
 /* TABELLA */
@@ -2938,7 +2960,7 @@ header,
 .team-table {
   border-collapse: collapse !important;
   width: auto !important;
-  font-size: 0.8rem !important;
+  font-size: 0.75rem !important;
 }
 
 .team-table th,
@@ -2949,15 +2971,9 @@ header,
 
 /* CELLE */
 .cella {
-  min-width: 54px !important;
-  min-height: 20px !important;
-  font-size: 0.78rem !important;
-}
-
-/* PAGINA */
-@page {
-  size: A4 landscape;
-  margin: 5mm;
+  min-width: 40px !important;
+  min-height: 18px !important;
+  font-size: 0.72rem !important;
 }
 </style>
 </head>
@@ -2965,20 +2981,14 @@ header,
 <body>
 
   <div class="print-header">
-    Ultimo aggiornamento: ${generatedFull}
+    Turni team &mdash; ${MESI_IT[mese - 1]} ${anno} &nbsp;|&nbsp; Aggiornato: ${generatedFull}
   </div>
 
-  <div class="print-container">
+  <div class="scale-wrapper">
     <div class="table-wrap">
       ${wrap.innerHTML}
     </div>
   </div>
-
-  <script>
-    window.onload = () => {
-      setTimeout(() => window.print(), 300);
-    };
-  <\/script>
 
 </body>
 </html>`;
