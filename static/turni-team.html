@@ -994,37 +994,6 @@ function buildMonthTabs() {
   });
 }
 
-async function downloadTeamPdf() {
-  const btn = document.getElementById('downloadPdfBtn');
-  if (!btn) return;
-  const previousLabel = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = 'PDF...';
-  try {
-    const response = await fetch(`/api/team/turni/${anno}/${mese}/pdf`);
-    if (!response.ok) {
-      if (response.status === 401) { logout(); return; }
-      const text = await response.text();
-      throw new Error(text || `Errore ${response.status}`);
-    }
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `turni-team-${anno}-${String(mese).padStart(2, '0')}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    console.error(err);
-    alert('Impossibile generare il PDF del mese selezionato.');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = previousLabel;
-  }
-}
-
 function getTeamPrintStyle(pageWidthMm, pageHeightMm, pageMarginMm) {
   const appStyle = Array.from(document.querySelectorAll('style')).map(s => s.textContent || '').join('\n');
   return `
@@ -2885,7 +2854,7 @@ header, .month-tabs-row, .editor-bar, .bottom-nav, #logPanel, .turno-picker, .se
   }
 }
 
-function executePrint() {
+async function executePrint() {
   const now = new Date();
   const generatedFull =
     now.toLocaleDateString('it-IT', {
@@ -3014,31 +2983,41 @@ header,
 </body>
 </html>`;
 
-  let frame = document.getElementById('teamPrintFrame');
-  if (frame) frame.remove();
+  const btn = document.getElementById('downloadPdfBtn');
+  const previousLabel = btn ? btn.textContent : 'PDF mese';
+  if (btn) { btn.disabled = true; btn.textContent = 'Generazione...'; }
 
-  frame = document.createElement('iframe');
-  frame.id = 'teamPrintFrame';
+  try {
+    const response = await fetch('/api/team/turni/pdf-from-html', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + (localStorage.getItem('access_token') || '')
+      },
+      body: JSON.stringify({ html: printHtml, anno, mese })
+    });
 
-  Object.assign(frame.style, {
-    position: 'fixed',
-    left: '-9999px',
-    top: '0',
-    width: '0',
-    height: '0',
-    border: '0'
-  });
+    if (!response.ok) {
+      if (response.status === 401) { logout(); return; }
+      const errText = await response.text();
+      throw new Error(errText || `Errore ${response.status}`);
+    }
 
-  document.body.appendChild(frame);
-
-  const doc = frame.contentWindow.document;
-  doc.open();
-  doc.write(printHtml);
-  doc.close();
-
-  setTimeout(() => {
-    frame.remove();
-  }, 30000);
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `turni-team-${anno}-${String(mese).padStart(2, '0')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('Errore PDF:', err);
+    alert('Impossibile generare il PDF: ' + err.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = previousLabel; }
+  }
 }
 
 renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
