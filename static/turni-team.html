@@ -2903,9 +2903,9 @@ async function executePrint() {
   const pageHpx = contentHeightMm * MM_TO_PX;
   const slotW = Math.max(28, Math.floor((pageWpx - fixedWidth) / slotCount));
   const tableW = fixedWidth + (slotCount * slotW);
-  const slotFont = slotW <= 30 ? 0.435 : slotW <= 34 ? 0.465 : 0.495;
-  const slotVarFont = slotW <= 30 ? 0.48 : slotW <= 34 ? 0.51 : 0.54;
-  const opNameFont = slotW <= 30 ? 0.292 : 0.323;
+  const slotFont = slotW <= 30 ? 0.363 : slotW <= 34 ? 0.388 : 0.413;
+  const slotVarFont = slotW <= 30 ? 0.4 : slotW <= 34 ? 0.425 : 0.45;
+  const opNameFont = slotW <= 30 ? 0.38 : 0.42;
   const scaleW  = pageWpx / tableW;
   const scaleH  = pageHpx / tableH;
   const scaleX  = Math.min(1, scaleW);
@@ -3079,7 +3079,7 @@ header,
   width: ${dateW}px !important;
   padding-left: 2px !important;
   padding-right: 1px !important;
-  font-size: 0.5rem !important;
+  font-size: 0.385rem !important;
   line-height: 1 !important;
   text-align: left !important;
 }
@@ -3122,6 +3122,7 @@ header,
   overflow: hidden !important;
   text-overflow: clip !important;
   font-size: var(--op-name-font) !important;
+  font-weight: 400 !important;
   line-height: 1 !important;
 }
 
@@ -3196,7 +3197,7 @@ header,
 
 .mf-inline {
   font-size: 0.347rem !important;
-  font-weight: 600 !important;
+  font-weight: 400 !important;
 }
 
 .cella-rep-icon {
@@ -3205,7 +3206,7 @@ header,
 
 .smart-inline {
   font-size: 0.453rem !important;
-  font-weight: 900 !important;
+  font-weight: 400 !important;
 }
 </style>
 </head>
