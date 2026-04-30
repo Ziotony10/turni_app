@@ -2903,8 +2903,8 @@ async function executePrint() {
   const pageHpx = contentHeightMm * MM_TO_PX;
   const slotW = Math.max(28, Math.floor((pageWpx - fixedWidth) / slotCount));
   const tableW = fixedWidth + (slotCount * slotW);
-  const slotFont = slotW <= 30 ? 0.58 : slotW <= 34 ? 0.62 : 0.66;
-  const slotVarFont = slotW <= 30 ? 0.64 : slotW <= 34 ? 0.68 : 0.72;
+  const slotFont = slotW <= 30 ? 0.29 : slotW <= 34 ? 0.31 : 0.33;
+  const slotVarFont = slotW <= 30 ? 0.32 : slotW <= 34 ? 0.34 : 0.36;
   const opNameFont = slotW <= 30 ? 0.38 : 0.42;
   const scaleW  = pageWpx / tableW;
   const scaleH  = pageHpx / tableH;
@@ -3089,6 +3089,10 @@ header,
   padding-right: 0 !important;
   line-height: 1 !important;
   font-weight: 700 !important;
+}
+
+.td-destra {
+  font-size: 0.23rem !important;
 }
 
 .team-table th.col-destra {
