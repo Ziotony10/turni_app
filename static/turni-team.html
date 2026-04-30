@@ -2901,7 +2901,7 @@ async function executePrint() {
   const tableH = Math.max(1, estimatedPrintHeadH + (rowCount * estimatedPrintRowH));
   const pageWpx = contentWidthMm * MM_TO_PX;
   const pageHpx = contentHeightMm * MM_TO_PX;
-  const slotW = Math.max(28, Math.floor(((pageWpx - fixedWidth) / slotCount) * 1.05));
+  const slotW = Math.max(28, Math.floor(((pageWpx - fixedWidth) / slotCount) * 1.065));
   const tableW = fixedWidth + (slotCount * slotW);
   const slotFont = slotW <= 30 ? 0.363 : slotW <= 34 ? 0.388 : 0.413;
   const slotVarFont = slotW <= 30 ? 0.4 : slotW <= 34 ? 0.425 : 0.45;
@@ -3056,8 +3056,16 @@ header,
 }
 
 .team-table td.td-turno {
-  padding-left: 1px !important;
-  padding-right: 1px !important;
+  padding-left: 0.75px !important;
+  padding-right: 0.75px !important;
+}
+
+.team-table td.td-turno:not(.td-turno-var) {
+  padding-right: 0.25px !important;
+}
+
+.team-table td.td-turno.td-turno-var {
+  padding-left: 0.25px !important;
 }
 
 .team-table th.col-op,
@@ -3085,7 +3093,7 @@ header,
 }
 
 .team-table td.td-data {
-  font-size: 0.308rem !important;
+  font-size: 0.37rem !important;
   font-weight: 400 !important;
   padding-right: 0 !important;
 }
