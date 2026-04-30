@@ -2891,21 +2891,21 @@ async function executePrint() {
   const headerHeightMm = 5;
   const contentWidthMm = pageWidthMm - marginLeftMm - marginRightMm;
   const contentHeightMm = pageHeightMm - marginTopMm - marginBottomMm - headerHeightMm;
-  const dateW = 38;
+  const dateW = 31.7;
   const dayW = 22;
   const sepW = 0.5;
-  const sideW = 15;
+  const sideW = 13.6;
   const fixedWidth = dateW + dayW + (sepW * 2) + (sideW * 7);
   const estimatedPrintRowH = 18;
   const estimatedPrintHeadH = 24;
   const tableH = Math.max(1, estimatedPrintHeadH + (rowCount * estimatedPrintRowH));
   const pageWpx = contentWidthMm * MM_TO_PX;
   const pageHpx = contentHeightMm * MM_TO_PX;
-  const slotW = Math.max(28, Math.floor((pageWpx - fixedWidth) / slotCount));
+  const slotW = Math.max(28, Math.floor(((pageWpx - fixedWidth) / slotCount) * 1.05));
   const tableW = fixedWidth + (slotCount * slotW);
   const slotFont = slotW <= 30 ? 0.363 : slotW <= 34 ? 0.388 : 0.413;
   const slotVarFont = slotW <= 30 ? 0.4 : slotW <= 34 ? 0.425 : 0.45;
-  const opNameFont = slotW <= 30 ? 0.38 : 0.42;
+  const opNameFont = slotW <= 30 ? 0.418 : 0.462;
   const scaleW  = pageWpx / tableW;
   const scaleH  = pageHpx / tableH;
   const scaleX  = Math.min(1, scaleW);
@@ -3079,9 +3079,18 @@ header,
   width: ${dateW}px !important;
   padding-left: 2px !important;
   padding-right: 1px !important;
-  font-size: 0.385rem !important;
   line-height: 1 !important;
   text-align: left !important;
+}
+
+.team-table td.td-data {
+  font-size: 0.257rem !important;
+  font-weight: 400 !important;
+}
+
+.team-table th.col-data {
+  font-size: 0.296rem !important;
+  font-weight: 400 !important;
 }
 
 .team-table th.col-giorno,
@@ -3090,8 +3099,16 @@ header,
   width: ${dayW}px !important;
   padding-left: 0 !important;
   padding-right: 0 !important;
-  font-size: 0.5rem !important;
   line-height: 1 !important;
+}
+
+.team-table td.td-giorno {
+  font-size: 0.5rem !important;
+}
+
+.team-table th.col-giorno {
+  font-size: 0.385rem !important;
+  font-weight: 400 !important;
 }
 
 .team-table th.col-destra,
@@ -3102,7 +3119,7 @@ header,
   padding-left: 0 !important;
   padding-right: 0 !important;
   line-height: 1 !important;
-  font-weight: 700 !important;
+  font-weight: 400 !important;
 }
 
 .td-destra {
@@ -3111,10 +3128,12 @@ header,
 
 .team-table th.col-destra {
   font-size: 0.34rem !important;
+  font-weight: 400 !important;
 }
 
 .team-table th.col-destra span {
   font-size: 0.36rem !important;
+  font-weight: 400 !important;
 }
 
 .th-op-nome {
@@ -3127,13 +3146,15 @@ header,
 }
 
 .team-table th.col-op > div:last-child {
-  font-size: 0.34rem !important;
+  font-size: 0.227rem !important;
+  font-weight: 400 !important;
   line-height: 1 !important;
   margin-top: 0 !important;
 }
 
 .team-table th.col-op > div:first-child {
   font-size: 0.29rem !important;
+  font-weight: 400 !important;
   line-height: 1 !important;
   padding: 0 2px !important;
   margin-bottom: 0 !important;
