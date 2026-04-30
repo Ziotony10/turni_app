@@ -2874,6 +2874,7 @@ async function executePrint() {
   const table = wrap.querySelector('.team-table');
   const operatorCount = datiMese?.operatori?.length || operatori.length || 0;
   const slotCount = Math.max(1, operatorCount * 2);
+  const rowCount = table?.querySelectorAll('tbody tr').length || 31;
 
   const appStyle = Array.from(document.querySelectorAll('style'))
     .map(s => s.textContent || '')
@@ -2890,16 +2891,21 @@ async function executePrint() {
   const headerHeightMm = 5;
   const contentWidthMm = pageWidthMm - marginLeftMm - marginRightMm;
   const contentHeightMm = pageHeightMm - marginTopMm - marginBottomMm - headerHeightMm;
-  const dateW = 50;
-  const dayW = 32;
-  const sepW = 2;
-  const sideW = 24;
+  const dateW = 38;
+  const dayW = 22;
+  const sepW = 1;
+  const sideW = 15;
   const fixedWidth = dateW + dayW + (sepW * 2) + (sideW * 7);
-  const tableH = Math.max(1, table?.scrollHeight || wrap.scrollHeight);
+  const estimatedPrintRowH = 21;
+  const estimatedPrintHeadH = 30;
+  const tableH = Math.max(1, estimatedPrintHeadH + (rowCount * estimatedPrintRowH));
   const pageWpx = contentWidthMm * MM_TO_PX;
   const pageHpx = contentHeightMm * MM_TO_PX;
   const slotW = Math.max(28, Math.floor((pageWpx - fixedWidth) / slotCount));
   const tableW = fixedWidth + (slotCount * slotW);
+  const slotFont = slotW <= 30 ? 0.8 : slotW <= 34 ? 0.84 : 0.88;
+  const slotVarFont = slotW <= 30 ? 0.88 : slotW <= 34 ? 0.92 : 0.98;
+  const opNameFont = slotW <= 30 ? 0.48 : 0.52;
   const scaleW  = pageWpx / tableW;
   const scaleH  = pageHpx / tableH;
   const scaleX  = Math.min(1, scaleW);
@@ -2999,9 +3005,9 @@ header,
   --sep-w: ${sepW}px;
   --side-w: ${sideW}px;
   --slot-w: ${slotW}px;
-  --slot-font: 0.7rem;
-  --slot-var-font: 0.78rem;
-  --op-name-font: 0.6rem;
+  --slot-font: ${slotFont}rem;
+  --slot-var-font: ${slotVarFont}rem;
+  --op-name-font: ${opNameFont}rem;
   --team-table-min-width: ${tableW}px;
   overflow: visible !important;
   height: auto !important;
@@ -3033,13 +3039,14 @@ header,
 }
 
 .team-table th {
-  padding-top: 4px !important;
-  padding-bottom: 4px !important;
+  padding: 2px 1px !important;
+  font-size: 0.46rem !important;
+  line-height: 1.05 !important;
 }
 
 .team-table td {
-  padding-top: 2px !important;
-  padding-bottom: 2px !important;
+  padding-top: 1px !important;
+  padding-bottom: 1px !important;
 }
 
 .team-table tr {
@@ -3052,6 +3059,43 @@ header,
   padding-right: 1px !important;
 }
 
+.team-table th.col-data,
+.team-table td.td-data {
+  min-width: ${dateW}px !important;
+  width: ${dateW}px !important;
+  padding-left: 2px !important;
+  padding-right: 1px !important;
+  font-size: 0.5rem !important;
+  line-height: 1 !important;
+  text-align: left !important;
+}
+
+.team-table th.col-giorno,
+.team-table td.td-giorno {
+  min-width: ${dayW}px !important;
+  width: ${dayW}px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  font-size: 0.5rem !important;
+  line-height: 1 !important;
+}
+
+.team-table th.col-destra,
+.td-destra {
+  min-width: ${sideW}px !important;
+  width: ${sideW}px !important;
+  max-width: ${sideW}px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  font-size: 0.46rem !important;
+  line-height: 1 !important;
+  font-weight: 700 !important;
+}
+
+.team-table th.col-destra span {
+  font-size: 0.48rem !important;
+}
+
 .th-op-nome {
   max-width: none !important;
   overflow: hidden !important;
@@ -3062,8 +3106,8 @@ header,
 .cella {
   width: 100% !important;
   min-width: 0 !important;
-  min-height: 20px !important;
-  padding: 1px 1px !important;
+  min-height: 19px !important;
+  padding: 1px 0 !important;
   font-size: var(--slot-font) !important;
   line-height: 1 !important;
   overflow: hidden !important;
@@ -3072,7 +3116,7 @@ header,
 }
 
 .cella.empty {
-  min-height: 20px !important;
+  min-height: 19px !important;
   border: 1px dashed #94a3b8 !important;
 }
 
