@@ -2871,6 +2871,7 @@ async function executePrint() {
   const title = `Turni team - ${MESI_IT[mese - 1]} ${anno}`;
   const wrap = document.getElementById('tableWrap');
   if (!wrap) return;
+  const table = wrap.querySelector('.team-table');
 
   const appStyle = Array.from(document.querySelectorAll('style'))
     .map(s => s.textContent || '')
@@ -2881,20 +2882,20 @@ async function executePrint() {
   const pageWidthMm = 297;
   const pageHeightMm = 210;
   const marginTopMm = 3;
-  const marginRightMm = 1.5;
-  const marginBottomMm = 1.5;
+  const marginRightMm = 1;
+  const marginBottomMm = 0.8;
   const marginLeftMm = 3;
-  const headerHeightMm = 5.5;
+  const headerHeightMm = 5;
   const contentWidthMm = pageWidthMm - marginLeftMm - marginRightMm;
   const contentHeightMm = pageHeightMm - marginTopMm - marginBottomMm - headerHeightMm;
-  const tableW = wrap.scrollWidth;
-  const tableH = wrap.scrollHeight;
+  const tableW = Math.max(1, table?.scrollWidth || wrap.scrollWidth);
+  const tableH = Math.max(1, table?.scrollHeight || wrap.scrollHeight);
   const pageWpx = contentWidthMm * MM_TO_PX;
   const pageHpx = contentHeightMm * MM_TO_PX;
   const scaleW  = pageWpx / tableW;
   const scaleH  = pageHpx / tableH;
-  const scaleX  = Math.min(1.08, scaleW);
-  const scaleY  = Math.min(1.35, scaleH);
+  const scaleX  = Math.min(1.04, scaleW);
+  const scaleY  = Math.min(1.22, scaleH);
   const scale   = scaleX.toFixed(4);
   const scaleYf = scaleY.toFixed(4);
 
@@ -2962,15 +2963,28 @@ header,
 .scale-wrapper {
   transform: scaleX(${scale}) scaleY(${scaleYf});
   transform-origin: 0 0;
-  width: calc(${contentWidthMm}mm / ${scale});
-  height: calc(${contentHeightMm}mm / ${scaleYf});
+  width: ${contentWidthMm}mm;
+  height: ${contentHeightMm}mm;
+  max-height: ${contentHeightMm}mm;
   overflow: visible;
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 
 /* TABELLA */
 .table-wrap {
+  --date-w: 50px;
+  --day-w: 32px;
+  --sep-w: 2px;
+  --side-w: 24px;
+  --slot-w: 42px;
+  --slot-font: 0.7rem;
+  --slot-var-font: 0.78rem;
+  --op-name-font: 0.6rem;
   overflow: visible !important;
   height: auto !important;
+  max-height: none !important;
+  background: #fff !important;
 }
 
 .team-table {
@@ -2978,19 +2992,108 @@ header,
   width: auto !important;
   font-size: 0.75rem !important;
   table-layout: fixed !important;
+  white-space: nowrap !important;
+  background: #fff !important;
+  page-break-inside: avoid;
+  break-inside: avoid;
 }
 
 .team-table th,
 .team-table td {
   position: static !important;
   box-shadow: none !important;
+  filter: none !important;
+}
+
+.team-table th {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+}
+
+.team-table td {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+}
+
+.team-table tr {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.team-table td.td-turno {
+  padding-left: 1px !important;
+  padding-right: 1px !important;
+}
+
+.th-op-nome {
+  max-width: none !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
 }
 
 /* CELLE */
 .cella {
-  min-width: 39px !important;
-  min-height: 18px !important;
-  font-size: 0.71rem !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 20px !important;
+  padding: 1px 1px !important;
+  font-size: var(--slot-font) !important;
+  line-height: 1 !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  gap: 0 !important;
+}
+
+.cella.empty {
+  min-height: 20px !important;
+  border: 1px dashed #94a3b8 !important;
+}
+
+.cella.var-cell.filled {
+  font-size: var(--slot-var-font) !important;
+}
+
+.cella-base-sbarrata {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.cella-base-sbarrata::after {
+  content: '' !important;
+  position: absolute !important;
+  left: -12% !important;
+  top: 50% !important;
+  width: 124% !important;
+  border-top: 2px dashed #ff0000 !important;
+  transform: rotate(-19deg) !important;
+  transform-origin: center center !important;
+  pointer-events: none !important;
+  opacity: .95 !important;
+}
+
+.mf-inline,
+.cella-rep-icon,
+.smart-inline {
+  display: inline-block !important;
+  position: relative !important;
+  top: -0.08em !important;
+  line-height: 1 !important;
+  margin-left: 0 !important;
+  flex: 0 0 auto !important;
+}
+
+.mf-inline {
+  font-size: 0.52rem !important;
+  font-weight: 600 !important;
+}
+
+.cella-rep-icon {
+  font-size: 0.58rem !important;
+}
+
+.smart-inline {
+  font-size: 0.68rem !important;
+  font-weight: 900 !important;
 }
 </style>
 </head>
