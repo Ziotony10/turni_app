@@ -2872,6 +2872,8 @@ async function executePrint() {
   const wrap = document.getElementById('tableWrap');
   if (!wrap) return;
   const table = wrap.querySelector('.team-table');
+  const operatorCount = datiMese?.operatori?.length || operatori.length || 0;
+  const slotCount = Math.max(1, operatorCount * 2);
 
   const appStyle = Array.from(document.querySelectorAll('style'))
     .map(s => s.textContent || '')
@@ -2881,20 +2883,26 @@ async function executePrint() {
   const MM_TO_PX = 96 / 25.4;
   const pageWidthMm = 297;
   const pageHeightMm = 210;
-  const marginTopMm = 3;
-  const marginRightMm = 1;
-  const marginBottomMm = 0.8;
-  const marginLeftMm = 3;
+  const marginTopMm = 1.5;
+  const marginRightMm = 0.5;
+  const marginBottomMm = 0.4;
+  const marginLeftMm = 1.5;
   const headerHeightMm = 5;
   const contentWidthMm = pageWidthMm - marginLeftMm - marginRightMm;
   const contentHeightMm = pageHeightMm - marginTopMm - marginBottomMm - headerHeightMm;
-  const tableW = Math.max(1, table?.scrollWidth || wrap.scrollWidth);
+  const dateW = 50;
+  const dayW = 32;
+  const sepW = 2;
+  const sideW = 24;
+  const fixedWidth = dateW + dayW + (sepW * 2) + (sideW * 7);
   const tableH = Math.max(1, table?.scrollHeight || wrap.scrollHeight);
   const pageWpx = contentWidthMm * MM_TO_PX;
   const pageHpx = contentHeightMm * MM_TO_PX;
+  const slotW = Math.max(28, Math.floor((pageWpx - fixedWidth) / slotCount));
+  const tableW = fixedWidth + (slotCount * slotW);
   const scaleW  = pageWpx / tableW;
   const scaleH  = pageHpx / tableH;
-  const scaleX  = Math.min(1.04, scaleW);
+  const scaleX  = Math.min(1, scaleW);
   const scaleY  = Math.min(1.22, scaleH);
   const scale   = scaleX.toFixed(4);
   const scaleYf = scaleY.toFixed(4);
@@ -2925,15 +2933,21 @@ ${appStyle}
 html {
   margin: 0;
   padding: 0;
+  width: ${contentWidthMm}mm;
+  height: ${pageHeightMm - marginTopMm - marginBottomMm}mm;
 }
 
 body {
+  position: relative;
   margin: 0;
   padding: 0;
+  width: ${contentWidthMm}mm;
+  height: ${pageHeightMm - marginTopMm - marginBottomMm}mm;
   background: #fff !important;
   color: #0f172a !important;
   font-family: 'Segoe UI', system-ui, sans-serif;
   overflow: hidden;
+  page-break-after: avoid;
 }
 
 /* NASCONDI UI */
@@ -2951,6 +2965,10 @@ header,
 /* HEADER */
 .print-header {
   display: block;
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
   font-size: 9px;
   font-weight: 700;
   height: ${headerHeightMm}mm;
@@ -2961,6 +2979,9 @@ header,
 
 /* WRAPPER DI SCALA: si adatta dinamicamente */
 .scale-wrapper {
+  position: absolute;
+  left: 0;
+  top: ${headerHeightMm}mm;
   transform: scaleX(${scale}) scaleY(${scaleYf});
   transform-origin: 0 0;
   width: ${contentWidthMm}mm;
@@ -2973,23 +2994,29 @@ header,
 
 /* TABELLA */
 .table-wrap {
-  --date-w: 50px;
-  --day-w: 32px;
-  --sep-w: 2px;
-  --side-w: 24px;
-  --slot-w: 42px;
+  --date-w: ${dateW}px;
+  --day-w: ${dayW}px;
+  --sep-w: ${sepW}px;
+  --side-w: ${sideW}px;
+  --slot-w: ${slotW}px;
   --slot-font: 0.7rem;
   --slot-var-font: 0.78rem;
   --op-name-font: 0.6rem;
+  --team-table-min-width: ${tableW}px;
   overflow: visible !important;
   height: auto !important;
   max-height: none !important;
   background: #fff !important;
 }
 
+.table-wrap.is-scroll-mode .team-table,
+.table-wrap .team-table {
+  width: ${tableW}px !important;
+  min-width: ${tableW}px !important;
+}
+
 .team-table {
   border-collapse: collapse !important;
-  width: auto !important;
   font-size: 0.75rem !important;
   table-layout: fixed !important;
   white-space: nowrap !important;
@@ -3056,6 +3083,9 @@ header,
 .cella-base-sbarrata {
   position: relative !important;
   overflow: hidden !important;
+  background-image: linear-gradient(160deg, transparent 48%, #ff0000 49%, #ff0000 51%, transparent 52%) !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
 }
 
 .cella-base-sbarrata::after {
