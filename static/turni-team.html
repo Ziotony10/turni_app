@@ -2893,7 +2893,7 @@ async function executePrint() {
   const contentHeightMm = pageHeightMm - marginTopMm - marginBottomMm - headerHeightMm;
   const dateW = 38;
   const dayW = 22;
-  const sepW = 1;
+  const sepW = 0.5;
   const sideW = 15;
   const fixedWidth = dateW + dayW + (sepW * 2) + (sideW * 7);
   const estimatedPrintRowH = 18;
@@ -3059,6 +3059,20 @@ header,
   padding-right: 1px !important;
 }
 
+.team-table th.col-op,
+.team-table td.td-data,
+.team-table td.td-giorno,
+.team-table td.td-turno.td-turno-var,
+.team-table th.col-destra,
+.td-destra {
+  border-left-width: 0.5px !important;
+  border-right-width: 0.5px !important;
+}
+
+.team-table td.td-turno.td-turno-var {
+  border-right-width: 1px !important;
+}
+
 .team-table th.col-data,
 .team-table td.td-data {
   min-width: ${dateW}px !important;
@@ -3131,6 +3145,7 @@ header,
   min-height: 17px !important;
   padding: 1px 0 !important;
   font-size: var(--slot-font) !important;
+  font-weight: 400 !important;
   line-height: .95 !important;
   overflow: hidden !important;
   white-space: nowrap !important;
@@ -3144,6 +3159,7 @@ header,
 
 .cella.var-cell.filled {
   font-size: var(--slot-var-font) !important;
+  font-weight: 400 !important;
 }
 
 .cella-base-sbarrata {
