@@ -2903,9 +2903,9 @@ async function executePrint() {
   const pageHpx = contentHeightMm * MM_TO_PX;
   const slotW = Math.max(28, Math.floor((pageWpx - fixedWidth) / slotCount));
   const tableW = fixedWidth + (slotCount * slotW);
-  const slotFont = slotW <= 30 ? 0.29 : slotW <= 34 ? 0.31 : 0.33;
-  const slotVarFont = slotW <= 30 ? 0.32 : slotW <= 34 ? 0.34 : 0.36;
-  const opNameFont = slotW <= 30 ? 0.38 : 0.42;
+  const slotFont = slotW <= 30 ? 0.435 : slotW <= 34 ? 0.465 : 0.495;
+  const slotVarFont = slotW <= 30 ? 0.48 : slotW <= 34 ? 0.51 : 0.54;
+  const opNameFont = slotW <= 30 ? 0.292 : 0.323;
   const scaleW  = pageWpx / tableW;
   const scaleH  = pageHpx / tableH;
   const scaleX  = Math.min(1, scaleW);
@@ -3092,7 +3092,7 @@ header,
 }
 
 .td-destra {
-  font-size: 0.23rem !important;
+  font-size: 0.345rem !important;
 }
 
 .team-table th.col-destra {
@@ -3115,6 +3115,13 @@ header,
   font-size: 0.34rem !important;
   line-height: 1 !important;
   margin-top: 0 !important;
+}
+
+.team-table th.col-op > div:first-child {
+  font-size: 0.29rem !important;
+  line-height: 1 !important;
+  padding: 0 2px !important;
+  margin-bottom: 0 !important;
 }
 
 /* CELLE */
@@ -3172,16 +3179,16 @@ header,
 }
 
 .mf-inline {
-  font-size: 0.52rem !important;
+  font-size: 0.347rem !important;
   font-weight: 600 !important;
 }
 
 .cella-rep-icon {
-  font-size: 0.58rem !important;
+  font-size: 0.387rem !important;
 }
 
 .smart-inline {
-  font-size: 0.68rem !important;
+  font-size: 0.453rem !important;
   font-weight: 900 !important;
 }
 </style>
