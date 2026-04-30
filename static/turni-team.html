@@ -2896,20 +2896,20 @@ async function executePrint() {
   const sepW = 1;
   const sideW = 15;
   const fixedWidth = dateW + dayW + (sepW * 2) + (sideW * 7);
-  const estimatedPrintRowH = 21;
-  const estimatedPrintHeadH = 30;
+  const estimatedPrintRowH = 18;
+  const estimatedPrintHeadH = 24;
   const tableH = Math.max(1, estimatedPrintHeadH + (rowCount * estimatedPrintRowH));
   const pageWpx = contentWidthMm * MM_TO_PX;
   const pageHpx = contentHeightMm * MM_TO_PX;
   const slotW = Math.max(28, Math.floor((pageWpx - fixedWidth) / slotCount));
   const tableW = fixedWidth + (slotCount * slotW);
-  const slotFont = slotW <= 30 ? 0.8 : slotW <= 34 ? 0.84 : 0.88;
-  const slotVarFont = slotW <= 30 ? 0.88 : slotW <= 34 ? 0.92 : 0.98;
-  const opNameFont = slotW <= 30 ? 0.48 : 0.52;
+  const slotFont = slotW <= 30 ? 0.58 : slotW <= 34 ? 0.62 : 0.66;
+  const slotVarFont = slotW <= 30 ? 0.64 : slotW <= 34 ? 0.68 : 0.72;
+  const opNameFont = slotW <= 30 ? 0.38 : 0.42;
   const scaleW  = pageWpx / tableW;
   const scaleH  = pageHpx / tableH;
   const scaleX  = Math.min(1, scaleW);
-  const scaleY  = Math.min(1.22, scaleH);
+  const scaleY  = Math.min(1, scaleH);
   const scale   = scaleX.toFixed(4);
   const scaleYf = scaleY.toFixed(4);
 
@@ -3087,36 +3087,47 @@ header,
   max-width: ${sideW}px !important;
   padding-left: 0 !important;
   padding-right: 0 !important;
-  font-size: 0.46rem !important;
   line-height: 1 !important;
   font-weight: 700 !important;
 }
 
+.team-table th.col-destra {
+  font-size: 0.34rem !important;
+}
+
 .team-table th.col-destra span {
-  font-size: 0.48rem !important;
+  font-size: 0.36rem !important;
 }
 
 .th-op-nome {
   max-width: none !important;
   overflow: hidden !important;
   text-overflow: clip !important;
+  font-size: var(--op-name-font) !important;
+  line-height: 1 !important;
+}
+
+.team-table th.col-op > div:last-child {
+  font-size: 0.34rem !important;
+  line-height: 1 !important;
+  margin-top: 0 !important;
 }
 
 /* CELLE */
 .cella {
   width: 100% !important;
   min-width: 0 !important;
-  min-height: 19px !important;
+  min-height: 17px !important;
   padding: 1px 0 !important;
   font-size: var(--slot-font) !important;
-  line-height: 1 !important;
+  line-height: .95 !important;
   overflow: hidden !important;
   white-space: nowrap !important;
   gap: 0 !important;
 }
 
 .cella.empty {
-  min-height: 19px !important;
+  min-height: 17px !important;
   border: 1px dashed #94a3b8 !important;
 }
 
