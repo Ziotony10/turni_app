@@ -1384,7 +1384,7 @@ def get_admin_bootstrap(admin=Depends(require_admin)):
                             (group["operatore_id"],))
             group["dates"] = [r["data"] for r in rows]
         ferie_log = fetchall(conn, f"SELECT * FROM team_ferie_log ORDER BY id DESC LIMIT {get_limit_placeholder()}", (120,))
-        log_accessi = fetchall(conn, f"SELECT * FROM log_accessi ORDER BY id DESC LIMIT {get_limit_placeholder()}", (100,))
+        log_accessi = fetchall(conn, f"SELECT * FROM log_accessi ORDER BY id DESC LIMIT {get_limit_placeholder()}", (50,))
         for row in log_accessi:
             if row.get("timestamp") and not isinstance(row["timestamp"], str):
                 row["timestamp"] = row["timestamp"].isoformat()
