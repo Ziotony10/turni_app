@@ -977,7 +977,27 @@ function setRep(active) {
   }
 }
 
-function selectTurno(code) {
+function getStdTimeForTurno(turno, field) {
+  const cfg = config[turno] || {};
+  if (field === 'oraInizio') return cfg.std_ini != null ? cfg.std_ini : null;
+  if (field === 'oraFine')   return cfg.std_fin != null ? cfg.std_fin : null;
+  return null;
+}
+
+function clearStdTimesForTurno(turno) {
+  ['oraInizio', 'oraFine'].forEach(field => {
+    const el = document.getElementById(field);
+    const std = getStdTimeForTurno(turno, field);
+    if (el.value && std != null && el.value === minToStr(std)) el.value = '';
+  });
+}
+
+function selectTurno(code, opts = {}) {
+  const previousTurno = selectedTurno;
+  if (!opts.preserveTimes && previousTurno && previousTurno !== code) {
+    clearStdTimesForTurno(previousTurno);
+  }
+
   selectedTurno = code;
   document.querySelectorAll('.turno-btn').forEach(b => {
     b.classList.toggle('selected', b.dataset.code === code);
@@ -1003,7 +1023,7 @@ function openModal(dataStr) {
   document.getElementById('oraFine').value   = row.ora_fine   || '';
   document.getElementById('note').value      = row.note       || '';
 
-  selectTurno(row.turno || '');
+  selectTurno(row.turno || '', { preserveTimes: true });
   setRep(!!row.reperibilita);
   updateTimeDisplay('oraInizio');
   updateTimeDisplay('oraFine');
@@ -1025,10 +1045,7 @@ function minToStr(m) {
 }
 
 function getStdTime(field) {
-  const cfg = config[selectedTurno] || {};
-  if (field === 'oraInizio') return cfg.std_ini != null ? cfg.std_ini : null;
-  if (field === 'oraFine')   return cfg.std_fin != null ? cfg.std_fin : null;
-  return null;
+  return getStdTimeForTurno(selectedTurno, field);
 }
 
 function updateTimeDisplay(field) {
@@ -1236,6 +1253,13 @@ function aggiornaPreventivoLive() {
   ).join('');
 }
 
+function getTimeValueForSave(field) {
+  const val = document.getElementById(field).value;
+  const std = getStdTime(field);
+  if (val && std != null && val === minToStr(std)) return null;
+  return val || null;
+}
+
 async function saveTurno() {
   if (!editingData) return;
   const hasRep = document.getElementById('reperibilita').value === 'true';
@@ -1244,8 +1268,8 @@ async function saveTurno() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       turno:        selectedTurno || null,
-      ora_inizio:   document.getElementById('oraInizio').value || null,
-      ora_fine:     document.getElementById('oraFine').value   || null,
+      ora_inizio:   getTimeValueForSave('oraInizio'),
+      ora_fine:     getTimeValueForSave('oraFine'),
       reperibilita: hasRep,
       note:         document.getElementById('note').value || null,
     })
@@ -1405,8 +1429,8 @@ async function saveTurno() {
   const hasRep = document.getElementById('reperibilita').value === 'true';
   const payload = {
     turno: selectedTurno || null,
-    ora_inizio: document.getElementById('oraInizio').value || null,
-    ora_fine: document.getElementById('oraFine').value || null,
+    ora_inizio: getTimeValueForSave('oraInizio'),
+    ora_fine: getTimeValueForSave('oraFine'),
     reperibilita: hasRep,
     note: document.getElementById('note').value || null,
   };
