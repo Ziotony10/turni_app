@@ -1560,9 +1560,8 @@ def applica_tabella(payload: ApplicaTabella, user=Depends(get_current_user)):
         if turno:
             data_str = data_cur.isoformat()
             ore = calcola_ore(turno, None, None, data_str)
-            std = TURNO_ORARI.get(turno)
-            si_str = mins_to_hhmm(std[0]) if std else None
-            sf_str = mins_to_hhmm(std[1]) if std else None
+            si_str = None
+            sf_str = None
             if USE_PG:
                 ex(conn, """INSERT INTO turni
                       (user_id,data,turno,ora_inizio,ora_fine,ore_diurne,ore_notturne,
