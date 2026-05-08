@@ -294,8 +294,6 @@
   .sb-sp { background:rgba(30,41,59,0.7);   border-color:rgba(71,85,105,0.35); color:#7a8fa8; }
   .sb-sp:hover,.sb-sp.active{ background:rgba(51,65,85,0.85); border-color:#60a5fa; color:#cbd5e1; }
 
-  .sb-clr{ background:rgba(239,68,68,0.08); border-color:rgba(239,68,68,0.2);  color:#f87171; }
-  .sb-clr:hover { background:rgba(239,68,68,0.18); border-color:rgba(239,68,68,0.4); }
 
   /* Modifier chips */
   .mod-chips { display:flex; gap:5px; flex-wrap:wrap; }
@@ -663,12 +661,9 @@
       <button class="sb sb-sp" data-t="ROT"     onclick="pickerSetTurno('ROT',this)">ROT</button>
       <button class="sb sb-r"  data-t="RF"      onclick="pickerSetTurno('RF',this)">RF</button>
       <button class="sb sb-sp" data-t="F"       onclick="pickerSetTurno('F',this)">F</button>
-      <button class="sb sb-sp" data-t="MAL"     onclick="pickerSetTurno('MAL',this)">MAL</button>
-      <button class="sb sb-sp" data-t="8PR"     onclick="pickerSetTurno('8PR',this)">8PR</button>
-      <button class="sb sb-sp" data-t="LUTTO"   onclick="pickerSetTurno('LUTTO',this)">LUTTO</button>
       <button class="sb sb-sp" data-t="EX FEST" onclick="pickerSetTurno('EX FEST',this)">EX F.</button>
-      <button class="sb sb-sp" data-t="#"       onclick="pickerSetTurno('#',this)" title="Solo smart working">#</button>
-      <button class="sb sb-clr"                 onclick="pickerSetTurno('',this)" title="Svuota cella">—</button>
+      <button class="sb sb-sp" data-t="MAL"     onclick="pickerSetTurno('MAL',this)">MAL</button>
+      <button class="sb sb-sp" data-t="LUTTO"   onclick="pickerSetTurno('LUTTO',this)">LUTTO</button>
     </div>
   </div>
 
@@ -676,10 +671,10 @@
   <div>
     <div class="picker-section">Modificatori</div>
     <div class="mod-chips">
-      <button class="mod-chip" id="modSmart" onclick="pickerToggleFlag('smart',event)" title="Smart Working → appare su VAR">🟠 Smart #</button>
       <button class="mod-chip" id="modRep"   onclick="pickerToggleFlag('rep',event)"   title="Reperibilità">🟡 Rep ®</button>
-      <button class="mod-chip" id="modF"     onclick="pickerToggleFlag('F',event)"     title="Facoltativo">ᶠ Facolt.</button>
       <button class="mod-chip" id="modM"     onclick="pickerToggleFlag('M',event)"     title="Minimo Servizio">ᴹ Min.S.</button>
+      <button class="mod-chip" id="modF"     onclick="pickerToggleFlag('F',event)"     title="Facoltativo">ᶠ Facolt.</button>
+      <button class="mod-chip" id="modSmart" onclick="pickerToggleFlag('smart',event)" title="Smart Working → appare su VAR">🟠 Smart #</button>
     </div>
   </div>
 
@@ -711,8 +706,8 @@
 <datalist id="turni-list">
   <option value="7-15"><option value="8-16"><option value="9-17"><option value="11-19">
   <option value="15-23"><option value="23-7">
-  <option value="RC"><option value="R"><option value="ROT"><option value="RF"><option value="8PR"><option value="F">
-  <option value="MAL"><option value="LUTTO"><option value="EX FEST">
+  <option value="RC"><option value="R"><option value="ROT"><option value="RF"><option value="F">
+  <option value="EX FEST"><option value="MAL"><option value="LUTTO">
 </datalist>
 
 <!-- CARICA TEMPLATE -->
@@ -1073,6 +1068,12 @@ function getTeamPrintStyle(pageWidthMm, pageHeightMm, pageMarginMm) {
     }
     .cella.var-cell.filled {
       font-size:0.82rem !important;
+      color:#FF0000 !important;
+    }
+    .cella.var-cell.filled .mf-inline,
+    .cella.var-cell.filled .cella-rep-icon,
+    .cella.var-cell.filled .smart-inline {
+      color:#FF0000 !important;
     }
     .th-op-nome {
       max-width:none !important;
@@ -1931,11 +1932,13 @@ async function loadLog() {
 }
 
 // Override pulito dei renderer: evita simboli corrotti e mantiene TAB invariata salvo la diagonale
-function renderCella(turno, flags, data, opId, col, turnoVar) {
+function renderCella(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const isEmpty = !turno;
   const edClass = isEditor ? ' editable' : '';
   const colClass = col === 'var' ? ' var-cell' : '';
   const clickEvt = isEditor ? `onclick="openPicker('${data}',${opId},'${col}',event)"` : '';
+  const contextEvt = isEditor ? `oncontextmenu="applyFerieRangeFromCell('${data}',${opId},event)"` : '';
+  const ferieClass = getFerieRequestCellClass(ferieRequest, data, opId, col);
   const turnoNorm = (turno || '').trim().toUpperCase();
   const isRep = flags && flags.includes('rep');
   const isSmart = flags && flags.includes('smart');
@@ -1956,15 +1959,15 @@ function renderCella(turno, flags, data, opId, col, turnoVar) {
 
   if (col === 'base' && turnoVar) {
     const filledClass = isEmpty && !extras ? ' empty' : ' filled';
-    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${filledClass}" ${clickEvt}>${value}${extras}</div>`;
+    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${ferieClass}${filledClass}" ${clickEvt} ${contextEvt}>${value}${extras}</div>`;
   }
 
   if (isEmpty) {
     const filledClass = extras ? ' filled' : ' empty';
-  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${filledClass}" ${clickEvt}>${value}${extras}</div>`;
+  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${ferieClass}${filledClass}" ${clickEvt} ${contextEvt}>${value}${extras}</div>`;
   }
 
-  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass} filled" ${clickEvt}>${turno}${extras}</div>`;
+  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${ferieClass} filled" ${clickEvt} ${contextEvt}>${turno}${extras}</div>`;
 }
 
 function renderTplCella(dow, pos) {
@@ -2079,6 +2082,34 @@ async function submitFerieRequest() {
   if (teamMe) teamContext = { ...(teamContext || {}), ...(teamMe || {}) };
   updateFerieUi();
   await load();
+}
+
+async function applyFerieRangeFromCell(dataStr, opId, event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  if (!isEditor) return false;
+  const daysRaw = prompt('Quanti giorni consecutivi di ferie vuoi applicare da questa data?', '5');
+  if (daysRaw === null) return false;
+  const giorni = parseInt(daysRaw, 10);
+  if (!Number.isFinite(giorni) || giorni < 1 || giorni > 31) {
+    alert('Inserisci un numero di giorni tra 1 e 31.');
+    return false;
+  }
+  const res = await fetch('/api/team/ferie/apply-range', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ operatore_id: opId, start_date: dataStr, giorni })
+  }).then(r=>r.json()).catch(()=>({ok:false}));
+  if (!res.ok) {
+    alert(res.detail || 'Errore durante l applicazione delle ferie.');
+    return false;
+  }
+  await load();
+  if (logOpen) await loadLog();
+  alert(`Ferie applicate: ${res.applied || 0}. Celle gia' modificate non sovrascritte: ${res.skipped || 0}.`);
+  return false;
 }
 
 function renderFerieMarker(request, dataStr, opId) {
@@ -2717,6 +2748,9 @@ reviewPendingFerie = async function(operatoreId, dates, status) {
     alert(res.detail || 'Errore durante la revisione della richiesta ferie.');
     return;
   }
+  if (status === 'approved' && Number(res.skipped || 0) > 0) {
+    alert(`Richiesta approvata. F applicata su ${res.applied || 0} giorni; ${res.skipped || 0} celle VAR gia' modificate sono rimaste invariate.`);
+  }
   const teamMe = await fetch('/api/team/me').then(r=>r.json()).catch(()=>null);
   if (teamMe) teamContext = { ...(teamContext || {}), ...(teamMe || {}) };
   updateFerieUi();
@@ -2813,6 +2847,10 @@ header, .month-tabs-row, .editor-bar, .bottom-nav, #logPanel, .turno-picker, .se
 .team-table tr:hover td { filter:none !important; }
 .cella, .tpl-cella { min-width:54px !important; min-height:20px !important; font-size:0.74rem !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
 .cella.var-cell.filled { font-size:0.8rem !important; }
+.cella.var-cell.filled,
+.cella.var-cell.filled .mf-inline,
+.cella.var-cell.filled .cella-rep-icon,
+.cella.var-cell.filled .smart-inline { color:#FF0000 !important; }
 .th-op-nome { max-width:none !important; overflow:visible !important; text-overflow:clip !important; }
 .print-update-label { text-align:center; font-size:0.7rem; color:#FF0000; font-weight:700; margin-bottom:6px; }
 .print-legend { margin-top:12px; font-size:0.75rem; color:#475569; }
@@ -3198,6 +3236,13 @@ header,
 .cella.var-cell.filled {
   font-size: var(--slot-var-font) !important;
   font-weight: 400 !important;
+  color: #FF0000 !important;
+}
+
+.cella.var-cell.filled .mf-inline,
+.cella.var-cell.filled .cella-rep-icon,
+.cella.var-cell.filled .smart-inline {
+  color: #FF0000 !important;
 }
 
 .cella-base-sbarrata {
@@ -3319,6 +3364,7 @@ renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const extras = mfHtml + repIcon + smartHtml;
   const ownFerieCell = col === 'base' && ferieMode && teamContext?.linked_operatore_id === opId;
   const clickEvt = ownFerieCell ? `onclick="toggleFerieDate('${data}')"` : (isEditor ? `onclick="openPicker('${data}',${opId},'${col}',event)"` : '');
+  const contextEvt = isEditor ? `oncontextmenu="applyFerieRangeFromCell('${data}',${opId},event)"` : '';
   const edClass = isEditor ? ' editable' : '';
   const ferieClass = ownFerieCell ? ' ferie-cell-selectable' : '';
   const selectedClass = ownFerieCell && (ferieAdds.has(data) || ferieRemovals.has(data)) ? ' ferie-cell-selected' : '';
@@ -3328,13 +3374,13 @@ renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const value = isEmpty ? '' : turno;
   if (col === 'base' && turnoVar) {
     const filledClass = isEmpty && !extras ? ' empty' : ' filled';
-    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${ferieStatusClass}${selectedClass}${filledClass}" ${clickEvt}>${value}${extras}${marker}</div>`;
+    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${ferieStatusClass}${selectedClass}${filledClass}" ${clickEvt} ${contextEvt}>${value}${extras}${marker}</div>`;
   }
   if (isEmpty) {
     const filledClass = extras || ferieStatusClass || marker ? ' filled' : ' empty';
-    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${ferieStatusClass}${selectedClass}${filledClass}" ${clickEvt}>${value}${extras}${marker}</div>`;
+    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${ferieStatusClass}${selectedClass}${filledClass}" ${clickEvt} ${contextEvt}>${value}${extras}${marker}</div>`;
   }
-  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${ferieStatusClass}${selectedClass} filled" ${clickEvt}>${turno}${extras}${marker}</div>`;
+  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${ferieStatusClass}${selectedClass} filled" ${clickEvt} ${contextEvt}>${turno}${extras}${marker}</div>`;
 };
 
 renderTplCella = function(dow, pos) {
