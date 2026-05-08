@@ -941,6 +941,11 @@ class TeamFerieReviewInput(BaseModel):
     dates: List[str]
     status: str
 
+class TeamFerieRangeApplyInput(BaseModel):
+    operatore_id: int
+    start_date: str
+    giorni: int
+
 
 def _parse_iso_date(value: Optional[str]) -> Optional[date]:
     if not value:
@@ -1030,6 +1035,79 @@ def _compute_team_rep_defaults(rep_template: dict, d: date, operator_count: int,
             if mapped:
                 defaults[mapped] = str(((int(base_pos) - sett_idx - 1) % operator_count) + 1)
     return defaults
+
+def _load_team_template_context(conn):
+    template_rows = fetchall(conn, "SELECT * FROM team_template_weekly ORDER BY giorno_settimana, posizione")
+    template = {}
+    for r in template_rows:
+        g = r["giorno_settimana"]
+        if g not in template:
+            template[g] = {}
+        template[g][r["posizione"]] = {
+            "turno_base": r.get("turno_base", "") or "",
+            "turno_var": r.get("turno_var", "") or "",
+            "flags": r.get("flags", "") or "",
+        }
+    op_count = int((fetchone(conn, "SELECT COUNT(*) AS cnt FROM team_operatori WHERE attivo=1") or {}).get("cnt", 0) or 0)
+    cfg = fetchone(conn, "SELECT start_date, end_date FROM team_template_config WHERE id=1") or {}
+    start_obj = _parse_iso_date(cfg.get("start_date"))
+    end_obj = _parse_iso_date(cfg.get("end_date"))
+    if start_obj and end_obj and end_obj < start_obj:
+        start_obj, end_obj = end_obj, start_obj
+    start_week_monday = start_obj - timedelta(days=start_obj.weekday()) if start_obj else None
+    return template, op_count, start_obj, end_obj, start_week_monday
+
+def _apply_team_ferie_to_var(conn, operatore_id: int, dates: List[str], username: str) -> dict:
+    op = fetchone(conn, "SELECT id, nome, posizione FROM team_operatori WHERE id=? AND attivo=1", (operatore_id,))
+    if not op:
+        raise HTTPException(404, "Operatore non trovato")
+
+    template, op_count, start_obj, end_obj, start_week_monday = _load_team_template_context(conn)
+    now = datetime.now().isoformat()[:19]
+    applied = 0
+    skipped = 0
+
+    for data_str in sorted({d for d in dates if _parse_iso_date(d)}):
+        d_obj = date.fromisoformat(data_str)
+        existing = fetchone(conn, "SELECT turno_base, turno_var, flags, flags_base, flags_var FROM team_turni WHERE data=? AND operatore_id=?",
+                            (data_str, operatore_id))
+        if existing and (existing.get("turno_var") or "").strip():
+            skipped += 1
+            continue
+
+        tpl = {"turno_base": "", "turno_var": "", "flags": ""}
+        in_template_range = True
+        if start_obj and d_obj < start_obj:
+            in_template_range = False
+        if end_obj and d_obj > end_obj:
+            in_template_range = False
+        if in_template_range:
+            tpl = _compute_team_template_slot(template, d_obj, op["posizione"], op_count, start_week_monday)
+        if not existing and (tpl.get("turno_var") or "").strip():
+            skipped += 1
+            continue
+
+        shared_existing_flags = (existing.get("flags") if existing else "") or ""
+        turno_base = (existing.get("turno_base") if existing else tpl.get("turno_base")) or ""
+        flags_base = (existing.get("flags_base") if existing else tpl.get("flags")) or ""
+        flags_var = (existing.get("flags_var") if existing else "") or ""
+        if existing and not flags_base and not flags_var and shared_existing_flags:
+            flags_base = shared_existing_flags
+        shared_flags = flags_var
+
+        ex(conn, """INSERT INTO team_turni (data, operatore_id, turno_base, turno_var, flags, flags_base, flags_var, modificato_da, modificato_il)
+           VALUES (?,?,?,?,?,?,?,?,?)
+           ON CONFLICT(data, operatore_id) DO UPDATE SET
+             turno_base=excluded.turno_base, turno_var=excluded.turno_var,
+             flags=excluded.flags, flags_base=excluded.flags_base, flags_var=excluded.flags_var,
+             modificato_da=excluded.modificato_da, modificato_il=excluded.modificato_il""",
+           (data_str, operatore_id, turno_base, "F", shared_flags, flags_base, flags_var, username, now))
+        ex(conn, """INSERT INTO team_log (data_modifica, utente, data_turno, operatore_nome, campo, vecchio_valore, nuovo_valore, flags)
+           VALUES (?,?,?,?,?,?,?,?)""",
+           (now, username, data_str, op["nome"], "turno_var", "", "F", flags_var))
+        applied += 1
+
+    return {"applied": applied, "skipped": skipped}
 
 
 def _preserve_team_schedule_outside_range(conn, ops: List[dict], template_map: dict, rep_template: dict,
@@ -2142,9 +2220,27 @@ def review_team_ferie(payload: TeamFerieReviewInput, user=Depends(require_team_e
            (new_status, user["username"], now, row["id"]))
         _log_team_ferie(conn, user["username"], row["user_id"], row.get("username"), op["id"], op["nome"], data_turno,
                         "reviewed", row.get("stato"), new_status)
+    applied = {"applied": 0, "skipped": 0}
+    if new_status == "approved":
+        applied = _apply_team_ferie_to_var(conn, payload.operatore_id, dates, user["username"])
     conn.commit()
     release_db(conn)
-    return {"ok": True}
+    return {"ok": True, **applied}
+
+@app.post("/api/team/ferie/apply-range")
+def apply_team_ferie_range(payload: TeamFerieRangeApplyInput, user=Depends(require_team_editor)):
+    start = _parse_iso_date(payload.start_date)
+    giorni = int(payload.giorni or 0)
+    if not start:
+        raise HTTPException(400, "Data inizio non valida")
+    if giorni < 1 or giorni > 31:
+        raise HTTPException(400, "Numero giorni non valido")
+    dates = [(start + timedelta(days=i)).isoformat() for i in range(giorni)]
+    conn = get_db()
+    result = _apply_team_ferie_to_var(conn, payload.operatore_id, dates, user["username"])
+    conn.commit()
+    release_db(conn)
+    return {"ok": True, **result}
 
 @app.get("/api/team/ferie/dashboard")
 def get_team_ferie_dashboard(user=Depends(get_current_user)):
