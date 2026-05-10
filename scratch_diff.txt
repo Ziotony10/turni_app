@@ -1,0 +1,363 @@
+--- NEW FUNCTIONS ---
+
+Function: _load_team_template_context
+def _load_team_template_context(conn):
+    template_rows = fetchall(conn, "SELECT * FROM team_template_weekly ORDER BY giorno_settimana, posizione")
+    template = {}
+    for r in template_rows:
+        g = r["giorno_settimana"]
+        if g not in template:
+            template[g] = {}
+        template[g][r["posizione"]] = {
+            "turno_base": r.get("turno_base", "") or "",
+            "turno_var": r.get("turno_var", "") or "",
+            "flags": r.get("flags", "") or "",
+        }
+    op_count = int((fetchone(conn, "SELECT COUNT(*) AS cnt FROM team_operatori WHERE attivo=1") or {}).get("cnt", 0) or 0)
+    cfg = fetchone(conn, "SELECT start_date, end_date FROM team_template_config WHERE id=1") or {}
+    start_obj = _parse_iso_date(cfg.get("start_date"))
+    end_obj = _parse_iso_date(cfg.get("end_date"))
+    if start_obj and end_obj and end_obj < start_obj:
+        start_obj, end_obj = end_obj, start_obj
+    start_week_monday = start_obj - timedelta(days=start_obj.weekday()) if start_obj else None
+    return template, op_count, start_obj, end_obj, start_week_monday
+
+Function: apply_team_ferie_range
+def apply_team_ferie_range(payload: TeamFerieRangeApplyInput, user=Depends(require_team_editor)):
+    start = _parse_iso_date(payload.start_date)
+    giorni = int(payload.giorni or 0)
+    if not start:
+        raise HTTPException(400, "Data inizio non valida")
+    if giorni < 1 or giorni > 31:
+        raise HTTPException(400, "Numero giorni non valido")
+    dates = [(start + timedelta(days=i)).isoformat() for i in range(giorni)]
+    conn = get_db()
+    result = _apply_team_ferie_to_var(conn, payload.operatore_id, dates, user["username"])
+    conn.commit()
+    release_db(conn)
+    return {"ok": True, **result}
+
+Function: _apply_team_ferie_to_var
+def _apply_team_ferie_to_var(conn, operatore_id: int, dates: List[str], username: str) -> dict:
+    op = fetchone(conn, "SELECT id, nome, posizione FROM team_operatori WHERE id=? AND attivo=1", (operatore_id,))
+    if not op:
+        raise HTTPException(404, "Operatore non trovato")
+
+    template, op_count, start_obj, end_obj, start_week_monday = _load_team_template_context(conn)
+    now = datetime.now().isoformat()[:19]
+    applied = 0
+    skipped = 0
+
+    for data_str in sorted({d for d in dates if _parse_iso_date(d)}):
+        d_obj = date.fromisoformat(data_str)
+        existing = fetchone(conn, "SELECT turno_base, turno_var, flags, flags_base, flags_var FROM team_turni WHERE data=? AND operatore_id=?",
+                            (data_str, operatore_id))
+        if existing and (existing.get("turno_var") or "").strip():
+            skipped += 1
+            continue
+
+        tpl = {"turno_base": "", "turno_var": "", "flags": ""}
+        in_template_range = True
+        if start_obj and d_obj < start_obj:
+            in_template_range = False
+        if end_obj and d_obj > end_obj:
+            in_template_range = False
+        if in_template_range:
+            tpl = _compute_team_template_slot(template, d_obj, op["posizione"], op_count, start_week_monday)
+        if not existing and (tpl.get("turno_var") or "").strip():
+            skipped += 1
+            continue
+
+        shared_existing_flags = (existing.get("flags") if existing else "") or ""
+        turno_base = (existing.get("turno_base") if existing else tpl.get("turno_base")) or ""
+        flags_base = (existing.get("flags_base") if existing else tpl.get("flags")) or ""
+        flags_var = (existing.get("flags_var") if existing else "") or ""
+        if existing and not flags_base and not flags_var and shared_existing_flags:
+            flags_base = shared_existing_flags
+        shared_flags = flags_var
+
+        ex(conn, """INSERT INTO team_turni (data, operatore_id, turno_base, turno_var, flags, flags_base, flags_var, modificato_da, modificato_il)
+           VALUES (?,?,?,?,?,?,?,?,?)
+           ON CONFLICT(data, operatore_id) DO UPDATE SET
+             turno_base=excluded.turno_base, turno_var=excluded.turno_var,
+             flags=excluded.flags, flags_base=excluded.flags_base, flags_var=excluded.flags_var,
+             modificato_da=excluded.modificato_da, modificato_il=excluded.modificato_il""",
+           (data_str, operatore_id, turno_base, "F", shared_flags, flags_base, flags_var, username, now))
+        ex(conn, """INSERT INTO team_log (data_modifica, utente, data_turno, operatore_nome, campo, vecchio_valore, nuovo_valore, flags)
+           VALUES (?,?,?,?,?,?,?,?)""",
+           (now, username, data_str, op["nome"], "turno_var", "", "F", flags_var))
+        applied += 1
+
+    return {"applied": applied, "skipped": skipped}
+
+--- MODIFIED FUNCTIONS DIFF ---
+
+Diff for: applica_tabella
+--- app
++++ prod
+@@ -1,7 +1,8 @@
+ def applica_tabella(payload: ApplicaTabella, user=Depends(get_current_user)):
+-    conn = db.get_db()
+-    tab = db.fetchone(conn, "SELECT * FROM tabelle_turni WHERE id=?", (payload.tab_id,))
+-    if not tab: db.release_db(conn); raise HTTPException(404, "Tabella non trovata")
++    import json
++    conn = get_db()
++    tab = fetchone(conn, "SELECT * FROM tabelle_turni WHERE id=?", (payload.tab_id,))
++    if not tab: release_db(conn); raise HTTPException(404, "Tabella non trovata")
+     settimane = json.loads(tab["turni_json"])
+     num_sett = len(settimane)
+     data_inizio = date.fromisoformat(payload.data_inizio)
+@@ -25,11 +26,10 @@
+         if turno:
+             data_str = data_cur.isoformat()
+             ore = calcola_ore(turno, None, None, data_str)
+-            std = TURNO_ORARI.get(turno)
+-            si_str = mins_to_hhmm(std[0]) if std else None
+-            sf_str = mins_to_hhmm(std[1]) if std else None
++            si_str = None
++            sf_str = None
+             if USE_PG:
+-                db.ex(conn, """INSERT INTO turni
++                ex(conn, """INSERT INTO turni
+                       (user_id,data,turno,ora_inizio,ora_fine,ore_diurne,ore_notturne,
+                        strao_diurno,strao_notturno,strao_fest_diurno,strao_fest_notturno,reperibilita,note)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+@@ -60,5 +60,5 @@
+             cur_giorno = 0
+             cur_sett = (cur_sett + 1) % num_sett
+         data_cur += timedelta(days=1)
+-    conn.commit(); db.release_db(conn)
++    conn.commit(); release_db(conn)
+     return {"ok": True, "inseriti": inseriti}
+
+Diff for: set_team_turni
+--- app
++++ prod
+@@ -1,4 +1,8 @@
+ def set_team_turni(payload: TeamCellaInput, user=Depends(require_team_editor)):
++    """
++    Salva un turno team. Se col='var', aggiorna solo turno_var preservando turno_base esistente.
++    Se col='base', aggiorna solo turno_base preservando turno_var esistente.
++    """
+     data    = payload.data
+     op_id   = payload.operatore_id
+     col     = payload.col or "base"
+@@ -6,8 +10,8 @@
+     flags_var  = payload.flags_var
+     now     = datetime.now().isoformat()[:19]
+ 
+-    conn = db.get_db()
+-    existing = db.fetchone(conn, "SELECT turno_base, turno_var, flags, flags_base, flags_var FROM team_turni WHERE data=? AND operatore_id=?",
++    conn = get_db()
++    existing = fetchone(conn, "SELECT turno_base, turno_var, flags, flags_base, flags_var FROM team_turni WHERE data=? AND operatore_id=?",
+                         (data, op_id))
+     existing_flags_base = (existing.get("flags_base") if existing else None) or ""
+     existing_flags_var  = (existing.get("flags_var") if existing else None) or ""
+@@ -39,7 +43,7 @@
+ 
+     shared_flags = flags_var if turno_var else flags_base
+ 
+-    db.ex(conn, """INSERT INTO team_turni (data, operatore_id, turno_base, turno_var, flags, flags_base, flags_var, modificato_da, modificato_il)
++    ex(conn, """INSERT INTO team_turni (data, operatore_id, turno_base, turno_var, flags, flags_base, flags_var, modificato_da, modificato_il)
+        VALUES (?,?,?,?,?,?,?,?,?)
+        ON CONFLICT(data, operatore_id) DO UPDATE SET
+          turno_base=excluded.turno_base, turno_var=excluded.turno_var,
+@@ -47,14 +51,14 @@
+          modificato_da=excluded.modificato_da, modificato_il=excluded.modificato_il""",
+        (data, op_id, turno_base, turno_var, shared_flags, flags_base, flags_var, user["username"], now))
+ 
+-    op = db.fetchone(conn, "SELECT nome FROM team_operatori WHERE id=?", (op_id,))
++    op = fetchone(conn, "SELECT nome FROM team_operatori WHERE id=?", (op_id,))
+     campo_log = "turno_var" if col == "var" else "turno_base"
+     vecchio = (existing.get(campo_log) or "") if existing else ""
+     nuovo   = turno_var if col == "var" else turno_base
+     log_flags = flags_var if col == "var" else flags_base
+-    db.ex(conn, """INSERT INTO team_log (data_modifica, utente, data_turno, operatore_nome, campo, vecchio_valore, nuovo_valore, flags)
++    ex(conn, """INSERT INTO team_log (data_modifica, utente, data_turno, operatore_nome, campo, vecchio_valore, nuovo_valore, flags)
+        VALUES (?,?,?,?,?,?,?,?)""",
+        (now, user["username"], data, op["nome"] if op else str(op_id), campo_log, vecchio, nuovo, log_flags))
+ 
+-    conn.commit(); db.release_db(conn)
++    conn.commit(); release_db(conn)
+     return {"ok": True, "propagati": 0}
+
+Diff for: pdf_from_html
+--- app
++++ prod
+@@ -1,4 +1,5 @@
+ async def pdf_from_html(request: Request, user=Depends(get_current_user)):
++    """Riceve HTML dal frontend e lo converte in PDF con WeasyPrint."""
+     if not WEASYPRINT_AVAILABLE:
+         raise HTTPException(501, "WeasyPrint non disponibile sul server")
+     try:
+
+
+Diff for: get_tabella
+--- app
++++ prod
+@@ -1,7 +1,8 @@
+ def get_tabella(tab_id: int, user=Depends(get_current_user)):
+-    conn = db.get_db()
+-    row = db.fetchone(conn, "SELECT * FROM tabelle_turni WHERE id=?", (tab_id,))
+-    db.release_db(conn)
++    conn = get_db()
++    row = fetchone(conn, "SELECT * FROM tabelle_turni WHERE id=?", (tab_id,))
++    release_db(conn)
+     if not row: raise HTTPException(404, "Tabella non trovata")
++    import json
+     row["turni_json"] = json.loads(row["turni_json"])
+     return row
+
+Diff for: update_tabella
+--- app
++++ prod
+@@ -1,6 +1,7 @@
+ def update_tabella(tab_id: int, payload: TabellaTurniInput, admin=Depends(require_admin)):
+-    conn = db.get_db()
+-    db.ex(conn, "UPDATE tabelle_turni SET nome=?, tipo=?, num_settimane=?, turni_json=? WHERE id=?",
++    import json
++    conn = get_db()
++    ex(conn, "UPDATE tabelle_turni SET nome=?, tipo=?, num_settimane=?, turni_json=? WHERE id=?",
+        (payload.nome, payload.tipo, payload.num_settimane, json.dumps(payload.turni), tab_id))
+-    conn.commit(); db.release_db(conn)
++    conn.commit(); release_db(conn)
+     return {"ok": True}
+
+Diff for: create_tabella
+--- app
++++ prod
+@@ -1,6 +1,7 @@
+ def create_tabella(payload: TabellaTurniInput, admin=Depends(require_admin)):
+-    conn = db.get_db()
+-    db.ex(conn, "INSERT INTO tabelle_turni (nome, tipo, num_settimane, turni_json) VALUES (?,?,?,?)",
++    import json
++    conn = get_db()
++    ex(conn, "INSERT INTO tabelle_turni (nome, tipo, num_settimane, turni_json) VALUES (?,?,?,?)",
+        (payload.nome, payload.tipo, payload.num_settimane, json.dumps(payload.turni)))
+-    conn.commit(); db.release_db(conn)
++    conn.commit(); release_db(conn)
+     return {"ok": True}
+
+Diff for: db_cleanup
+--- app
++++ prod
+@@ -1,44 +1,45 @@
+ def db_cleanup(payload: DbCleanupPayload, admin=Depends(require_admin)):
+-    conn = db.get_db()
++    """Cancella le righe dal target specificato."""
++    conn = get_db()
+     try:
+         def count_rows(table, where=""):
+             sql = f"SELECT COUNT(*) AS cnt FROM {table}" + (f" WHERE {where}" if where else "")
+-            row = db.fetchone(conn, sql)
++            row = fetchone(conn, sql)
+             return int((row or {}).get("cnt", 0) or 0)
+ 
+         if payload.target == "ferie_closed_history":
+             processed_deleted = count_rows("team_ferie_requests", "stato != 'pending'")
+             log_deleted = count_rows("team_ferie_log")
+-            db.ex(conn, "DELETE FROM team_ferie_requests WHERE stato != 'pending'")
+-            db.ex(conn, "DELETE FROM team_ferie_log")
++            ex(conn, "DELETE FROM team_ferie_requests WHERE stato != 'pending'")
++            ex(conn, "DELETE FROM team_ferie_log")
+             deleted = processed_deleted + log_deleted
+             msg = "Storico ferie concluse ripulito"
+         elif payload.target == "ferie_requests_processed":
+             deleted = count_rows("team_ferie_requests", "stato != 'pending'")
+-            db.ex(conn, "DELETE FROM team_ferie_requests WHERE stato != 'pending'")
++            ex(conn, "DELETE FROM team_ferie_requests WHERE stato != 'pending'")
+             msg = "Richieste ferie processate cancellate"
+         elif payload.target == "ferie_requests_all":
+             deleted = count_rows("team_ferie_requests")
+-            db.ex(conn, "DELETE FROM team_ferie_requests")
++            ex(conn, "DELETE FROM team_ferie_requests")
+             msg = "Tutte le richieste ferie cancellate"
+         elif payload.target == "ferie_log":
+             deleted = count_rows("team_ferie_log")
+-            db.ex(conn, "DELETE FROM team_ferie_log")
++            ex(conn, "DELETE FROM team_ferie_log")
+             msg = "Log ferie cancellato"
+         elif payload.target == "login_visits":
+             deleted = count_rows("login_page_visits")
+-            db.ex(conn, "DELETE FROM login_page_visits")
++            ex(conn, "DELETE FROM login_page_visits")
+             msg = "Log visite pagina login cancellato"
+         else:
+             raise HTTPException(400, "Target non valido")
+         conn.commit()
+         if not USE_PG:
+             try:
+-                db.ex(conn, "PRAGMA optimize")
++                ex(conn, "PRAGMA optimize")
+             except Exception:
+                 pass
+         if deleted <= 0:
+             return {"ok": True, "msg": "Nessun record da cancellare", "deleted": 0}
+         return {"ok": True, "msg": f"{msg}: {deleted} record", "deleted": deleted}
+     finally:
+-        db.release_db(conn)+        release_db(conn)
+
+Diff for: review_team_ferie
+--- app
++++ prod
+@@ -6,16 +6,16 @@
+     if not dates:
+         raise HTTPException(400, "Nessuna data valida")
+ 
+-    conn = db.get_db()
+-    op = db.fetchone(conn, "SELECT id, nome FROM team_operatori WHERE id=?", (payload.operatore_id,))
++    conn = get_db()
++    op = fetchone(conn, "SELECT id, nome FROM team_operatori WHERE id=?", (payload.operatore_id,))
+     if not op:
+-        db.release_db(conn)
++        release_db(conn)
+         raise HTTPException(404, "Operatore non trovato")
+-    rows = db.fetchall(conn, f"""
++    rows = fetchall(conn, f"""
+         SELECT r.*, u.username
+         FROM team_ferie_requests r
+         LEFT JOIN utenti u ON u.id = r.user_id
+-        WHERE r.operatore_id=? AND r.data IN ({','.join([db.get_limit_placeholder() for _ in dates])})
++        WHERE r.operatore_id=? AND r.data IN ({','.join([get_limit_placeholder() for _ in dates])})
+     """, tuple([payload.operatore_id] + dates))
+     row_by_date = {r["data"]: r for r in rows}
+     now = datetime.now().isoformat()[:19]
+@@ -23,10 +23,13 @@
+         row = row_by_date.get(data_turno)
+         if not row:
+             continue
+-        db.ex(conn, "UPDATE team_ferie_requests SET stato=?, reviewed_by=?, updated_at=? WHERE id=?",
++        ex(conn, "UPDATE team_ferie_requests SET stato=?, reviewed_by=?, updated_at=? WHERE id=?",
+            (new_status, user["username"], now, row["id"]))
+         _log_team_ferie(conn, user["username"], row["user_id"], row.get("username"), op["id"], op["nome"], data_turno,
+                         "reviewed", row.get("stato"), new_status)
++    applied = {"applied": 0, "skipped": 0}
++    if new_status == "approved":
++        applied = _apply_team_ferie_to_var(conn, payload.operatore_id, dates, user["username"])
+     conn.commit()
+-    db.release_db(conn)
+-    return {"ok": True}+    release_db(conn)
++    return {"ok": True, **applied}
+
+Diff for: get_db_stats
+--- app
++++ prod
+@@ -1,9 +1,10 @@
+ def get_db_stats(admin=Depends(require_admin)):
+-    conn = db.get_db()
++    """Restituisce il conteggio delle righe nelle tabelle pulizia."""
++    conn = get_db()
+     try:
+         def count(table, where=""):
+             sql = f"SELECT COUNT(*) AS cnt FROM {table}" + (f" WHERE {where}" if where else "")
+-            row = db.fetchone(conn, sql)
++            row = fetchone(conn, sql)
+             return int((row or {}).get("cnt", 0) or 0)
+         return {
+             "ferie_requests_pending":  count("team_ferie_requests", "stato='pending'"),
+@@ -13,4 +14,4 @@
+             "login_visits_total":      count("login_page_visits"),
+         }
+     finally:
+-        db.release_db(conn)+        release_db(conn)
+
