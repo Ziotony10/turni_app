@@ -41,6 +41,26 @@
   .ud-item.danger { color:#FCA5A5; }
   .ud-item.danger:hover { background:rgba(239,68,68,.1); }
   .ud-sep { height:1px; background:var(--border); margin:2px 0; }
+  
+  /* ── NOTIFICATIONS ── */
+  .notif-bell { position:relative; cursor:pointer; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--border); color:var(--muted); display:flex; align-items:center; justify-content:center; height:32px; width:32px; transition:all .15s; }
+  .notif-bell:hover { background:#2d3f55; color:var(--text); }
+  .notif-badge { position:absolute; top:-4px; right:-4px; background:#ef4444; color:white; font-size:0.65rem; font-weight:800; min-width:16px; height:16px; border-radius:999px; display:none; align-items:center; justify-content:center; border:2px solid var(--card); }
+  .notif-badge.show { display:flex; }
+  .notif-dropdown { display:none; position:absolute; right:0; top:calc(100% + 6px); background:var(--card); border:1px solid var(--border); border-radius:12px; width:320px; max-height:450px; z-index:250; box-shadow:0 12px 32px rgba(0,0,0,.5); overflow:hidden; flex-direction:column; }
+  .notif-dropdown.open { display:flex; }
+  .notif-header { padding:12px 16px; background:var(--card2); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+  .notif-header h4 { font-size:0.85rem; font-weight:700; margin:0; }
+  .notif-mark-read { font-size:0.72rem; color:var(--accent); cursor:pointer; }
+  .notif-list { overflow-y:auto; flex:1; }
+  .notif-item { padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer; transition:background .1s; position:relative; }
+  .notif-item:hover { background:rgba(255,255,255,0.03); }
+  .notif-item.unread { background:rgba(59,130,246,0.05); }
+  .notif-item.unread::before { content:''; position:absolute; left:6px; top:50%; transform:translateY(-50%); width:6px; height:6px; border-radius:50%; background:var(--accent); }
+  .notif-title { font-size:0.8rem; font-weight:700; color:var(--text); margin-bottom:2px; }
+  .notif-msg { font-size:0.74rem; color:var(--muted); line-height:1.4; }
+  .notif-time { font-size:0.65rem; color:var(--muted); margin-top:6px; }
+  .notif-empty { padding:30px; text-align:center; color:var(--muted); font-size:0.8rem; }
 
   /* ── MONTH TABS ROW ── */
   .month-tabs-row { display:flex; align-items:center; background:var(--card); border-bottom:1px solid var(--border); flex-shrink:0; min-height:46px; }
@@ -69,7 +89,30 @@
   }
   .btn-ferie:hover:not(:disabled) { background:linear-gradient(135deg,rgba(20,184,166,.3),rgba(59,130,246,.24)); border-color:rgba(45,212,191,.5); }
   .btn-ferie:disabled { opacity:.45; cursor:not-allowed; filter:grayscale(.5); }
+  .btn-swap {
+    display:inline-flex; align-items:center; gap:5px;
+    background:rgba(168,85,247,.12);
+    color:#d8b4fe; border:1px solid rgba(168,85,247,.3);
+    border-radius:8px; padding:5px 11px; font-size:0.78rem; font-weight:700;
+    cursor:pointer; white-space:nowrap; transition:all .15s;
+  }
+  .btn-swap:hover:not(:disabled) { background:rgba(168,85,247,.22); border-color:rgba(168,85,247,.5); }
+  .btn-swap:disabled { opacity:.45; cursor:not-allowed; filter:grayscale(.5); }
+  .btn-swap.active { background:var(--accent); color:white; border-color:var(--accent); }
   .ferie-inline-hint { font-size:0.72rem; color:#5eead4; white-space:nowrap; max-width:220px; overflow:hidden; text-overflow:ellipsis; }
+  .swap-inline-hint { font-size:0.72rem; color:#d8b4fe; white-space:nowrap; }
+  
+  .ferie-extra-fields { display:none; align-items:center; gap:6px; }
+  .ferie-extra-fields.show { display:flex; }
+  .ferie-extra-fields select, .ferie-extra-fields input { background:var(--card2); border:1px solid var(--border); color:var(--text); border-radius:8px; padding:4px 8px; font-size:0.75rem; height:30px; outline:none; }
+  .ferie-extra-fields select:focus { border-color:var(--accent); }
+
+  /* Cella selezionata per Swap */
+  .swap-source-selected { border-color:#a855f7 !important; box-shadow:0 0 0 2px rgba(168,85,247,.4) !important; background:rgba(168,85,247,.1) !important; }
+  .swap-target-valid { cursor:pointer !important; box-shadow:inset 0 0 0 1px rgba(168,85,247,.3) !important; }
+  .swap-target-valid:hover { background:rgba(168,85,247,.1) !important; }
+  .swap-target-selected { border-color:#10b981 !important; box-shadow:0 0 0 2px rgba(16,185,129,.4) !important; background:rgba(16,185,129,.1) !important; }
+  .swap-target-disabled { cursor:not-allowed !important; opacity:0.5 !important; background: repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 5px, #e2e8f0 5px, #e2e8f0 10px) !important; }
 
   /* ── TABELLA TEAM ── */
   .table-wrap {
@@ -337,6 +380,8 @@
   .btn-editor.pending { position:relative; }
   .nav-badge { display:none; min-width:18px; height:18px; padding:0 5px; border-radius:999px; background:#ef4444; color:#fff; font-size:0.68rem; font-weight:800; align-items:center; justify-content:center; line-height:1; }
   .nav-badge.show { display:inline-flex; }
+  .tab-badge { display:none; min-width:16px; height:16px; padding:0 5px; border-radius:999px; background:#ef4444; color:#fff; font-size:0.62rem; font-weight:900; align-items:center; justify-content:center; line-height:1; margin-left:5px; vertical-align:middle; }
+  .tab-badge.show { display:inline-flex; }
   .ferie-mini { font-size:0.72rem; color:#bfdbfe; }
   .ferie-cell-selectable { box-shadow:inset 0 0 0 1px rgba(20,184,166,.28); }
   .ferie-cell-selectable:hover { background:rgba(20,184,166,.12) !important; border-color:rgba(20,184,166,.32) !important; }
@@ -591,6 +636,21 @@
         <div class="ud-item danger" onclick="logout()">↩ Esci</div>
       </div>
     </div>
+    <div class="user-menu" style="margin-left:4px">
+      <div class="notif-bell" id="notifBellBtn" onclick="toggleNotifDropdown(event)">
+        🔔
+        <div class="notif-badge" id="notifBadge">0</div>
+      </div>
+      <div class="notif-dropdown" id="notifDropdown">
+        <div class="notif-header">
+          <h4>Notifiche</h4>
+          <span class="notif-mark-read" onclick="markAllNotifAsRead()">Segna tutto come letto</span>
+        </div>
+        <div class="notif-list" id="notifList">
+          <div class="notif-empty">Nessuna notifica</div>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
 
@@ -598,10 +658,26 @@
   <div class="month-tabs" id="monthTabs"></div>
   <div class="ferie-inline" id="ferieBar">
     <button class="btn-pdf" id="downloadPdfBtn" onclick="executePrint()">PDF mese</button>
+    
     <span class="ferie-inline-hint" id="ferieModeHint"></span>
+    <span class="swap-inline-hint" id="swapModeHint"></span>
+
     <button class="btn-ferie" id="ferieToggleBtn" style="display:none" onclick="toggleFerieMode()">📅 Ferie</button>
+    <button class="btn-swap" id="swapToggleBtn" style="display:none" onclick="toggleSwapMode()">🔄 Cambio turno</button>
+    
+    <div class="ferie-extra-fields" id="ferieExtraFields">
+      <select id="ferieRequestType">
+        <option value="ferie">Ferie (F)</option>
+        <option value="ex-fest">Ex-Fest (EF)</option>
+        <option value="rot">ROT (R)</option>
+      </select>
+      <input type="text" id="ferieRequestNote" placeholder="Note (opzionale)" style="width:140px">
+    </div>
+
     <button class="btn-editor primary" id="ferieSubmitBtn" style="display:none" onclick="submitFerieRequest()">Invia</button>
+    <button class="btn-editor primary" id="swapSubmitBtn" style="display:none" onclick="submitSwapRequest()" disabled>Invia</button>
     <button class="btn-editor" id="ferieCancelBtn" style="display:none" onclick="cancelFerieMode()">✕ Annulla</button>
+    <button class="btn-editor" id="swapCancelBtn" style="display:none" onclick="cancelSwapMode()">✕ Annulla</button>
   </div>
 </div>
 
@@ -779,11 +855,16 @@
     </button>
     <button id="logTabFerie" onclick="switchLogTab('ferie')"
       style="background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all .15s">
-      📅 Ferie
+      📅 Ferie <span id="ferieTabBadge" class="tab-badge"></span>
+    </button>
+    <button id="logTabScambi" onclick="switchLogTab('scambi')"
+      style="background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all .15s">
+      🔄 Scambi <span id="scambiTabBadge" class="tab-badge"></span>
     </button>
   </div>
   <div id="logContentTurni" style="font-size:0.78rem;color:var(--muted)">Caricamento…</div>
   <div id="logContentFerie" style="font-size:0.78rem;color:var(--muted);display:none">Caricamento…</div>
+  <div id="logContentScambi" style="font-size:0.78rem;color:var(--muted);display:none">Caricamento…</div>
 </div>
 
 <nav class="bottom-nav">
@@ -825,6 +906,16 @@ let teamFerieLogData = { pending: [], logs: [] };
 let teamFerieFilters = { name: '', status: 'all' };
 let teamTableResizeBound = false;
 let teamTableResizeObserver = null;
+
+// Stato Swap
+let swapMode = false;
+let swapPhase = 1; // 1: seleziona tuo turno, 2: seleziona turno collega
+let swapSource = null; // { data, opId, col, turno }
+let swapTarget = null; // { data, opId, col, turno }
+let pendingBadgeCounts = { ferie: 0, scambi: 0 };
+
+// Stato Notifiche
+let notifications = [];
 
 function getOperatorSlotCount(extraPositions = []) {
   const opMax = operatori.reduce((max, op) => Math.max(max, Number(op.posizione) || 0), 0);
@@ -931,6 +1022,8 @@ document.addEventListener('click', () => document.getElementById('userDropdown')
 document.addEventListener('click', e => {
   const p = document.getElementById('turnoPicker');
   if (p && p.style.display !== 'none' && !p.contains(e.target)) closePicker();
+  const d = document.getElementById('notifDropdown');
+  if (d && d.classList.contains('open') && !document.getElementById('notifBellBtn').contains(e.target) && !d.contains(e.target)) d.classList.remove('open');
 });
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
@@ -967,6 +1060,9 @@ document.addEventListener('click', e => {
     buildMonthTabs();
     await loadOperatori();
     updateFerieUi();
+    await refreshPendingBadges();
+    await loadNotifications();
+    setInterval(() => { refreshPendingBadges(); loadNotifications(); }, 60000);
     load();
   } catch(e) { console.error(e); }
 })();
@@ -1280,6 +1376,10 @@ async function load() {
 
     const cd = g.colonne_destra;
     html += '<td class="td-sep-destra td-sep-fest"></td>';
+    // rep1, rep2 e rep3 identificano la gerarchia di reperibilità:
+    // rep1: primo reperibile da chiamare
+    // rep2: secondo reperibile
+    // rep3: terzo reperibile
     ['rep1','rep2','rep3'].forEach(k => {
       html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'—'}</td>`;
     });
@@ -1938,7 +2038,23 @@ function renderCella(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const colClass = col === 'var' ? ' var-cell' : '';
   const clickEvt = isEditor ? `onclick="openPicker('${data}',${opId},'${col}',event)"` : '';
   const contextEvt = isEditor ? `oncontextmenu="applyFerieRangeFromCell('${data}',${opId},event)"` : '';
+  
+  // Gestione click per Swap/Ferie
+  let customClick = '';
+  if (ferieMode) customClick = `onclick="toggleFerieDate('${data}')"`;
+  else if (swapMode) customClick = `onclick="handleSwapSelection('${data}',${opId},'${col}',event)"`;
+
   const ferieClass = getFerieRequestCellClass(ferieRequest, data, opId, col);
+  
+  // Classi per Swap
+  let swapClass = '';
+  if (swapMode) {
+    const isOwn = Number(opId) == Number(teamContext?.linked_operatore_id);
+    if (swapPhase === 1 && isOwn) swapClass = ' swap-target-valid';
+    else if (swapSource && swapSource.data === data && Number(swapSource.opId) == Number(opId) && swapSource.col === col) swapClass = ' swap-source-selected';
+    else if (swapPhase === 2 && swapSource && swapSource.data === data && Number(opId) != Number(swapSource.opId)) swapClass = ' swap-target-valid';
+  }
+
   const turnoNorm = (turno || '').trim().toUpperCase();
   const isRep = flags && flags.includes('rep');
   const isSmart = flags && flags.includes('smart');
@@ -1959,15 +2075,15 @@ function renderCella(turno, flags, data, opId, col, turnoVar, ferieRequest) {
 
   if (col === 'base' && turnoVar) {
     const filledClass = isEmpty && !extras ? ' empty' : ' filled';
-    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${ferieClass}${filledClass}" ${clickEvt} ${contextEvt}>${value}${extras}</div>`;
+    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${ferieClass}${swapClass}${filledClass}" ${customClick || clickEvt} ${contextEvt}>${value}${extras}</div>`;
   }
 
   if (isEmpty) {
     const filledClass = extras ? ' filled' : ' empty';
-  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${ferieClass}${filledClass}" ${clickEvt} ${contextEvt}>${value}${extras}</div>`;
+    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${ferieClass}${swapClass}${filledClass}" ${customClick || clickEvt} ${contextEvt}>${value}${extras}</div>`;
   }
 
-  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${ferieClass} filled" ${clickEvt} ${contextEvt}>${turno}${extras}</div>`;
+  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${ferieClass}${swapClass} filled" ${customClick || clickEvt} ${contextEvt}>${turno}${extras}</div>`;
 }
 
 function renderTplCella(dow, pos) {
@@ -1996,34 +2112,31 @@ function updateFerieUi() {
   const toggleBtn = document.getElementById('ferieToggleBtn');
   const submitBtn = document.getElementById('ferieSubmitBtn');
   const cancelBtn = document.getElementById('ferieCancelBtn');
-  const badge     = document.getElementById('ferieAlertBadge');
-  if (!hint || !toggleBtn || !submitBtn || !cancelBtn || !badge) return;
+  const extraFields = document.getElementById('ferieExtraFields');
+  if (!hint || !toggleBtn || !submitBtn || !cancelBtn || !extraFields) return;
   const canRequest   = !!teamContext?.can_request_ferie;
   const linkedName   = teamContext?.linked_operatore_nome || '';
   const pendingCount = Number(teamContext?.ferie_pending_count || 0);
+  updatePendingBadges(pendingCount, null);
 
   if (ferieMode) {
-    // In modalità ferie: solo hint contatore + Invia + Annulla
     toggleBtn.style.display = 'none';
     submitBtn.style.display = 'inline-flex';
     cancelBtn.style.display = 'inline-flex';
-    hint.textContent = `${ferieAdds.size} da aggiungere · ${ferieRemovals.size} da rimuovere`;
-    hint.style.display = ferieAdds.size || ferieRemovals.size ? 'inline' : 'none';
+    extraFields.classList.add('show');
+    hint.textContent = `${ferieAdds.size} giorni selezionati`;
+    hint.style.display = 'inline';
+    if (document.getElementById('swapToggleBtn')) document.getElementById('swapToggleBtn').style.display = 'none';
   } else {
-    // Fuori modalità: solo bottone "Ferie" (disabilitato se non associato)
     toggleBtn.style.display = 'inline-flex';
     toggleBtn.disabled = !canRequest;
     toggleBtn.textContent = '📅 Ferie';
-    toggleBtn.title = canRequest
-      ? (linkedName ? `Colonna assegnata: ${linkedName}` : 'Richiesta ferie')
-      : 'Chiedi al tuo amministratore di associarti a un operatore del team';
     submitBtn.style.display = 'none';
     cancelBtn.style.display = 'none';
+    extraFields.classList.remove('show');
     hint.style.display = 'none';
+    if (document.getElementById('swapToggleBtn')) document.getElementById('swapToggleBtn').style.display = canRequest ? 'inline-flex' : 'none';
   }
-
-  badge.textContent = pendingCount > 99 ? '99+' : String(pendingCount || '');
-  badge.classList.toggle('show', pendingCount > 0);
 }
 
 function toggleFerieMode() {
@@ -2063,24 +2176,34 @@ function toggleFerieDate(dataStr) {
 async function submitFerieRequest() {
   if (!teamContext?.can_request_ferie) return;
   if (!ferieAdds.size && !ferieRemovals.size) {
-    alert('Seleziona almeno un giorno da aggiungere o rimuovere.');
+    alert('Seleziona almeno un giorno.');
     return;
   }
+  const tipo = document.getElementById('ferieRequestType').value;
+  const note = document.getElementById('ferieRequestNote').value;
+  
   const res = await fetch('/api/team/ferie/request-batch', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ add_dates: Array.from(ferieAdds), remove_dates: Array.from(ferieRemovals) })
+    body: JSON.stringify({ 
+      add_dates: Array.from(ferieAdds), 
+      remove_dates: Array.from(ferieRemovals),
+      tipo: tipo,
+      note: note
+    })
   }).then(r=>r.json()).catch(()=>({ok:false}));
   if (!res.ok) {
-    alert(res.detail || 'Errore durante il salvataggio della richiesta ferie.');
+    alert(res.detail || 'Errore durante il salvataggio della richiesta.');
     return;
   }
   ferieMode = false;
   ferieAdds.clear();
   ferieRemovals.clear();
+  document.getElementById('ferieRequestNote').value = '';
   const teamMe = await fetch('/api/team/me').then(r=>r.json()).catch(()=>null);
   if (teamMe) teamContext = { ...(teamContext || {}), ...(teamMe || {}) };
   updateFerieUi();
+  await refreshPendingBadges();
   await load();
 }
 
@@ -2685,17 +2808,14 @@ loadLog = async function() {
       : '<p style="color:var(--muted)">Nessuna richiesta ferie registrata</p>';
   }
 
-  // Badge contatore ferie pendenti nell'intestazione log btn
-  if (pending.length) {
-    const badge = document.getElementById('ferieAlertBadge');
-    if (badge) { badge.textContent = pending.length; badge.classList.add('show'); }
-  }
+  updatePendingBadges(pending.length, null);
 };
 
 loadLog = async function() {
-  const [logs, ferieDash] = await Promise.all([
-    fetch('/api/team/log?limit=120').then(r=>r.json()).catch(()=>[]),
-    fetch('/api/team/ferie/dashboard').then(r=>r.json()).catch(()=>({pending:[], recent_log:[]})),
+  const [logs, ferieDash, swaps] = await Promise.all([
+    fetch('/api/team/log?limit=120').then(r=>r.ok ? r.json() : []).catch(()=>[]),
+    fetch('/api/team/ferie/dashboard').then(r=>r.ok ? r.json() : {pending:[], recent_log:[]}).catch(()=>({pending:[], recent_log:[]})),
+    fetch('/api/team/swaps').then(r=>r.ok ? r.json() : []).then(x=>Array.isArray(x) ? x : []).catch(()=>[]),
   ]);
   const pending = ferieDash.pending || [];
   const ferieLogs = ferieDash.recent_log || [];
@@ -2713,9 +2833,9 @@ loadLog = async function() {
             <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
           </div>
           <div style="font-size:0.72rem">
-            ðŸ“… ${l.data_turno||''} &nbsp;Â·&nbsp; ${l.campo||''}
-            &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'â€”'}</span>
-            â†’ <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
+            📅 ${l.data_turno||''} &nbsp;·&nbsp; ${l.campo||''}
+            &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span>
+            → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
           </div>
           <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente||'?'}</div>
         </div>`;
@@ -2725,18 +2845,99 @@ loadLog = async function() {
 
   teamFerieLogData = { pending, logs: ferieLogs };
   renderTeamFerieLogContent();
+  renderScambiContent(swaps);
 
-  const badge = document.getElementById('ferieAlertBadge');
-  if (badge) {
-    if (pending.length) {
-      badge.textContent = pending.length;
-      badge.classList.add('show');
-    } else {
-      badge.textContent = '';
-      badge.classList.remove('show');
-    }
-  }
+  updatePendingBadges((pending || []).length, countPendingSwaps(swaps));
 };
+
+function renderScambiContent(swaps) {
+  const el = document.getElementById('logContentScambi');
+  if (!el) return;
+  
+  if (!swaps.length) {
+    el.innerHTML = '<p style="color:var(--muted);margin-top:12px">Nessuna richiesta di scambio</p>';
+    return;
+  }
+  
+  el.innerHTML = swaps.map(s => {
+    const isToMe = Number(s.collega_id) === Number(teamContext?.linked_operatore_id);
+    const isFromMe = Number(s.richiedente_id) === Number(teamContext?.linked_operatore_id);
+    const swapDate = formatItalianDateText(s.data || '');
+    const editorCanApply = isEditor && ['pending_target', 'pending_editor'].includes(s.stato);
+    const targetCanAccept = isToMe && s.stato === 'pending_target';
+    const canReview = editorCanApply || targetCanAccept;
+    const approveHandler = editorCanApply ? `reviewSwap(${s.id}, 'approve')` : `respondToSwap(${s.id}, 'accept')`;
+    const rejectHandler = editorCanApply ? `reviewSwap(${s.id}, 'reject')` : `respondToSwap(${s.id}, 'reject')`;
+    const approveLabel = editorCanApply ? 'Approva e applica' : 'Accetta';
+    
+    let statusLabel = '';
+    let statusClass = 'neutral';
+    if (s.stato === 'pending_target') { statusLabel = 'In attesa (collega)'; statusClass = 'pending'; }
+    else if (s.stato === 'pending_editor') { statusLabel = 'In attesa (Editor)'; statusClass = 'pending'; }
+    else if (s.stato === 'approved') { statusLabel = 'Approvata'; statusClass = 'approved'; }
+    else if (s.stato === 'rejected') { statusLabel = 'Rifiutata'; statusClass = 'rejected'; }
+    else if (s.stato === 'cancelled') { statusLabel = 'Annullata'; statusClass = 'neutral'; }
+
+    return `
+      <div class="ferie-pending-card" style="margin-bottom:8px; border-color:var(--border)">
+        <div style="display:flex; justify-content:space-between; align-items:start">
+          <div style="font-weight:800; font-size:0.8rem">${s.richiedente_nome} ⇄ ${s.collega_nome}</div>
+          <span class="ferie-log-type ${statusClass}" style="font-size:0.6rem">${statusLabel}</span>
+        </div>
+        <div style="font-size:0.72rem; color:var(--muted); margin-top:4px">
+          📅 ${swapDate} <br>
+          Turno ${s.richiedente_nome} (${s.from_col === 'var' ? 'VAR' : 'TAB'}): <strong>${s.from_turno || '---'}</strong> <br>
+          Turno ${s.collega_nome} (${s.to_col === 'var' ? 'VAR' : 'TAB'}): <strong>${s.to_turno || '---'}</strong>
+        </div>
+        ${canReview ? `
+          <div class="ferie-pending-actions" style="margin-top:10px">
+            <button class="btn-editor primary" style="padding:4px 8px; font-size:0.7rem" onclick="${approveHandler}">${approveLabel}</button>
+            <button class="btn-editor" style="padding:4px 8px; font-size:0.7rem; color:#fca5a5" onclick="${rejectHandler}">Rifiuta</button>
+          </div>
+        ` : ''}
+        ${isFromMe && s.stato === 'pending_target' ? `
+           <div style="margin-top:8px"><button class="btn-editor" style="padding:3px 6px; font-size:0.65rem" onclick="respondToSwap(${s.id}, 'cancel')">Annulla richiesta</button></div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+async function reviewSwap(id, action) {
+  const res = await fetch(`/api/team/swaps/${id}/review`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action })
+  }).then(r => r.json()).catch(() => ({ ok: false }));
+  
+  if (!res.ok) {
+    alert(res.detail || 'Errore durante la revisione dello scambio.');
+    return;
+  }
+  
+  await refreshPendingBadges();
+  await loadNotifications();
+  await loadLog();
+  await load();
+}
+
+async function respondToSwap(id, action) {
+  const res = await fetch(`/api/team/swaps/${id}/respond`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action })
+  }).then(r => r.json()).catch(() => ({ ok: false }));
+  
+  if (!res.ok) {
+    alert(res.detail || 'Errore durante la risposta allo scambio.');
+    return;
+  }
+  
+  await refreshPendingBadges();
+  await loadNotifications();
+  await loadLog();
+  await load();
+}
 
 reviewPendingFerie = async function(operatoreId, dates, status) {
   const res = await fetch('/api/team/ferie/review', {
@@ -2754,6 +2955,8 @@ reviewPendingFerie = async function(operatoreId, dates, status) {
   const teamMe = await fetch('/api/team/me').then(r=>r.json()).catch(()=>null);
   if (teamMe) teamContext = { ...(teamContext || {}), ...(teamMe || {}) };
   updateFerieUi();
+  await refreshPendingBadges();
+  await loadNotifications();
   await load();
   await loadLog();
 };
@@ -2766,20 +2969,284 @@ toggleLog = async function() {
 };
 
 function switchLogTab(tab) {
-  const tTurni = document.getElementById('logContentTurni');
-  const tFerie = document.getElementById('logContentFerie');
-  const bTurni = document.getElementById('logTabTurni');
-  const bFerie = document.getElementById('logTabFerie');
+  const tTurni  = document.getElementById('logContentTurni');
+  const tFerie  = document.getElementById('logContentFerie');
+  const tScambi = document.getElementById('logContentScambi');
+  const bTurni  = document.getElementById('logTabTurni');
+  const bFerie  = document.getElementById('logTabFerie');
+  const bScambi = document.getElementById('logTabScambi');
+  
   if (!tTurni || !tFerie || !bTurni || !bFerie) return;
-  const isTurni = tab === 'turni';
-  tTurni.style.display = isTurni ? '' : 'none';
-  tFerie.style.display = isTurni ? 'none' : '';
-  bTurni.style.background = isTurni ? 'var(--accent)' : 'var(--card2)';
-  bTurni.style.color = isTurni ? 'white' : 'var(--muted)';
-  bTurni.style.border = isTurni ? 'none' : '1px solid var(--border)';
-  bFerie.style.background = isTurni ? 'var(--card2)' : 'var(--accent)';
-  bFerie.style.color = isTurni ? 'var(--muted)' : 'white';
-  bFerie.style.border = isTurni ? '1px solid var(--border)' : 'none';
+  
+  tTurni.style.display = tab === 'turni' ? '' : 'none';
+  tFerie.style.display = tab === 'ferie' ? '' : 'none';
+  if (tScambi) tScambi.style.display = tab === 'scambi' ? '' : 'none';
+  
+  [bTurni, bFerie, bScambi].forEach(b => {
+    if (!b) return;
+    const active = b.id.toLowerCase().includes(tab);
+    b.style.background = active ? 'var(--accent)' : 'var(--card2)';
+    b.style.color = active ? 'white' : 'var(--muted)';
+    b.style.border = active ? 'none' : '1px solid var(--border)';
+  });
+}
+
+// ── LOGICA SWAP (CAMBIO TURNO) ────────────────────────────────────────────────
+function toggleSwapMode() {
+  if (!teamContext?.can_request_ferie) return;
+  if (ferieMode) toggleFerieMode();
+  swapMode = !swapMode;
+  swapPhase = 1;
+  swapSource = null;
+  swapTarget = null;
+  updateSwapUi();
+  load();
+}
+
+function cancelSwapMode() {
+  swapMode = false;
+  swapPhase = 1;
+  swapSource = null;
+  swapTarget = null;
+  updateSwapUi();
+  refreshSwapCellClasses();
+}
+
+function updateSwapUi() {
+  const toggleBtn = document.getElementById('swapToggleBtn');
+  const submitBtn = document.getElementById('swapSubmitBtn');
+  const cancelBtn = document.getElementById('swapCancelBtn');
+  const hint      = document.getElementById('swapModeHint');
+  const ferieBtn  = document.getElementById('ferieToggleBtn');
+  
+  if (!toggleBtn || !submitBtn || !cancelBtn || !hint) return;
+  
+  const canRequest = !!teamContext?.can_request_ferie;
+  
+  if (swapMode) {
+    toggleBtn.style.display = 'none';
+    submitBtn.style.display = 'inline-flex';
+    cancelBtn.style.display = 'inline-flex';
+    hint.style.display = 'inline';
+    if (ferieBtn) ferieBtn.style.display = 'none';
+    
+    if (swapPhase === 1) {
+      hint.textContent = 'Fase 1: Seleziona il tuo turno';
+      submitBtn.disabled = true;
+    } else {
+      hint.textContent = swapTarget ? 'Pronto per inviare' : 'Fase 2: Seleziona con quale collega cambiarlo';
+      submitBtn.disabled = !swapTarget;
+    }
+  } else {
+    toggleBtn.style.display = canRequest ? 'inline-flex' : 'none';
+    submitBtn.style.display = 'none';
+    cancelBtn.style.display = 'none';
+    hint.style.display = 'none';
+    if (ferieBtn) ferieBtn.style.display = canRequest ? 'inline-flex' : 'none';
+  }
+}
+
+function setBadgeCount(el, count) {
+  if (!el) return;
+  const n = Number(count || 0);
+  if (n > 0) {
+    el.textContent = n;
+    el.classList.add('show');
+  } else {
+    el.textContent = '';
+    el.classList.remove('show');
+  }
+}
+
+function updatePendingBadges(ferieCount, scambiCount) {
+  if (ferieCount !== null && ferieCount !== undefined) pendingBadgeCounts.ferie = Number(ferieCount || 0);
+  if (scambiCount !== null && scambiCount !== undefined) pendingBadgeCounts.scambi = Number(scambiCount || 0);
+  setBadgeCount(document.getElementById('ferieAlertBadge'), pendingBadgeCounts.ferie + pendingBadgeCounts.scambi);
+  setBadgeCount(document.getElementById('ferieTabBadge'), pendingBadgeCounts.ferie);
+  setBadgeCount(document.getElementById('scambiTabBadge'), pendingBadgeCounts.scambi);
+}
+
+async function refreshPendingBadges() {
+  if (!isEditor) {
+    updatePendingBadges(0, 0);
+    return;
+  }
+  const counts = await fetch('/api/team/pending-counts').then(r => r.ok ? r.json() : null).catch(() => null);
+  if (!counts) return;
+  updatePendingBadges(counts.ferie, counts.scambi);
+}
+
+function countPendingSwaps(swaps) {
+  return (swaps || []).filter(s => ['pending_target', 'pending_editor'].includes(s.stato)).length;
+}
+
+function getEffectiveSwapSlot(data, opId) {
+  const giorno = datiMese?.giorni.find(g => g.data === data);
+  const tData  = giorno?.turni.find(t => Number(t.operatore_id) === Number(opId));
+  const varTurno = (tData?.turno_var || '').trim();
+  const baseTurno = (tData?.turno_base || '').trim();
+  if (varTurno) return { col: 'var', turno: varTurno };
+  return { col: 'base', turno: baseTurno };
+}
+
+function handleSwapSelection(data, opId, col, event) {
+  if (!swapMode) return;
+
+  const slot = getEffectiveSwapSlot(data, opId);
+
+  if (swapPhase === 1) {
+    if (Number(opId) != Number(teamContext?.linked_operatore_id)) {
+      alert('Puoi selezionare solo un turno della tua colonna.');
+      return;
+    }
+    if (!slot.turno) {
+      alert('Non c e un turno da scambiare in questo giorno.');
+      return;
+    }
+    swapSource = { data, opId, col: slot.col, turno: slot.turno };
+    swapPhase = 2;
+    updateSwapUi();
+    refreshSwapCellClasses();
+  } else {
+    if (data !== swapSource.data) {
+      alert('Devi selezionare un turno nello stesso giorno.');
+      return;
+    }
+    if (Number(opId) == Number(swapSource.opId)) {
+      swapSource = null;
+      swapPhase = 1;
+      updateSwapUi();
+      refreshSwapCellClasses();
+      return;
+    }
+
+    const opsList = datiMese?.operatori || operatori || [];
+    const targetOp = opsList.find(o => Number(o.id) === Number(opId));
+    if (targetOp && !targetOp.linked_user_id) {
+       alert('Questo operatore non ha un account, impossibile proporre uno scambio.');
+       return;
+    }
+    if (!slot.turno) {
+      alert('Il collega non ha un turno da scambiare in questo giorno.');
+      return;
+    }
+
+    swapTarget = { data, opId, col: slot.col, turno: slot.turno };
+    updateSwapUi();
+    refreshSwapCellClasses();
+  }
+}
+async function submitSwapRequest() {
+  if (!swapSource || !swapTarget) return;
+  
+  const payload = {
+    collega_id: swapTarget.opId,
+    data: swapSource.data,
+    from_turno: swapSource.turno,
+    to_turno: swapTarget.turno,
+    from_col: swapSource.col,
+    to_col: swapTarget.col
+  };
+  
+  try {
+    const res = await fetch('/api/team/swaps', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!res.ok) {
+      let msg = 'Errore durante l invio della richiesta di scambio.';
+      try {
+        const data = await res.json();
+        if (data.detail) msg = data.detail;
+      } catch(e) {}
+      alert(msg);
+      return;
+    }
+    
+    alert('Richiesta di scambio inviata al collega!');
+    cancelSwapMode();
+    await refreshPendingBadges();
+    await loadNotifications();
+    await load();
+    if (logOpen) await loadLog();
+  } catch (err) {
+    alert('Errore di rete o server non raggiungibile.');
+  }
+}
+
+// ── NOTIFICHE ────────────────────────────────────────────────────────────────
+function toggleNotifDropdown(e) {
+  if (e) e.stopPropagation();
+  const d = document.getElementById('notifDropdown');
+  d.classList.toggle('open');
+  if (d.classList.contains('open')) loadNotifications();
+}
+
+async function loadNotifications() {
+  const res = await fetch('/api/team/notifications').then(r => r.ok ? r.json() : []).catch(() => []);
+  notifications = res;
+  renderNotifications();
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[ch]));
+}
+
+function formatNotificationTime(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function formatItalianDateText(value) {
+  return String(value ?? '').replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3-$2-$1');
+}
+
+function renderNotifications() {
+  const list = document.getElementById('notifList');
+  const badge = document.getElementById('notifBadge');
+  if (!list || !badge) return;
+  
+  const unread = notifications.filter(n => !n.is_read);
+  badge.textContent = unread.length;
+  badge.classList.toggle('show', unread.length > 0);
+  
+  if (notifications.length === 0) {
+    list.innerHTML = '<div class="notif-empty">Nessuna notifica</div>';
+    return;
+  }
+  
+  list.innerHTML = notifications.map(n => `
+    <div class="notif-item ${n.is_read ? '' : 'unread'}" onclick="handleNotifClick(${Number(n.id)})">
+      <div class="notif-title">${escapeHtml(n.title || 'Notifica')}</div>
+      <div class="notif-msg">${escapeHtml(formatItalianDateText(n.message || ''))}</div>
+      <div class="notif-time">${escapeHtml(formatNotificationTime(n.created_at))}</div>
+    </div>
+  `).join('');
+}
+
+async function handleNotifClick(id) {
+  const item = notifications.find(n => Number(n.id) === Number(id));
+  await fetch(`/api/team/notifications/${id}/read`, { method: 'POST' });
+  const link = item?.link || '';
+  if (link) {
+    window.location.href = link;
+  } else {
+    await loadNotifications();
+  }
+}
+
+async function markAllNotifAsRead() {
+  await fetch('/api/team/notifications/read-all', { method: 'POST' });
+  await loadNotifications();
 }
 
 /* ── PRINT PREVIEW MODAL ── */
@@ -3345,8 +3812,67 @@ header,
   }
 }
 
+function refreshSwapCellClasses() {
+  document.querySelectorAll('.cella[data-date]').forEach(el => {
+    el.classList.remove('swap-source-selected', 'swap-target-valid', 'swap-target-selected', 'swap-target-disabled');
+    el.onclick = el.dataset.origclick ? new Function('event', el.dataset.origclick) : null;
+    
+    if (!swapMode) return;
+    
+    const dDate = el.dataset.date;
+    const dOpId = Number(el.dataset.opid);
+    const dCol = el.dataset.col;
+    
+    const isOwn = dOpId === Number(teamContext?.linked_operatore_id);
+    const isSource = swapSource && swapSource.data === dDate && Number(swapSource.opId) === dOpId && swapSource.col === dCol;
+    const isTarget = swapTarget && swapTarget.data === dDate && Number(swapTarget.opId) === dOpId && swapTarget.col === dCol;
+    
+    if (isSource) {
+      el.classList.add('swap-source-selected');
+    } else if (isTarget) {
+      el.classList.add('swap-target-selected');
+    } else if (swapPhase === 1 && isOwn) {
+      el.classList.add('swap-target-valid');
+    } else if (swapPhase === 2 && swapSource && swapSource.data === dDate && dOpId !== Number(swapSource.opId)) {
+      const opsList = datiMese?.operatori || operatori || [];
+      const op = opsList.find(o => o.id === dOpId);
+      if (op && !op.linked_user_id) {
+        el.classList.add('swap-target-disabled');
+      } else {
+        el.classList.add('swap-target-valid');
+      }
+    }
+  });
+}
+
 renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const isEmpty = !turno;
+  const edClass = isEditor ? ' editable' : '';
+  const colClass = col === 'var' ? ' var-cell' : '';
+  
+  // Gestione click per Swap/Ferie
+  let customClick = '';
+  if (ferieMode) customClick = `onclick="toggleFerieDate('${data}')"`;
+  else if (swapMode) customClick = `onclick="handleSwapSelection('${data}',${opId},'${col}',event)"`;
+
+  const clickEvt = isEditor ? `onclick="openPicker('${data}',${opId},'${col}',event)"` : '';
+  const contextEvt = isEditor ? `oncontextmenu="applyFerieRangeFromCell('${data}',${opId},event)"` : '';
+
+  const ferieStatusClass = getFerieRequestCellClass(ferieRequest, data, opId, col);
+  
+  // Classi per Swap
+  let swapClass = '';
+  if (swapMode) {
+    const isOwn = Number(opId) == Number(teamContext?.linked_operatore_id);
+    const isSource = swapSource && swapSource.data === data && Number(swapSource.opId) == Number(opId) && swapSource.col === col;
+    const isTarget = swapTarget && swapTarget.data === data && Number(swapTarget.opId) == Number(opId) && swapTarget.col === col;
+
+    if (isSource) swapClass = ' swap-source-selected';
+    else if (isTarget) swapClass = ' swap-target-selected';
+    else if (swapPhase === 1 && isOwn) swapClass = ' swap-target-valid';
+    else if (swapPhase === 2 && swapSource && swapSource.data === data && Number(opId) != Number(swapSource.opId)) swapClass = ' swap-target-valid';
+  }
+
   const turnoNorm = (turno || '').trim().toUpperCase();
   const isRep = flags && flags.includes('rep');
   const isSmart = flags && flags.includes('smart');
@@ -3354,33 +3880,40 @@ renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const isM = flags && flags.includes('M');
   const isFestTurno = ['F', 'RF', 'EX FEST', 'EX F.', 'LUTTO'].includes(turnoNorm);
   const isMalTurno = turnoNorm === 'MAL';
-  const rfRepClass = turnoNorm === 'RF' && isRep ? ' rf-rep' : '';
+
   const repClass = isRep ? ' rep' : '';
   const smartClass = isSmart ? ' smart' : '';
   const specialClass = isFestTurno ? ' special-fest' : (isMalTurno ? ' special-mal' : '');
-  const mfHtml = (isM ? '<span class="mf-inline">m</span>' : '') + (isF ? '<span class="mf-inline">f</span>' : '');
+  const rfRepClass = turnoNorm === 'RF' && isRep ? ' rf-rep' : '';
+  const mfHtml = (isM ? '<span class="mf-inline">m</span>' : '') +
+                 (isF ? '<span class="mf-inline">f</span>' : '');
   const repIcon = isRep ? '<span class="cella-rep-icon">&reg;</span>' : '';
   const smartHtml = isSmart ? '<span class="smart-inline">#</span>' : '';
   const extras = mfHtml + repIcon + smartHtml;
-  const ownFerieCell = col === 'base' && ferieMode && teamContext?.linked_operatore_id === opId;
-  const clickEvt = ownFerieCell ? `onclick="toggleFerieDate('${data}')"` : (isEditor ? `onclick="openPicker('${data}',${opId},'${col}',event)"` : '');
-  const contextEvt = isEditor ? `oncontextmenu="applyFerieRangeFromCell('${data}',${opId},event)"` : '';
-  const edClass = isEditor ? ' editable' : '';
-  const ferieClass = ownFerieCell ? ' ferie-cell-selectable' : '';
-  const selectedClass = ownFerieCell && (ferieAdds.has(data) || ferieRemovals.has(data)) ? ' ferie-cell-selected' : '';
-  const ferieStatusClass = getFerieRequestCellClass(ferieRequest, data, opId, col);
   const marker = col === 'base' ? renderFerieMarker(ferieRequest, data, opId) : '';
-  const colClass = col === 'var' ? ' var-cell' : '';
   const value = isEmpty ? '' : turno;
+
+  // Blocco selezione se operatore non ha account (per scambi in Fase 2)
+  if (swapPhase === 2 && swapMode && !isOwn && col === 'base') {
+    const targetOp = operatori.find(o => o.id === opId) || datiMese?.operatori?.find(o => o.id === opId);
+    if (targetOp && !targetOp.linked_user_id) {
+       swapClass = ' swap-target-disabled';
+    }
+  }
+
+  const dataAttrs = `data-date="${data}" data-opid="${opId}" data-col="${col}" data-origclick="${customClick ? customClick.replace('onclick="', '').slice(0, -1) : ''}"`;
+
   if (col === 'base' && turnoVar) {
     const filledClass = isEmpty && !extras ? ' empty' : ' filled';
-    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${ferieStatusClass}${selectedClass}${filledClass}" ${clickEvt} ${contextEvt}>${value}${extras}${marker}</div>`;
+    return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieStatusClass}${swapClass}${filledClass}" ${dataAttrs} ${customClick || clickEvt} ${contextEvt}>${value}${extras}${marker}</div>`;
   }
+
   if (isEmpty) {
-    const filledClass = extras || ferieStatusClass || marker ? ' filled' : ' empty';
-    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${ferieStatusClass}${selectedClass}${filledClass}" ${clickEvt} ${contextEvt}>${value}${extras}${marker}</div>`;
+    const filledClass = (extras || ferieStatusClass || marker) ? ' filled' : ' empty';
+    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieStatusClass}${swapClass}${filledClass}" ${dataAttrs} ${customClick || clickEvt} ${contextEvt}>${value}${extras}${marker}</div>`;
   }
-  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieClass}${ferieStatusClass}${selectedClass} filled" ${clickEvt} ${contextEvt}>${turno}${extras}${marker}</div>`;
+
+  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieStatusClass}${swapClass} filled" ${dataAttrs} ${customClick || clickEvt} ${contextEvt}>${turno}${extras}${marker}</div>`;
 };
 
 renderTplCella = function(dow, pos) {
@@ -3406,9 +3939,10 @@ renderTplCella = function(dow, pos) {
 };
 
 loadLog = async function() {
-  const [logs, ferieDash] = await Promise.all([
-    fetch('/api/team/log?limit=120').then(r => r.json()).catch(() => []),
-    fetch('/api/team/ferie/dashboard').then(r => r.json()).catch(() => ({pending: [], recent_log: []})),
+  const [logs, ferieDash, swaps] = await Promise.all([
+    fetch('/api/team/log?limit=120').then(r=>r.ok ? r.json() : []).catch(()=>[]),
+    fetch('/api/team/ferie/dashboard').then(r=>r.ok ? r.json() : {pending:[], recent_log:[]}).catch(()=>({pending:[], recent_log:[]})),
+    fetch('/api/team/swaps').then(r=>r.ok ? r.json() : []).then(x=>Array.isArray(x) ? x : []).catch(()=>[]),
   ]);
   const pending = ferieDash.pending || [];
   const ferieLogs = ferieDash.recent_log || [];
@@ -3420,19 +3954,17 @@ loadLog = async function() {
     } else {
       elTurni.innerHTML = logs.slice(0, 80).map(l => {
         const color = l.nuovo_valore ? '#34D399' : '#EF4444';
-        const oldValue = l.vecchio_valore || '-';
-        const newValue = l.nuovo_valore || '(vuoto)';
         return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
           <div style="display:flex;justify-content:space-between;margin-bottom:3px">
-            <span style="font-weight:700;color:var(--text)">${l.operatore_nome || ''}</span>
-            <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica || '').slice(0,10)}</span>
+            <span style="font-weight:700;color:var(--text)">${l.operatore_nome||''}</span>
+            <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
           </div>
           <div style="font-size:0.72rem">
-            ${l.data_turno || ''} - ${l.campo || ''}
-            <span style="text-decoration:line-through;color:#EF4444">${oldValue}</span>
-            -> <span style="color:${color};font-weight:700">${newValue}</span>
+            📅 ${l.data_turno||''} &nbsp;·&nbsp; ${l.campo||''}
+            &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span>
+            → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
           </div>
-          <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente || '?'}</div>
+          <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente||'?'}</div>
         </div>`;
       }).join('');
     }
@@ -3440,17 +3972,9 @@ loadLog = async function() {
 
   teamFerieLogData = { pending, logs: ferieLogs };
   renderTeamFerieLogContent();
+  renderScambiContent(swaps);
 
-  const badge = document.getElementById('ferieAlertBadge');
-  if (badge) {
-    if (pending.length) {
-      badge.textContent = pending.length;
-      badge.classList.add('show');
-    } else {
-      badge.textContent = '';
-      badge.classList.remove('show');
-    }
-  }
+  updatePendingBadges((pending || []).length, countPendingSwaps(swaps));
 };
 
 </script>
