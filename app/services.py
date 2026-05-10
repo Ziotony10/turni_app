@@ -543,8 +543,8 @@ def _apply_team_ferie_to_var(conn, operatore_id: int, dates: List[str], username
 
         # Mappa il tipo al simbolo in tabella
         simbolo = "F"
-        if tipo == "ex-fest": simbolo = "EX-FEST"
-        elif tipo == "rot": simbolo = "ROT"
+        if tipo == "EX FEST": simbolo = "EX FEST"
+        elif tipo == "ROT": simbolo = "ROT"
 
         db.ex(conn, """INSERT INTO team_turni (data, operatore_id, turno_base, turno_var, flags, flags_base, flags_var, modificato_da, modificato_il)
            VALUES (?,?,?,?,?,?,?,?,?)
