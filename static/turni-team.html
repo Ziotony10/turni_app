@@ -668,8 +668,8 @@
     <div class="ferie-extra-fields" id="ferieExtraFields">
       <select id="ferieRequestType">
         <option value="ferie">Ferie</option>
-        <option value="ex-fest">Ex-Fest</option>
-        <option value="rot">ROT</option>
+        <option value="EX FEST">EX FEST</option>
+        <option value="ROT">ROT</option>
       </select>
       <input type="text" id="ferieRequestNote" placeholder="Note (opzionale)" style="width:140px">
     </div>
@@ -1530,7 +1530,7 @@ function renderCella(turno, flags, data, opId, col, turnoVar) {
 }
 
 function applySpecialTurnoStyles(root = document) {
-  const festTurns = new Set(['F', 'RF', 'EX FEST', 'EX F.', 'LUTTO']);
+  const festTurns = new Set(['F', 'RF', 'EX FEST', 'ROT', 'LUTTO']);
   root.querySelectorAll('.cella.filled, .cella-base-sbarrata, .tpl-cella.filled').forEach(el => {
     // Legge solo i text node diretti della cella, ignorando span figli
     // (ferie-marker, mf-inline, cella-rep-icon, smart-inline) per evitare falsi match
