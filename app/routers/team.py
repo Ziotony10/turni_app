@@ -22,7 +22,8 @@ from app.security import get_current_user, require_team_editor, require_admin
 from app.services import (
     get_team_operator_for_user, _parse_iso_date, _log_team_ferie,
     _build_team_turni_payload, _preserve_team_schedule_outside_range, _clear_team_schedule_in_range,
-    _apply_team_ferie_to_var, _format_date_it, _create_notification
+    _apply_team_ferie_to_var, _format_date_it, _create_notification,
+    _load_team_template_context, _compute_team_template_slot
 )
 
 router = APIRouter(tags=["team"])
@@ -50,6 +51,38 @@ def _swap_flags(turno_row, col):
 
 def _valid_swap_col(col):
     return col if col in {"base", "var"} else None
+
+def _effective_team_turno_row(conn, data_str: str, operatore_id: int):
+    existing = db.fetchone(conn, "SELECT * FROM team_turni WHERE data=? AND operatore_id=?", (data_str, operatore_id))
+    if existing:
+        if not (existing.get("flags_base") or existing.get("flags_var")) and existing.get("flags"):
+            if existing.get("turno_var"):
+                existing["flags_var"] = existing.get("flags") or ""
+            else:
+                existing["flags_base"] = existing.get("flags") or ""
+        return existing
+
+    op = db.fetchone(conn, "SELECT id, posizione FROM team_operatori WHERE id=? AND attivo=1", (operatore_id,))
+    d_obj = _parse_iso_date(data_str)
+    if not op or not d_obj:
+        return {"turno_base": "", "turno_var": "", "flags_base": "", "flags_var": ""}
+
+    template, op_count, start_obj, end_obj, start_week_monday = _load_team_template_context(conn)
+    in_template_range = True
+    if start_obj and d_obj < start_obj:
+        in_template_range = False
+    if end_obj and d_obj > end_obj:
+        in_template_range = False
+    if not in_template_range:
+        return {"turno_base": "", "turno_var": "", "flags_base": "", "flags_var": ""}
+
+    tpl = _compute_team_template_slot(template, d_obj, op["posizione"], op_count, start_week_monday)
+    return {
+        "turno_base": tpl.get("turno_base", "") or "",
+        "turno_var": tpl.get("turno_var", "") or "",
+        "flags_base": tpl.get("flags", "") or "",
+        "flags_var": "",
+    }
 
 # ─── Team: operatori ───────────────────────────────────────────────────────────
 @router.get("/api/team/me")
@@ -679,8 +712,8 @@ def request_swap(payload: TeamSwapRequestInput, user=Depends(get_current_user)):
         db.release_db(conn)
         raise HTTPException(400, "Il collega non ha un account associato")
 
-    t1 = db.fetchone(conn, "SELECT * FROM team_turni WHERE data=? AND operatore_id=?", (payload.data, richiedente["id"]))
-    t2 = db.fetchone(conn, "SELECT * FROM team_turni WHERE data=? AND operatore_id=?", (payload.data, collega["id"]))
+    t1 = _effective_team_turno_row(conn, payload.data, richiedente["id"])
+    t2 = _effective_team_turno_row(conn, payload.data, collega["id"])
     from_col = _effective_swap_col(t1)
     to_col = _effective_swap_col(t2)
     from_turno = _swap_value(t1, from_col)
@@ -797,8 +830,8 @@ def review_swap(swap_id: int, payload: TeamSwapActionInput, user=Depends(require
         op1_id = swap["richiedente_id"]
         op2_id = swap["collega_id"]
         
-        t1 = db.fetchone(conn, "SELECT * FROM team_turni WHERE data=? AND operatore_id=?", (data, op1_id))
-        t2 = db.fetchone(conn, "SELECT * FROM team_turni WHERE data=? AND operatore_id=?", (data, op2_id))
+        t1 = _effective_team_turno_row(conn, data, op1_id)
+        t2 = _effective_team_turno_row(conn, data, op2_id)
         
         from_col = _valid_swap_col(swap.get("from_col")) or _effective_swap_col(t1)
         to_col = _valid_swap_col(swap.get("to_col")) or _effective_swap_col(t2)
@@ -808,7 +841,7 @@ def review_swap(swap_id: int, payload: TeamSwapActionInput, user=Depends(require
 
         now = datetime.now().isoformat()[:19]
         
-        # Helper per inserire/aggiornare turno preservando la colonna non coinvolta.
+        # Gli scambi sono variazioni: il TAB resta storico/template, si aggiorna sempre VAR.
         def update_turno(oid, turno_base, turno_var, flags_base, flags_var):
             shared_flags = flags_var if turno_var else flags_base
             db.ex(conn, """INSERT INTO team_turni (data, operatore_id, turno_base, turno_var, flags, flags_base, flags_var, modificato_da, modificato_il)
@@ -830,14 +863,8 @@ def review_swap(swap_id: int, payload: TeamSwapActionInput, user=Depends(require
         from_turno, from_flags = _swap_value(v1, from_col), _swap_flags(v1, from_col)
         to_turno, to_flags = _swap_value(v2, to_col), _swap_flags(v2, to_col)
 
-        if from_col == "var":
-            op1_var, op1_flags_var = to_turno, to_flags
-        else:
-            op1_base, op1_flags_base = to_turno, to_flags
-        if to_col == "var":
-            op2_var, op2_flags_var = from_turno, from_flags
-        else:
-            op2_base, op2_flags_base = from_turno, from_flags
+        op1_var, op1_flags_var = to_turno, to_flags
+        op2_var, op2_flags_var = from_turno, from_flags
 
         update_turno(op1_id, op1_base, op1_var, op1_flags_base, op1_flags_var)
         update_turno(op2_id, op2_base, op2_var, op2_flags_base, op2_flags_var)
