@@ -1530,7 +1530,7 @@ function renderCella(turno, flags, data, opId, col, turnoVar) {
 }
 
 function applySpecialTurnoStyles(root = document) {
-  const festTurns = new Set(['F', 'RF', 'EX FEST', 'ROT', 'LUTTO']);
+  const festTurns = new Set(['F', 'RF', 'EX FEST', 'ROT ', 'LUTTO']);
   root.querySelectorAll('.cella.filled, .cella-base-sbarrata, .tpl-cella.filled').forEach(el => {
     // Legge solo i text node diretti della cella, ignorando span figli
     // (ferie-marker, mf-inline, cella-rep-icon, smart-inline) per evitare falsi match
