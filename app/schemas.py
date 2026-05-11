@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 
 class RegisterInput(BaseModel):
@@ -96,10 +96,13 @@ class TeamTemplateWeekInput(BaseModel):
     start_date: Optional[str] = None
     end_date: Optional[str] = None
 
+class FerieDataTipo(BaseModel):
+    data: str
+    tipo: str = "ferie"
+
 class TeamFerieBatchInput(BaseModel):
-    add_dates: List[str] = []
-    remove_dates: List[str] = []
-    tipo: Optional[str] = "ferie"
+    add_dates: List[FerieDataTipo] = Field(default_factory=list)
+    remove_dates: List[str] = Field(default_factory=list)
     note: Optional[str] = None
 
 class TeamFerieReviewInput(BaseModel):
@@ -125,6 +128,10 @@ class TeamSwapActionInput(BaseModel):
 
 class TeamNotificationUpdateInput(BaseModel):
     letto: bool
+
+class FeedbackInput(BaseModel):
+    messaggio: str
+    pagina: Optional[str] = None
 
 class DbCleanupPayload(BaseModel):
     target: str          # "ferie_closed_history" | "ferie_requests_processed" | "ferie_requests_all" | "ferie_log" | "login_visits"

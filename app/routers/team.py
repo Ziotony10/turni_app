@@ -23,7 +23,7 @@ from app.services import (
     get_team_operator_for_user, _parse_iso_date, _log_team_ferie,
     _build_team_turni_payload, _preserve_team_schedule_outside_range, _clear_team_schedule_in_range,
     _apply_team_ferie_to_var, _format_date_it, _create_notification,
-    _load_team_template_context, _compute_team_template_slot
+    _load_team_template_context, _compute_team_template_slot, _local_now_iso
 )
 
 router = APIRouter(tags=["team"])
@@ -248,7 +248,7 @@ def set_team_turni(payload: TeamCellaInput, user=Depends(require_team_editor)):
     col     = payload.col or "base"
     flags_base = payload.flags_base
     flags_var  = payload.flags_var
-    now     = datetime.now().isoformat()[:19]
+    now     = _local_now_iso()
 
     conn = db.get_db()
     existing = db.fetchone(conn, "SELECT turno_base, turno_var, flags, flags_base, flags_var FROM team_turni WHERE data=? AND operatore_id=?",
@@ -337,9 +337,15 @@ def save_team_ferie_request(payload: TeamFerieBatchInput, user=Depends(get_curre
         db.release_db(conn)
         raise HTTPException(403, "Account non associato a un operatore team")
 
-    add_dates = sorted({d for d in payload.add_dates if _parse_iso_date(d)})
+    add_pairs = [p for p in payload.add_dates if _parse_iso_date(p.data)]
+    add_pairs_sorted = sorted(add_pairs, key=lambda p: p.data)
+    seen_add = {}
+    for pair in add_pairs_sorted:
+        seen_add[pair.data] = pair.tipo or "ferie"
+    add_dates = list(seen_add.keys())
     remove_dates = sorted({d for d in payload.remove_dates if _parse_iso_date(d)})
     for data_turno in add_dates:
+        tipo_giorno = seen_add[data_turno]
         row = db.fetchone(conn, "SELECT id, stato, user_id FROM team_ferie_requests WHERE operatore_id=? AND data=?",
                        (op["id"], data_turno))
         if row and row["user_id"] != user["id"] and not (user.get("is_editor") or user.get("is_admin")):
@@ -350,14 +356,15 @@ def save_team_ferie_request(payload: TeamFerieBatchInput, user=Depends(get_curre
             db.ex(conn, """UPDATE team_ferie_requests
                         SET user_id=?, tipo=?, note=?, stato='pending', requested_by=?, reviewed_by=NULL, updated_at=?
                         WHERE id=?""",
-               (user["id"], payload.tipo or "ferie", payload.note, user["username"], datetime.now().isoformat()[:19], row["id"]))
+               (user["id"], tipo_giorno, payload.note, user["username"], _local_now_iso(), row["id"]))
             _log_team_ferie(conn, user["username"], user["id"], user["username"], op["id"], op["nome"], data_turno,
                             "requested", old_status, "pending")
         else:
+            now = _local_now_iso()
             db.ex(conn, """INSERT INTO team_ferie_requests
-                        (user_id, operatore_id, data, tipo, note, stato, requested_by, updated_at)
-                        VALUES (?,?,?,?,?,?,?,?)""",
-               (user["id"], op["id"], data_turno, payload.tipo or "ferie", payload.note, "pending", user["username"], datetime.now().isoformat()[:19]))
+                        (user_id, operatore_id, data, tipo, note, stato, requested_by, created_at, updated_at)
+                        VALUES (?,?,?,?,?,?,?,?,?)""",
+               (user["id"], op["id"], data_turno, tipo_giorno, payload.note, "pending", user["username"], now, now))
             _log_team_ferie(conn, user["username"], user["id"], user["username"], op["id"], op["nome"], data_turno,
                             "requested", None, "pending")
 
@@ -407,7 +414,7 @@ def review_team_ferie(payload: TeamFerieReviewInput, user=Depends(require_team_e
         WHERE r.operatore_id=? AND r.data IN ({','.join([db.get_limit_placeholder() for _ in dates])})
     """, tuple([payload.operatore_id] + dates))
     row_by_date = {r["data"]: r for r in rows}
-    now = datetime.now().isoformat()[:19]
+    now = _local_now_iso()
     notifications_by_request = {}
     for data_turno in dates:
         row = row_by_date.get(data_turno)
@@ -722,9 +729,9 @@ def request_swap(payload: TeamSwapRequestInput, user=Depends(get_current_user)):
         db.release_db(conn)
         raise HTTPException(400, "Per richiedere lo scambio entrambi gli operatori devono avere un turno in quel giorno")
 
-    db.ex(conn, """INSERT INTO team_swap_requests (richiedente_id, collega_id, data, from_turno, to_turno, from_col, to_col, stato)
-                VALUES (?,?,?,?,?,?,?,?)""", 
-                (richiedente["id"], collega["id"], payload.data, from_turno, to_turno, from_col, to_col, "pending_target"))
+    db.ex(conn, """INSERT INTO team_swap_requests (richiedente_id, collega_id, data, from_turno, to_turno, from_col, to_col, stato, created_at)
+                VALUES (?,?,?,?,?,?,?,?,?)""", 
+                (richiedente["id"], collega["id"], payload.data, from_turno, to_turno, from_col, to_col, "pending_target", _local_now_iso()))
     
     _create_notification(
         conn,
@@ -839,7 +846,7 @@ def review_swap(swap_id: int, payload: TeamSwapActionInput, user=Depends(require
             db.release_db(conn)
             raise HTTPException(400, "Impossibile approvare: uno dei turni da scambiare non e' piu' presente")
 
-        now = datetime.now().isoformat()[:19]
+        now = _local_now_iso()
         
         # Gli scambi sono variazioni: il TAB resta storico/template, si aggiorna sempre VAR.
         def update_turno(oid, turno_base, turno_var, flags_base, flags_var):

@@ -1,11 +1,32 @@
 import time
 from datetime import date, datetime, timedelta
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from typing import Optional, List
 from calendar import monthrange
 from fastapi import Request, HTTPException
 
 from app.config import TURNO_ORARI, TURNI_CONFIG, FESTIVITA, IMPOSTAZIONI_DEFAULTS, USE_PG, SQLITE_LOG_BUSY_TIMEOUT_MS
 import app.database as db
+
+try:
+    ITALY_TZ = ZoneInfo("Europe/Rome")
+except ZoneInfoNotFoundError:
+    ITALY_TZ = None
+
+def _local_now_iso() -> str:
+    if ITALY_TZ:
+        now = datetime.now(ITALY_TZ)
+    else:
+        utc_now = datetime.utcnow()
+        march_31 = date(utc_now.year, 3, 31)
+        october_31 = date(utc_now.year, 10, 31)
+        dst_start_day = march_31.day - ((march_31.weekday() + 1) % 7)
+        dst_end_day = october_31.day - ((october_31.weekday() + 1) % 7)
+        dst_start_utc = datetime(utc_now.year, 3, dst_start_day, 1)
+        dst_end_utc = datetime(utc_now.year, 10, dst_end_day, 1)
+        offset_hours = 2 if dst_start_utc <= utc_now < dst_end_utc else 1
+        now = utc_now + timedelta(hours=offset_hours)
+    return now.replace(tzinfo=None).isoformat(timespec="seconds")
 
 def get_user_record(conn, user_id: int):
     return db.fetchone(conn, "SELECT id, username, nome, is_admin, is_editor, is_team_editor FROM utenti WHERE id=?", (user_id,))
@@ -19,15 +40,15 @@ def _log_team_ferie(conn, actor_username: str, user_id: int, username: str,
                     operatore_id: int, operatore_nome: str, data_turno: str,
                     action: str, status_from: Optional[str], status_to: Optional[str]):
     db.ex(conn, """INSERT INTO team_ferie_log
-       (actor_username, user_id, username, operatore_id, operatore_nome, data_turno, action, status_from, status_to)
-       VALUES (?,?,?,?,?,?,?,?,?)""",
-       (actor_username, user_id, username, operatore_id, operatore_nome, data_turno, action, status_from, status_to))
+       (created_at, actor_username, user_id, username, operatore_id, operatore_nome, data_turno, action, status_from, status_to)
+       VALUES (?,?,?,?,?,?,?,?,?,?)""",
+       (_local_now_iso(), actor_username, user_id, username, operatore_id, operatore_nome, data_turno, action, status_from, status_to))
 
 def _create_notification(conn, user_id: int, messaggio: str, title: str = "Notifica", link: str = "/turni-team.html"):
     if not user_id:
         return
-    db.ex(conn, "INSERT INTO team_notifications (user_id, title, messaggio, link) VALUES (?,?,?,?)",
-          (user_id, title or "Notifica", messaggio, link))
+    db.ex(conn, "INSERT INTO team_notifications (user_id, title, messaggio, link, created_at) VALUES (?,?,?,?,?)",
+          (user_id, title or "Notifica", messaggio, link, _local_now_iso()))
 
 def get_user_settings(user_id, conn):
     rows = db.fetchall(conn, "SELECT chiave, valore FROM impostazioni WHERE user_id=?", (user_id,))
@@ -48,8 +69,8 @@ def _log_accesso(username: str, esito: str, request: Request = None):
             conn2 = db.get_db()
         else:
             conn2 = db._open_sqlite_connection(SQLITE_LOG_BUSY_TIMEOUT_MS)
-        db.ex(conn2, "INSERT INTO log_accessi (username, esito, ip, user_agent) VALUES (?,?,?,?)",
-           (username, esito, ip, ua))
+        db.ex(conn2, "INSERT INTO log_accessi (username, esito, ip, user_agent, timestamp) VALUES (?,?,?,?,?)",
+           (username, esito, ip, ua, _local_now_iso()))
         conn2.commit()
     except:
         pass
@@ -258,7 +279,7 @@ def _preserve_team_schedule_outside_range(conn, ops: List[dict], template_map: d
         for r in db.fetchall(conn, "SELECT data FROM team_colonne_destra WHERE data >= ? AND data <= ?",
                           (horizon_start.isoformat(), horizon_end.isoformat()))
     }
-    now = datetime.now().isoformat()[:19]
+    now = _local_now_iso()
     d = horizon_start
     while d <= horizon_end:
         old_in_range = _date_in_range(d, old_start_obj, old_end_obj)
@@ -509,7 +530,7 @@ def _apply_team_ferie_to_var(conn, operatore_id: int, dates: List[str], username
         raise HTTPException(404, "Operatore non trovato")
 
     template, op_count, start_obj, end_obj, start_week_monday = _load_team_template_context(conn)
-    now = datetime.now().isoformat()[:19]
+    now = _local_now_iso()
     applied = 0
     skipped = 0
 

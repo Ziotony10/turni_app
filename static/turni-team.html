@@ -617,6 +617,7 @@
     <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
     <a href="#" onclick="return false;" class="nav-active">👥 Team</a>
+    <a href="/guida.html">📘 Guida</a>
     <a href="/admin.html" id="adminNavLink">🔧 Admin</a>
   </nav>
   <div class="header-controls">
@@ -900,7 +901,7 @@ let tplRepData = {};               // tplRepData[dow] = { rep1_pos, rep2_pos, re
 let tplSlotCount = 13;
 let teamContext = { linked_operatore_id:null, linked_operatore_nome:'', can_request_ferie:false, ferie_pending_count:0 };
 let ferieMode = false;
-let ferieAdds = new Set();
+let ferieAdds = new Map();
 let ferieRemovals = new Set();
 let teamFerieLogData = { pending: [], logs: [] };
 let teamFerieFilters = { name: '', status: 'all' };
@@ -2022,7 +2023,7 @@ async function loadLog() {
         <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
       </div>
       <div style="font-size:0.72rem">
-        📅 ${l.data_turno||''} &nbsp;·&nbsp; ${l.campo||''}
+        📅 ${formatTeamFerieDate(l.data_turno)||''} &nbsp;·&nbsp; ${l.campo||''}
         &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span>
         → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
       </div>
@@ -2166,7 +2167,12 @@ function toggleFerieDate(dataStr) {
     if (ferieRemovals.has(dataStr)) ferieRemovals.delete(dataStr); else ferieRemovals.add(dataStr);
     ferieAdds.delete(dataStr);
   } else {
-    if (ferieAdds.has(dataStr)) ferieAdds.delete(dataStr); else ferieAdds.add(dataStr);
+    if (ferieAdds.has(dataStr)) {
+      ferieAdds.delete(dataStr);
+    } else {
+      const tipo = document.getElementById('ferieRequestType')?.value || 'ferie';
+      ferieAdds.set(dataStr, tipo);
+    }
     ferieRemovals.delete(dataStr);
   }
   updateFerieUi();
@@ -2179,16 +2185,14 @@ async function submitFerieRequest() {
     alert('Seleziona almeno un giorno.');
     return;
   }
-  const tipo = document.getElementById('ferieRequestType').value;
   const note = document.getElementById('ferieRequestNote').value;
   
   const res = await fetch('/api/team/ferie/request-batch', {
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({ 
-      add_dates: Array.from(ferieAdds), 
+      add_dates: Array.from(ferieAdds, ([data, tipo]) => ({ data, tipo })),
       remove_dates: Array.from(ferieRemovals),
-      tipo: tipo,
       note: note
     })
   }).then(r=>r.json()).catch(()=>({ok:false}));
@@ -2350,6 +2354,29 @@ function normalizeTeamFerieText(value) {
   return String(value || '').toLowerCase();
 }
 
+function getTeamFerieDateSortKey(value) {
+  const text = String(value || '').trim();
+  let match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+  match = text.match(/^(\d{2})-(\d{2})-(\d{4})/);
+  if (match) return `${match[3]}-${match[2]}-${match[1]}`;
+  return text;
+}
+
+function formatTeamFerieDate(value) {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const separator = text.includes('T') ? 'T' : ' ';
+  const parts = text.split(separator);
+  const datePart = parts[0] || '';
+  const timePart = parts.length > 1 ? ` ${String(parts[1] || '').slice(0, 5)}` : '';
+  let match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (match) return `${match[3]}-${match[2]}-${match[1]}${timePart}`;
+  match = datePart.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (match) return `${match[1]}-${match[2]}-${match[3]}${timePart}`;
+  return text;
+}
+
 function getTeamFerieStatusMeta(status) {
   const key = normalizeTeamFerieText(status);
   if (key === 'approved') return { key, label: 'Approvata' };
@@ -2378,9 +2405,10 @@ function getTeamFerieHistoryLine(row) {
 }
 
 function renderTeamFerieDateChips(dates) {
-  const items = Array.from(new Set((dates || []).filter(Boolean))).sort();
+  const items = Array.from(new Set((dates || []).filter(Boolean)))
+    .sort((a, b) => getTeamFerieDateSortKey(a).localeCompare(getTeamFerieDateSortKey(b)));
   if (!items.length) return '<div class="ferie-group-history">Nessun giorno disponibile</div>';
-  return `<div class="ferie-date-list">${items.map(date => `<span class="ferie-date-chip">${date}</span>`).join('')}</div>`;
+  return `<div class="ferie-date-list">${items.map(date => `<span class="ferie-date-chip">${formatTeamFerieDate(date)}</span>`).join('')}</div>`;
 }
 
 function groupTeamFerieLogs(rows) {
@@ -2524,7 +2552,7 @@ function renderTeamFerieLogContent() {
             <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
             <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} Â· ${p.giorni || 0} giorni</div>
             <div style="font-size:0.72rem;color:#bfdbfe;margin-top:6px">
-              ${p.first_day || ''}${p.last_day && p.last_day !== p.first_day ? ` â†’ ${p.last_day}` : ''}
+              ${formatTeamFerieDate(p.first_day)}${p.last_day && p.last_day !== p.first_day ? ` â†’ ${formatTeamFerieDate(p.last_day)}` : ''}
             </div>
             <div class="ferie-pending-actions">
               <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>âœ… Approva</button>
@@ -2544,7 +2572,7 @@ function renderTeamFerieLogContent() {
               <span style="color:var(--muted);font-size:0.7rem">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
             </div>
             <div style="margin-top:4px;font-size:0.72rem;color:#dbeafe">
-              <span class="ferie-log-type">${l.action || 'ferie'}</span> ${l.data_turno || ''}
+              <span class="ferie-log-type">${l.action || 'ferie'}</span> ${formatTeamFerieDate(l.data_turno)}
             </div>
             <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">
               ${l.username || '-'} Â· ${l.status_from || 'vuoto'} â†’ ${l.status_to || 'vuoto'} Â· da ${l.actor_username || '?'}
@@ -2593,7 +2621,7 @@ renderTeamFerieLogContent = function() {
             <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
             <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} · ${p.giorni || 0} giorni</div>
             <div style="font-size:0.72rem;color:#bfdbfe;margin-top:6px">
-              ${p.first_day || ''}${p.last_day && p.last_day !== p.first_day ? ` → ${p.last_day}` : ''}
+              ${formatTeamFerieDate(p.first_day)}${p.last_day && p.last_day !== p.first_day ? ` → ${formatTeamFerieDate(p.last_day)}` : ''}
             </div>
             <div class="ferie-pending-actions">
               <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>Approva</button>
@@ -2615,7 +2643,7 @@ renderTeamFerieLogContent = function() {
               <span style="color:var(--muted);font-size:0.7rem">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
             </div>
             <div style="margin-top:4px;font-size:0.72rem;color:#dbeafe;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-              <span>${getTeamFerieActionLabel(l.action, l.status_to)} · ${l.data_turno || ''}</span>
+              <span>${getTeamFerieActionLabel(l.action, l.status_to)} · ${formatTeamFerieDate(l.data_turno)}</span>
               <span class="ferie-log-type ${statusMeta.key}">${statusMeta.label}</span>
             </div>
             <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">
@@ -2673,7 +2701,7 @@ renderTeamFerieLogContent = function() {
                 <div class="ferie-group-meta">
                   <span>${p.username || '-'}</span>
                   <span>${p.giorni || 0} giorni</span>
-                  <span>${p.first_day || ''}${p.last_day && p.last_day !== p.first_day ? ` -> ${p.last_day}` : ''}</span>
+                  <span>${formatTeamFerieDate(p.first_day)}${p.last_day && p.last_day !== p.first_day ? ` -> ${formatTeamFerieDate(p.last_day)}` : ''}</span>
                 </div>
               </div>
               <span class="ferie-group-chevron">></span>
@@ -2752,7 +2780,7 @@ loadLog = async function() {
             <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
           </div>
           <div style="font-size:0.72rem">
-            📅 ${l.data_turno||''} &nbsp;·&nbsp; ${l.campo||''}
+            📅 ${formatTeamFerieDate(l.data_turno)||''} &nbsp;·&nbsp; ${l.campo||''}
             &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span>
             → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
           </div>
@@ -2775,7 +2803,7 @@ loadLog = async function() {
               <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
               <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} · ${p.giorni || 0} giorni</div>
               <div style="font-size:0.72rem;color:#bfdbfe;margin-top:6px">
-                ${p.first_day || ''}${p.last_day && p.last_day !== p.first_day ? ` → ${p.last_day}` : ''}
+                ${formatTeamFerieDate(p.first_day)}${p.last_day && p.last_day !== p.first_day ? ` → ${formatTeamFerieDate(p.last_day)}` : ''}
               </div>
               <div class="ferie-pending-actions">
                 <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>✅ Approva</button>
@@ -2795,7 +2823,7 @@ loadLog = async function() {
                 <span style="color:var(--muted);font-size:0.7rem">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
               </div>
               <div style="margin-top:4px;font-size:0.72rem;color:#dbeafe">
-                <span class="ferie-log-type">${l.action || 'ferie'}</span> ${l.data_turno || ''}
+                <span class="ferie-log-type">${l.action || 'ferie'}</span> ${formatTeamFerieDate(l.data_turno)}
               </div>
               <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">
                 ${l.username || '-'} · ${l.status_from || 'vuoto'} → ${l.status_to || 'vuoto'} · da ${l.actor_username || '?'}
@@ -2833,7 +2861,7 @@ loadLog = async function() {
             <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
           </div>
           <div style="font-size:0.72rem">
-            📅 ${l.data_turno||''} &nbsp;·&nbsp; ${l.campo||''}
+            📅 ${formatTeamFerieDate(l.data_turno)||''} &nbsp;·&nbsp; ${l.campo||''}
             &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span>
             → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
           </div>
@@ -3960,7 +3988,7 @@ loadLog = async function() {
             <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
           </div>
           <div style="font-size:0.72rem">
-            📅 ${l.data_turno||''} &nbsp;·&nbsp; ${l.campo||''}
+            📅 ${formatTeamFerieDate(l.data_turno)||''} &nbsp;·&nbsp; ${l.campo||''}
             &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span>
             → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
           </div>
@@ -3979,6 +4007,7 @@ loadLog = async function() {
 
 </script>
 
+<script src="/notifications-common.js"></script>
 
 </body>
 </html>

@@ -186,6 +186,18 @@ def init_db():
             is_bot INTEGER DEFAULT 0,
             timestamp TEXT DEFAULT CURRENT_TIMESTAMP)""")
 
+        ex(conn, """CREATE TABLE IF NOT EXISTS feedback_utenti (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            username TEXT,
+            nome TEXT,
+            messaggio TEXT NOT NULL,
+            pagina TEXT,
+            letto INTEGER DEFAULT 0,
+            letto_da TEXT,
+            letto_il TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+
         # ── Team tables ─────────────────────────────────────────────────────────
         ex(conn, """CREATE TABLE IF NOT EXISTS team_operatori (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -304,6 +316,8 @@ def init_db():
         # Indici per le query piu' frequenti
         ex(conn, "CREATE INDEX IF NOT EXISTS idx_log_accessi_timestamp ON log_accessi(timestamp DESC)")
         ex(conn, "CREATE INDEX IF NOT EXISTS idx_login_page_visits_timestamp ON login_page_visits(timestamp DESC)")
+        ex(conn, "CREATE INDEX IF NOT EXISTS idx_feedback_utenti_created_at ON feedback_utenti(created_at DESC)")
+        ex(conn, "CREATE INDEX IF NOT EXISTS idx_feedback_utenti_letto ON feedback_utenti(letto, created_at DESC)")
         ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_log_data_modifica ON team_log(data_modifica DESC)")
         ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_log_data_turno ON team_log(data_turno)")
         ex(conn, "CREATE INDEX IF NOT EXISTS idx_team_ferie_requests_status_operatore_data ON team_ferie_requests(stato, operatore_id, data)")

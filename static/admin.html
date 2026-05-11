@@ -394,6 +394,7 @@
     <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
     <a href="/turni-team.html">👥 Team</a>
+    <a href="/guida.html">📘 Guida</a>
     <a href="#" onclick="return false;" class="nav-active" id="adminNavLink">🔧 Admin</a>
   </nav>
   <div class="header-controls">
@@ -1760,6 +1761,77 @@ function setCleanupButtonState(target, enabled) {
   btn.style.cursor = enabled ? 'pointer' : 'not-allowed';
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[ch]));
+}
+
+function formatAdminDateTime(value) {
+  const raw = String(value || '').replace(' ', 'T');
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return String(value || '-');
+  return d.toLocaleString('it-IT', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function renderFeedback(feedbackRows = []) {
+  const existing = document.getElementById('sec-feedback');
+  if (existing) existing.remove();
+  const unread = feedbackRows.filter(f => !Number(f.letto)).length;
+  const html = `
+  <div class="section-card log-scroll" id="sec-feedback">
+    <div class="section-head">
+      <span>Feedback utenti${unread ? ` <span class="badge-fail" style="margin-left:8px">${unread} nuovi</span>` : ''}</span>
+      <button class="refresh-btn" onclick="loadFeedback()">Aggiorna</button>
+    </div>
+    <div class="section-body">
+      <div class="soft-note" style="margin-bottom:14px">
+        Qui arrivano segnalazioni, dubbi e proposte inviate dal menu utente. Usale come lista di ascolto: non modificano dati operativi e restano visibili finche' non vengono cancellate dal database.
+      </div>
+      <div id="feedbackList" style="display:flex;flex-direction:column;gap:10px">
+        ${feedbackRows.length ? feedbackRows.map(f => `
+          <div class="pending-box" style="border-color:${Number(f.letto) ? 'var(--border)' : 'rgba(59,130,246,.45)'}; background:${Number(f.letto) ? 'rgba(15,23,42,.24)' : 'rgba(59,130,246,.08)'}">
+            <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+              <div>
+                <div style="font-weight:800;color:var(--text)">${escapeHtml(f.nome || f.username || 'Utente')}</div>
+                <div style="font-size:0.75rem;color:var(--muted)">${escapeHtml(f.username || '-')} - ${formatAdminDateTime(f.created_at)}${f.pagina ? ` - ${escapeHtml(f.pagina)}` : ''}</div>
+              </div>
+              <span class="ferie-status-chip ${Number(f.letto) ? 'approved' : 'pending'}">${Number(f.letto) ? 'Letto' : 'Nuovo'}</span>
+            </div>
+            <div style="white-space:pre-wrap;margin-top:10px;color:#dbeafe;font-size:0.88rem;line-height:1.5">${escapeHtml(f.messaggio)}</div>
+            ${Number(f.letto)
+              ? `<div style="font-size:0.72rem;color:var(--muted);margin-top:10px">Letto da ${escapeHtml(f.letto_da || '?')} ${f.letto_il ? 'il ' + formatAdminDateTime(f.letto_il) : ''}</div>`
+              : `<div class="pending-actions"><button class="btn btn-sm btn-primary" onclick="markFeedbackRead(${Number(f.id)})">Segna come letto</button></div>`}
+          </div>
+        `).join('') : '<div class="soft-note">Nessun feedback ricevuto.</div>'}
+      </div>
+    </div>
+  </div>`;
+  const logs = document.getElementById('sec-logs');
+  if (logs) logs.insertAdjacentHTML('afterend', html);
+  else document.getElementById('container')?.insertAdjacentHTML('beforeend', html);
+}
+
+async function loadFeedback() {
+  const rows = await fetch('/api/admin/feedback').then(r => r.json()).catch(() => []);
+  renderFeedback(Array.isArray(rows) ? rows : []);
+}
+
+async function markFeedbackRead(id) {
+  const res = await fetch(`/api/admin/feedback/${id}/read`, { method:'POST' })
+    .then(r => r.json())
+    .catch(() => ({ok:false}));
+  if (!res.ok) {
+    alert(res.detail || 'Errore durante aggiornamento feedback');
+    return;
+  }
+  await loadFeedback();
+}
+
 async function refreshCleanupViews(target) {
   const tasks = [loadDbStats()];
   if (target === 'login_visits' && pageVisitsLoaded) tasks.push(loadPageVisits());
@@ -1934,9 +2006,11 @@ loadAll = async function() {
   const operatoriLinks = bootstrap.operatori_links || [];
   const feriePending = bootstrap.ferie_pending || [];
   const ferieLog = bootstrap.ferie_log || [];
+  const feedback = bootstrap.feedback || [];
   const loginLogs = bootstrap.log_accessi || [];
   tabelle = tabs;
 
+  renderFeedback(feedback);
   renderUtenti(utenti);
   renderOperatorLinks(operatoriLinks, utenti);
   renderFerieRequests(feriePending, ferieLog);

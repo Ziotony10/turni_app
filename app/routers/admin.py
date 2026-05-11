@@ -5,11 +5,35 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 import app.database as db
 from app.config import USE_PG, SQLITE_LOG_BUSY_TIMEOUT_MS
-from app.schemas import ResetPasswordInput, DbCleanupPayload, TabellaTurniInput
+from app.schemas import ResetPasswordInput, DbCleanupPayload, TabellaTurniInput, FeedbackInput
 from app.security import require_admin, get_current_user, hash_password
-from app.services import _format_date_it
+from app.services import _format_date_it, _local_now_iso
 
 router = APIRouter(tags=["admin"])
+
+@router.post("/api/feedback")
+def create_feedback(payload: FeedbackInput, user=Depends(get_current_user)):
+    msg = (payload.messaggio or "").strip()
+    pagina = (payload.pagina or "").strip()[:240]
+    if len(msg) < 5:
+        raise HTTPException(400, "Scrivi almeno qualche parola per descrivere la segnalazione")
+    if len(msg) > 2000:
+        raise HTTPException(400, "Feedback troppo lungo: massimo 2000 caratteri")
+
+    conn = db.get_db()
+    try:
+        db.ex(conn, """INSERT INTO feedback_utenti (user_id, username, nome, messaggio, pagina, created_at)
+                       VALUES (?,?,?,?,?,?)""",
+              (user["id"], user["username"], user.get("nome"), msg, pagina, _local_now_iso()))
+        admins = db.fetchall(conn, "SELECT id FROM utenti WHERE is_admin=1")
+        for adm in admins:
+            db.ex(conn, """INSERT INTO team_notifications (user_id, title, messaggio, link, letto, created_at)
+                           VALUES (?,?,?,?,0,?)""",
+                  (adm["id"], "Nuovo feedback", f"{user.get('nome') or user['username']} ha inviato una segnalazione", "/admin.html#sec-feedback", _local_now_iso()))
+        conn.commit()
+        return {"ok": True}
+    finally:
+        db.release_db(conn)
 
 # ─── Log Page Visits (Non ha bisogno di permessi, invocata dal JS client) ───
 @router.post("/api/log-page-visit")
@@ -25,8 +49,8 @@ def log_page_visit(request: Request):
             conn = db.get_db()
         else:
             conn = db._open_sqlite_connection(SQLITE_LOG_BUSY_TIMEOUT_MS)
-        db.ex(conn, "INSERT INTO login_page_visits (ip_address, user_agent, referrer, is_bot) VALUES (?,?,?,?)",
-           (ip, ua, ref, is_bot))
+        db.ex(conn, "INSERT INTO login_page_visits (ip_address, user_agent, referrer, is_bot, timestamp) VALUES (?,?,?,?,?)",
+           (ip, ua, ref, is_bot, _local_now_iso()))
         conn.commit()
     except Exception as e:
         print(f"Errore log visita: {e}")
@@ -118,7 +142,7 @@ def health_check():
         db_ok = False
     return {"status": "ok", "db_ok": db_ok, "db_latency_ms": db_ms,
             "db_type": "PostgreSQL" if USE_PG else "SQLite",
-            "timestamp": datetime.utcnow().isoformat()}
+            "timestamp": _local_now_iso()}
 
 _status_cache = {"ts": 0, "data": None}
 _STATUS_CACHE_TTL = 5
@@ -245,6 +269,13 @@ def get_admin_bootstrap(admin=Depends(require_admin)):
             if row.get("timestamp") and not isinstance(row["timestamp"], str):
                 row["timestamp"] = row["timestamp"].isoformat()
 
+        feedback = db.fetchall(conn, f"""
+            SELECT id, user_id, username, nome, messaggio, pagina, letto, letto_da, letto_il, created_at
+            FROM feedback_utenti
+            ORDER BY id DESC
+            LIMIT {db.get_limit_placeholder()}
+        """, (80,))
+
         def count(table, where=""):
             sql = f"SELECT COUNT(*) AS cnt FROM {table}" + (f" WHERE {where}" if where else "")
             row = db.fetchone(conn, sql)
@@ -256,6 +287,7 @@ def get_admin_bootstrap(admin=Depends(require_admin)):
             "operatori_links": operatori_links,
             "ferie_pending": ferie_pending,
             "ferie_log": ferie_log,
+            "feedback": feedback,
             "log_accessi": log_accessi,
             "db_stats": {
                 "ferie_requests_pending":  count("team_ferie_requests", "stato='pending'"),
@@ -263,6 +295,7 @@ def get_admin_bootstrap(admin=Depends(require_admin)):
                 "ferie_requests_total":    count("team_ferie_requests"),
                 "ferie_log_total":         count("team_ferie_log"),
                 "login_visits_total":      count("login_page_visits"),
+                "feedback_unread":         count("feedback_utenti", "letto=0"),
             },
             "status": {
                 "site": "ok",
@@ -289,7 +322,35 @@ def get_db_stats(admin=Depends(require_admin)):
             "ferie_requests_total":    count("team_ferie_requests"),
             "ferie_log_total":         count("team_ferie_log"),
             "login_visits_total":      count("login_page_visits"),
+            "feedback_unread":         count("feedback_utenti", "letto=0"),
         }
+    finally:
+        db.release_db(conn)
+
+@router.get("/api/admin/feedback")
+def get_feedback(limit: int = 100, admin=Depends(require_admin)):
+    conn = db.get_db()
+    try:
+        return db.fetchall(conn, f"""
+            SELECT id, user_id, username, nome, messaggio, pagina, letto, letto_da, letto_il, created_at
+            FROM feedback_utenti
+            ORDER BY id DESC
+            LIMIT {db.get_limit_placeholder()}
+        """, (limit,))
+    finally:
+        db.release_db(conn)
+
+@router.post("/api/admin/feedback/{feedback_id}/read")
+def mark_feedback_read(feedback_id: int, admin=Depends(require_admin)):
+    conn = db.get_db()
+    try:
+        row = db.fetchone(conn, "SELECT id FROM feedback_utenti WHERE id=?", (feedback_id,))
+        if not row:
+            raise HTTPException(404, "Feedback non trovato")
+        db.ex(conn, "UPDATE feedback_utenti SET letto=1, letto_da=?, letto_il=? WHERE id=?",
+              (admin["username"], _local_now_iso(), feedback_id))
+        conn.commit()
+        return {"ok": True}
     finally:
         db.release_db(conn)
 

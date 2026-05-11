@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#3B82F6">
+<link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<title>Guida - Gestione Turni</title>
+<style>
+  :root { --bg:#0F172A; --card:#1E293B; --card2:#263348; --border:#334155; --text:#E2E8F0; --muted:#94A3B8; --accent:#3B82F6; --green:#10B981; --amber:#F59E0B; --red:#EF4444; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html { scroll-behavior:smooth; }
+  body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; line-height:1.55; }
+  header { background:var(--card); border-bottom:1px solid var(--border); min-height:56px; padding:0 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:20; }
+  .page-title { width:230px; min-width:230px; font-size:1.05rem; font-weight:800; white-space:nowrap; }
+  .page-title span { color:var(--accent); }
+  .top-nav { display:flex; gap:4px; align-items:center; flex-wrap:nowrap; }
+  .top-nav a { color:var(--muted); text-decoration:none; font-size:.82rem; padding:5px 10px; border-radius:8px; background:var(--card2); white-space:nowrap; line-height:1; transition:color .15s, background .15s; }
+  .top-nav a:hover, .top-nav a.nav-active { color:var(--text); background:#2d3f55; }
+  .top-nav a.nav-active { box-shadow:inset 0 0 0 1px var(--border); }
+  .header-spacer { margin-left:auto; }
+  .container { max-width:1160px; margin:0 auto; padding:28px 24px 86px; }
+  .hero { display:grid; grid-template-columns:1.15fr .85fr; gap:22px; align-items:stretch; margin-bottom:22px; }
+  .hero-main { background:linear-gradient(135deg, rgba(59,130,246,.18), rgba(16,185,129,.09)); border:1px solid rgba(96,165,250,.25); border-radius:14px; padding:28px; }
+  .hero-main h1 { font-size:2rem; line-height:1.08; margin-bottom:10px; letter-spacing:0; }
+  .hero-main p { color:#cbd5e1; max-width:760px; font-size:.98rem; margin-top:8px; }
+  .quick-card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; }
+  .quick-card h2 { font-size:.82rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:12px; }
+  .quick-grid { display:grid; gap:8px; }
+  .quick-grid a { display:flex; justify-content:space-between; gap:10px; align-items:center; color:var(--text); text-decoration:none; background:var(--card2); border:1px solid var(--border); border-radius:8px; padding:9px 11px; font-size:.86rem; }
+  .quick-grid a:hover { border-color:rgba(59,130,246,.7); }
+  .layout { display:grid; grid-template-columns:260px 1fr; gap:22px; align-items:start; }
+  .toc { position:sticky; top:76px; background:var(--card); border:1px solid var(--border); border-radius:14px; padding:14px; }
+  .toc strong { display:block; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; font-size:.72rem; margin-bottom:8px; }
+  .toc a { display:block; color:#cbd5e1; text-decoration:none; font-size:.84rem; padding:6px 8px; border-radius:7px; }
+  .toc a:hover { color:white; background:var(--card2); }
+  section { background:var(--card); border:1px solid var(--border); border-radius:14px; margin-bottom:18px; overflow:hidden; }
+  section h2 { background:var(--card2); padding:15px 18px; font-size:.92rem; text-transform:uppercase; letter-spacing:.07em; color:#dbeafe; }
+  .body { padding:18px; display:grid; gap:16px; }
+  .block { border:1px solid rgba(51,65,85,.95); background:rgba(15,23,42,.32); border-radius:10px; padding:15px; }
+  .block h3 { font-size:1rem; margin-bottom:8px; color:white; }
+  .block p, .block li { color:#cbd5e1; font-size:.9rem; }
+  ol, ul { padding-left:20px; display:grid; gap:5px; }
+  .role-row, .flow-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .pill { display:inline-flex; align-items:center; border-radius:999px; padding:3px 9px; font-size:.75rem; font-weight:800; border:1px solid var(--border); color:#cbd5e1; background:var(--card2); }
+  .pill.user { border-color:rgba(59,130,246,.35); color:#93c5fd; }
+  .pill.editor { border-color:rgba(16,185,129,.35); color:#86efac; }
+  .pill.admin { border-color:rgba(245,158,11,.38); color:#fcd34d; }
+  .note { border-left:3px solid var(--accent); padding:10px 12px; color:#cbd5e1; background:rgba(59,130,246,.08); border-radius:8px; font-size:.88rem; }
+  .warn { border-left-color:var(--amber); background:rgba(245,158,11,.08); }
+  .ok { border-left-color:var(--green); background:rgba(16,185,129,.08); }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .mini-title { color:#e5e7eb; font-weight:800; margin-bottom:6px; }
+  code { background:#0b1220; border:1px solid var(--border); border-radius:5px; padding:1px 5px; color:#bfdbfe; }
+  .bottom-nav { display:none; position:fixed; bottom:0; left:0; right:0; z-index:50; background:var(--card); border-top:1px solid var(--border); padding:6px 0 env(safe-area-inset-bottom,8px); }
+  .bottom-nav-inner { display:flex; justify-content:space-around; align-items:stretch; }
+  .bottom-nav a { display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--muted); text-decoration:none; font-size:.65rem; font-weight:600; padding:6px 4px; flex:1; text-align:center; min-width:0; margin:0 2px; border-radius:8px; }
+  .bottom-nav a.active { color:var(--accent); }
+  .bottom-nav a.admin-link { color:#F59E0B !important; }
+  .bottom-nav a span.icon { font-size:1.35rem; line-height:1.2; }
+  @media (max-width:900px) {
+    header { min-height:48px; padding:0 12px; }
+    .page-title { width:auto; min-width:0; font-size:.95rem; }
+    .top-nav { display:none; }
+    .hero, .layout, .grid-2 { grid-template-columns:1fr; }
+    .toc { position:static; }
+    .container { padding:18px 12px 92px; }
+    .hero-main { padding:20px; }
+    .hero-main h1 { font-size:1.55rem; }
+    .bottom-nav { display:block; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="page-title">📘 <span>Guida</span></div>
+  <nav class="top-nav">
+    <a href="/">📅 Calendario</a>
+    <a href="/riepilogo.html">📊 Riepilogo</a>
+    <a href="/bustapaga.html">💶 Busta Paga</a>
+    <a href="/turni-team.html">👥 Team</a>
+    <a href="/guida.html" class="nav-active">📘 Guida</a>
+    <a href="/admin.html" id="adminNavLink">🔧 Admin</a>
+  </nav>
+  <div class="header-spacer"></div>
+</header>
+
+<main class="container">
+  <div class="hero">
+    <div class="hero-main">
+      <h1>Guida operativa di Gestione Turni</h1>
+      <p>Questa guida spiega cosa si puo' fare nell'app e quando usare ogni funzione. L'obiettivo e' semplice: inserire i propri turni, consultare riepiloghi e busta paga, coordinare la tabella team e gestire richieste senza perdere informazioni.</p>
+      <p>Se hai un dubbio mentre lavori, apri il menu utente in alto: da li trovi questa guida e il pulsante <strong>Invia feedback</strong> per mandare una segnalazione agli admin.</p>
+      <div class="role-row">
+        <span class="pill user">Utente</span>
+        <span class="pill editor">Editor team</span>
+        <span class="pill admin">Admin</span>
+      </div>
+    </div>
+    <aside class="quick-card">
+      <h2>Accessi rapidi</h2>
+      <div class="quick-grid">
+        <a href="/"><span>Calendario personale</span><span>→</span></a>
+        <a href="/turni-team.html"><span>Turni team</span><span>→</span></a>
+        <a href="/impostazioni.html"><span>Account e password</span><span>→</span></a>
+        <a href="/admin.html"><span>Pannello admin</span><span>→</span></a>
+      </div>
+    </aside>
+  </div>
+
+  <div class="layout">
+    <aside class="toc">
+      <strong>Sommario</strong>
+      <a href="#prima">Prima di iniziare</a>
+      <a href="#ruoli">Ruoli e permessi</a>
+      <a href="#utente">Calendario personale</a>
+      <a href="#riepiloghi">Riepilogo e busta paga</a>
+      <a href="#team">Turni team</a>
+      <a href="#richieste">Ferie e cambi turno</a>
+      <a href="#editor">Editor team</a>
+      <a href="#admin">Admin</a>
+      <a href="#feedback">Feedback</a>
+      <a href="#dubbi">Dubbi frequenti</a>
+    </aside>
+
+    <div>
+      <section id="prima">
+        <h2>Prima di iniziare</h2>
+        <div class="body">
+          <div class="block">
+            <h3>Come e' organizzata l'app</h3>
+            <p>L'app ha due aree principali: il <strong>calendario personale</strong>, dove ogni utente compila i propri turni, e la pagina <strong>Team</strong>, dove si consulta e gestisce la programmazione condivisa.</p>
+            <div class="flow-row">
+              <span class="pill">Calendario = dati personali</span>
+              <span class="pill">Team = pianificazione condivisa</span>
+              <span class="pill">Admin = configurazione</span>
+            </div>
+          </div>
+          <div class="block">
+            <h3>Regola pratica</h3>
+            <p class="note ok">Se devi registrare quello che hai fatto tu, usa <strong>Calendario</strong>. Se devi vedere o proporre modifiche alla squadra, usa <strong>Team</strong>. Se devi abilitare utenti, ruoli o tabelle, usa <strong>Admin</strong>.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="ruoli">
+        <h2>Ruoli e permessi</h2>
+        <div class="body grid-2">
+          <div class="block">
+            <h3>Utente</h3>
+            <ul>
+              <li>Compila il proprio calendario.</li>
+              <li>Consulta riepilogo e stima busta paga.</li>
+              <li>Consulta la tabella team.</li>
+              <li>Invia feedback agli admin.</li>
+              <li>Se collegato a un operatore team, puo' richiedere ferie e cambi turno.</li>
+            </ul>
+          </div>
+          <div class="block">
+            <h3>Editor team</h3>
+            <ul>
+              <li>Modifica le celle della tabella team.</li>
+              <li>Configura operatori e template settimanale.</li>
+              <li>Approva o rifiuta richieste ferie.</li>
+              <li>Valuta e applica cambi turno.</li>
+            </ul>
+          </div>
+          <div class="block">
+            <h3>Admin</h3>
+            <ul>
+              <li>Gestisce utenti, ruoli e reset password.</li>
+              <li>Collega utenti agli operatori team.</li>
+              <li>Crea e modifica tabelle turni personali.</li>
+              <li>Legge feedback, log e stato applicazione.</li>
+              <li>Usa strumenti di manutenzione DB.</li>
+            </ul>
+          </div>
+          <div class="block">
+            <h3>Collegamento operatore</h3>
+            <p>Il ruolo utente da solo non basta per ferie e cambi turno. L'admin deve collegare l'account alla posizione dell'operatore team. Questo evita che una persona invii richieste per un altro operatore.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="utente">
+        <h2>Calendario personale</h2>
+        <div class="body">
+          <div class="block">
+            <h3>Inserire o modificare un turno</h3>
+            <ol>
+              <li>Apri <strong>Calendario</strong>.</li>
+              <li>Scegli anno e mese.</li>
+              <li>Clicca il giorno da compilare.</li>
+              <li>Seleziona il tipo turno.</li>
+              <li>Controlla orario di inizio e fine. Puoi modificarli se il turno reale e' diverso dallo standard.</li>
+              <li>Attiva <strong>Reperibilita'</strong> se prevista e aggiungi note se servono.</li>
+              <li>Premi <strong>Salva</strong>.</li>
+            </ol>
+          </div>
+          <div class="block">
+            <h3>Eliminare un turno</h3>
+            <p>Apri il giorno dal calendario e usa <strong>Elimina</strong>. Fallo quando quel giorno non deve piu' essere conteggiato nei riepiloghi.</p>
+          </div>
+          <div class="block">
+            <h3>Importare una tabella turni</h3>
+            <ol>
+              <li>Nel calendario premi <strong>Importa tabella</strong>.</li>
+              <li>Scegli una tabella disponibile.</li>
+              <li>Imposta settimana di partenza, data inizio e data fine.</li>
+              <li>Controlla l'anteprima.</li>
+              <li>Premi <strong>Applica tabella</strong>.</li>
+            </ol>
+            <p class="note warn">Prima di importare su un periodo gia' compilato, controlla bene l'intervallo date: l'importazione scrive turni sul calendario personale.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="riepiloghi">
+        <h2>Riepilogo e busta paga</h2>
+        <div class="body grid-2">
+          <div class="block">
+            <h3>Riepilogo annuale</h3>
+            <p>Serve per controllare totali e distribuzione dei turni: ore complessive, diurne, notturne, straordinari, reperibilita' e altri conteggi derivati dal calendario personale.</p>
+          </div>
+          <div class="block">
+            <h3>Busta paga</h3>
+            <p>Stima gli importi del mese selezionato usando turni salvati e parametri economici. Se un valore non torna, controlla prima i turni del mese e poi i <strong>Parametri di calcolo</strong>.</p>
+          </div>
+          <div class="block">
+            <h3>Parametri di calcolo</h3>
+            <p>Qui puoi aggiornare tariffe, indennita' e trattenute. I parametri sono personali: modificandoli sistemi il tuo calcolo senza cambiare quello degli altri utenti.</p>
+          </div>
+          <div class="block">
+            <h3>Quando usare questi dati</h3>
+            <p class="note">Usali come controllo operativo e stima. Per verifiche ufficiali fa sempre fede la busta paga aziendale o il sistema amministrativo di riferimento.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="team">
+        <h2>Turni team</h2>
+        <div class="body">
+          <div class="block">
+            <h3>Come leggere la tabella</h3>
+            <ul>
+              <li>Ogni riga rappresenta un giorno.</li>
+              <li>Ogni operatore ha celle con turno base e, quando presente, variante.</li>
+              <li>Le colonne di destra riepilogano reperibili e coperture particolari.</li>
+              <li>Colori, sigle e marcatori aiutano a distinguere turni, ferie, reperibilita', smart working e richieste.</li>
+            </ul>
+          </div>
+          <div class="block">
+            <h3>Esportare il mese</h3>
+            <p>Usa <strong>PDF mese</strong> per generare una copia stampabile della tabella team del mese selezionato.</p>
+          </div>
+          <div class="block">
+            <h3>Notifiche</h3>
+            <p>La campanella mostra avvisi su richieste ferie, cambi turno, feedback e azioni da controllare. Se una notifica apre una pagina, cliccandola vieni portato al punto corretto.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="richieste">
+        <h2>Ferie e cambi turno</h2>
+        <div class="body">
+          <div class="block">
+            <h3>Richiedere ferie, ex-fest o ROT</h3>
+            <ol>
+              <li>Apri <strong>Team</strong>.</li>
+              <li>Premi <strong>Ferie</strong>.</li>
+              <li>Seleziona uno o piu' giorni.</li>
+              <li>Scegli il tipo richiesta: ferie, ex-fest o ROT.</li>
+              <li>Aggiungi una nota se serve.</li>
+              <li>Premi <strong>Invia</strong>.</li>
+            </ol>
+            <p class="note">La richiesta non modifica definitivamente la tabella finche' un editor o admin non la approva.</p>
+          </div>
+          <div class="block">
+            <h3>Richiedere un cambio turno</h3>
+            <ol>
+              <li>Premi <strong>Cambio turno</strong>.</li>
+              <li>Seleziona il tuo turno da scambiare.</li>
+              <li>Seleziona il turno del collega.</li>
+              <li>Invia la richiesta.</li>
+              <li>Il collega accetta o rifiuta. Se accetta, l'editor puo' approvare e applicare lo scambio.</li>
+            </ol>
+          </div>
+          <div class="block">
+            <h3>Stati delle richieste</h3>
+            <ul>
+              <li><strong>In attesa</strong>: la richiesta e' stata inviata ma non ancora decisa.</li>
+              <li><strong>In attesa collega</strong>: per gli scambi, il collega deve ancora rispondere.</li>
+              <li><strong>In attesa editor</strong>: il collega ha accettato e serve applicazione editor.</li>
+              <li><strong>Approvata</strong>: la richiesta e' stata accettata.</li>
+              <li><strong>Rifiutata o annullata</strong>: la richiesta non verra' applicata.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="editor">
+        <h2>Editor team</h2>
+        <div class="body">
+          <div class="block">
+            <h3>Modificare una cella team</h3>
+            <ol>
+              <li>Clicca una cella modificabile.</li>
+              <li>Scegli turno, assenza o sigla.</li>
+              <li>Aggiungi flag come reperibilita', minimo servizio, facoltativo o smart working se necessario.</li>
+              <li>Premi <strong>Conferma</strong>. Usa <strong>Cancella</strong> per svuotare la cella.</li>
+            </ol>
+          </div>
+          <div class="block">
+            <h3>Operatori e template</h3>
+            <p><strong>Imposta operatori</strong> definisce nomi e ordine delle colonne. <strong>Carica template settimana</strong> imposta una settimana ciclica da usare come base di pianificazione.</p>
+          </div>
+          <div class="block">
+            <h3>Log modifiche</h3>
+            <p>Il log e' il punto di controllo: mostra modifiche ai turni, richieste ferie e scambi. Prima di approvare, leggi sempre date, operatore e tipo richiesta.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="admin">
+        <h2>Admin</h2>
+        <div class="body">
+          <div class="block">
+            <h3>Utenti e ruoli</h3>
+            <p>Da <strong>Admin</strong> puoi assegnare o rimuovere ruoli, resettare password ed eliminare utenti. Usa i ruoli con criterio: admin gestisce configurazioni globali, editor modifica operativita' team.</p>
+          </div>
+          <div class="block">
+            <h3>Collegamenti operatori</h3>
+            <p>Collega ogni account alla corretta posizione operatore. Questo abilita richieste personali e rende chiaro a quale persona appartiene una richiesta.</p>
+          </div>
+          <div class="block">
+            <h3>Tabelle turni personali</h3>
+            <p>Le tabelle create dagli admin diventano modelli che gli utenti possono importare nel proprio calendario. Dai nomi chiari, per esempio reparto, anno o ciclo.</p>
+          </div>
+          <div class="block">
+            <h3>Manutenzione</h3>
+            <p>Le funzioni di pulizia DB servono per rimuovere dati storici, non per correggere un errore operativo minuto per minuto. Prima di cancellare richieste o log, verifica cosa vuoi conservare.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="feedback">
+        <h2>Feedback e segnalazioni</h2>
+        <div class="body">
+          <div class="block">
+            <h3>Inviare una segnalazione</h3>
+            <ol>
+              <li>Apri il menu utente in alto.</li>
+              <li>Premi <strong>Invia feedback</strong>.</li>
+              <li>Scrivi il problema, il dubbio o la proposta.</li>
+              <li>Premi <strong>Invia</strong>.</li>
+            </ol>
+          </div>
+          <div class="block">
+            <h3>Cosa scrivere in un buon feedback</h3>
+            <ul>
+              <li>La pagina dove eri: Calendario, Team, Admin, Busta Paga.</li>
+              <li>Cosa stavi cercando di fare.</li>
+              <li>Cosa e' successo o cosa non era chiaro.</li>
+              <li>Se riguarda una data o un operatore, indicarlo nel testo.</li>
+            </ul>
+          </div>
+          <div class="block">
+            <h3>Dove lo vedono gli admin</h3>
+            <p>Gli admin trovano le segnalazioni in <strong>Admin &gt; Feedback utenti</strong>. I feedback nuovi possono essere segnati come letti dopo la presa visione.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="dubbi">
+        <h2>Dubbi frequenti</h2>
+        <div class="body">
+          <div class="block">
+            <h3>Non vedo Ferie o Cambio turno</h3>
+            <p>Probabilmente il tuo account non e' collegato a un operatore team. Chiedi a un admin di controllare il collegamento.</p>
+          </div>
+          <div class="block">
+            <h3>Ho inviato una richiesta ma non cambia la tabella</h3>
+            <p>E' normale: una richiesta e' una proposta. La tabella cambia quando un editor o admin la approva e la applica.</p>
+          </div>
+          <div class="block">
+            <h3>La busta paga sembra sbagliata</h3>
+            <p>Controlla tre cose: turni del mese, orari modificati e parametri economici. Un turno mancante o una tariffa non aggiornata cambia il risultato.</p>
+          </div>
+          <div class="block">
+            <h3>Non vedo Admin</h3>
+            <p>Il pannello Admin e' disponibile solo agli utenti con ruolo admin.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<nav class="bottom-nav"><div class="bottom-nav-inner">
+  <a href="/"><span class="icon">🗓</span><span>Turni</span></a>
+  <a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a>
+  <a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a>
+  <a href="/turni-team.html"><span class="icon">👥</span><span>Team</span></a>
+  <a href="/guida.html" class="active"><span class="icon">📘</span><span>Guida</span></a>
+  <a href="/admin.html" id="adminMobileBtn" class="admin-link"><span class="icon">🔧</span><span>Admin</span></a>
+</div></nav>
+
+<script>
+function getToken() { return localStorage.getItem('token'); }
+function isAdminFlag() { return localStorage.getItem('is_admin') === 'true'; }
+async function fetchCurrentUserOrNull() {
+  try {
+    const token = getToken();
+    const res = await fetch('/api/auth/me', { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+(async function initGuide() {
+  if (!getToken()) { window.location.href = '/login.html'; return; }
+  const adminLink = document.getElementById('adminNavLink');
+  const adminMobile = document.getElementById('adminMobileBtn');
+  let isAdmin = isAdminFlag();
+  const user = await fetchCurrentUserOrNull();
+  if (user) {
+    isAdmin = !!user.is_admin;
+    localStorage.setItem('is_admin', isAdmin ? 'true' : 'false');
+  }
+  if (adminLink) adminLink.style.display = isAdmin ? 'inline-flex' : 'none';
+  if (adminMobile) adminMobile.style.display = isAdmin ? 'flex' : 'none';
+})();
+</script>
+<script src="/notifications-common.js"></script>
+</body>
+</html>
