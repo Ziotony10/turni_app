@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#3B82F6">
 <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/icon-192.png">
-<title>Turni Team – Gestione Turni</title>
+<title>Quadro Turni - Gestione Turni</title>
 <style>
   :root {
     --bg:#0F172A; --card:#1E293B; --card2:#263348; --border:#334155;
@@ -16,7 +16,7 @@
   * { box-sizing:border-box; margin:0; padding:0; }
   body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
 
-  /* ── HEADER ── */
+  /* -- HEADER -- */
   header { background:var(--card); border-bottom:1px solid var(--border); height:56px; padding:0 20px; display:flex; align-items:center; gap:12px; position:sticky; top:0; z-index:20; flex-shrink:0; }
   .page-title { width:230px; min-width:230px; font-size:1.05rem; font-weight:700; color:var(--text); white-space:nowrap; flex-shrink:0; }
   .page-title span { color:var(--accent); }
@@ -42,7 +42,7 @@
   .ud-item.danger:hover { background:rgba(239,68,68,.1); }
   .ud-sep { height:1px; background:var(--border); margin:2px 0; }
   
-  /* ── NOTIFICATIONS ── */
+  /* -- NOTIFICATIONS -- */
   .notif-bell { position:relative; cursor:pointer; padding:6px; border-radius:8px; background:var(--card2); border:1px solid var(--border); color:var(--muted); display:flex; align-items:center; justify-content:center; height:32px; width:32px; transition:all .15s; }
   .notif-bell:hover { background:#2d3f55; color:var(--text); }
   .notif-badge { position:absolute; top:-4px; right:-4px; background:#ef4444; color:white; font-size:0.65rem; font-weight:800; min-width:16px; height:16px; border-radius:999px; display:none; align-items:center; justify-content:center; border:2px solid var(--card); }
@@ -62,14 +62,14 @@
   .notif-time { font-size:0.65rem; color:var(--muted); margin-top:6px; }
   .notif-empty { padding:30px; text-align:center; color:var(--muted); font-size:0.8rem; }
 
-  /* ── MONTH TABS ROW ── */
+  /* -- MONTH TABS ROW -- */
   .month-tabs-row { display:flex; align-items:center; background:var(--card); border-bottom:1px solid var(--border); flex-shrink:0; min-height:46px; }
   .month-tabs { display:flex; gap:4px; padding:8px 16px; overflow-x:auto; flex:1; align-items:center; scrollbar-width:none; }
   .month-tabs::-webkit-scrollbar { display:none; }
   .month-tab { padding:5px 12px; border-radius:20px; cursor:pointer; font-size:0.82rem; font-weight:600; border:1px solid transparent; transition:all .15s; white-space:nowrap; color:var(--muted); }
   .month-tab:hover { color:var(--text); background:var(--card2); }
   .month-tab.active { background:var(--accent); color:white; border-color:var(--accent); }
-  /* ── FERIE INLINE ── */
+  /* -- FERIE INLINE -- */
   .ferie-inline { display:flex; align-items:center; gap:7px; padding:0 14px 0 10px; border-left:1px solid var(--border); flex-shrink:0; }
   .btn-pdf {
     display:inline-flex; align-items:center; gap:6px;
@@ -114,7 +114,7 @@
   .swap-target-selected { border-color:#10b981 !important; box-shadow:0 0 0 2px rgba(16,185,129,.4) !important; background:rgba(16,185,129,.1) !important; }
   .swap-target-disabled { cursor:not-allowed !important; opacity:0.5 !important; background: repeating-linear-gradient(45deg, #f1f5f9, #f1f5f9 5px, #e2e8f0 5px, #e2e8f0 10px) !important; }
 
-  /* ── TABELLA TEAM ── */
+  /* -- TABELLA TEAM -- */
   .table-wrap {
     --date-w:50px; --day-w:32px; --sep-w:2px; --side-w:24px; --slot-w:42px;
     --slot-font:0.72rem; --slot-var-font:0.8rem; --op-name-font:0.62rem;
@@ -253,8 +253,21 @@
   }
   .cella-base-sbarrata.editable { cursor:pointer; }
   .cella-base-sbarrata.editable:hover { background:rgba(59,130,246,0.08); border-color:rgba(59,130,246,0.3); }
+  .cella.var-diag { position:relative; overflow:hidden; }
+  .cella.var-diag::after {
+    content:'';
+    position:absolute;
+    left:-12%;
+    top:50%;
+    width:124%;
+    border-top:2px dashed #FF0000;
+    transform:rotate(-19deg);
+    transform-origin:center center;
+    pointer-events:none;
+    opacity:.95;
+  }
 
-  /* Modificatori inline (ordine: m/f → ® → #) */
+  /* Modificatori inline (ordine: m/f - ® - #) */
   .mf-inline {
     font-size:0.58rem; font-weight:500; color:#334155; margin-left:0; line-height:1;
     position:relative; top:-0.38em;
@@ -263,7 +276,7 @@
     font-size:0.68rem; margin-left:0; line-height:1;
     position:relative; top:-0.38em;
   }
-  /* Smart # inline — stessa dimensione del testo turno */
+  /* Smart # inline - stessa dimensione del testo turno */
   .smart-inline { font-size:0.78rem; font-weight:900; color:#FF0000; margin-left:0; line-height:1; }
 
   /* Colonne destra */
@@ -278,16 +291,20 @@
     box-shadow:inset 1px 0 0 rgba(255,255,255,0.34), inset -1px 0 0 rgba(255,255,255,0.34);
   }
 
-  /* ── TURNO PICKER REDESIGN ── */
+  /* -- TURNO PICKER REDESIGN -- */
   .turno-picker {
     position:fixed; z-index:500;
     background:linear-gradient(155deg, #0d1b2e 0%, #162033 60%, #1a2d45 100%);
     border:1px solid rgba(99,115,140,0.4);
     border-radius:18px;
-    padding:16px;
+    padding:14px;
     box-shadow:0 24px 48px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,0.04) inset;
-    width:296px;
-    display:flex; flex-direction:column; gap:12px;
+    width:318px;
+    max-width:calc(100vw - 20px);
+    max-height:calc(100vh - 20px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    display:flex; flex-direction:column; gap:10px;
   }
 
   /* Preview bar */
@@ -337,6 +354,12 @@
   .sb-sp { background:rgba(30,41,59,0.7);   border-color:rgba(71,85,105,0.35); color:#7a8fa8; }
   .sb-sp:hover,.sb-sp.active{ background:rgba(51,65,85,0.85); border-color:#60a5fa; color:#cbd5e1; }
 
+  .sb-min { background:rgba(20,184,166,0.16); border-color:rgba(45,212,191,0.28); color:#7dd3fc; }
+  .sb-min:hover,.sb-min.active { background:rgba(20,184,166,0.3); border-color:#2dd4bf; color:#ccfbf1; box-shadow:0 0 10px rgba(45,212,191,0.18); }
+
+  .sb-fac { background:rgba(132,204,22,0.14); border-color:rgba(163,230,53,0.28); color:#bef264; }
+  .sb-fac:hover,.sb-fac.active { background:rgba(132,204,22,0.28); border-color:#a3e635; color:#ecfccb; box-shadow:0 0 10px rgba(163,230,53,0.16); }
+
 
   /* Modifier chips */
   .mod-chips { display:flex; gap:5px; flex-wrap:wrap; }
@@ -349,10 +372,18 @@
     cursor:pointer; transition:all 0.15s; user-select:none;
   }
   .mod-chip:hover { border-color:rgba(100,116,139,0.7); color:#7a92aa; }
+  .mod-chip:disabled { opacity:.35; cursor:not-allowed; }
+  .mod-chip:disabled:hover { border-color:rgba(71,85,105,0.4); color:#4e627a; }
   .mod-chip.chip-smart { color:#fb923c; border-color:rgba(251,146,60,0.5); background:rgba(251,146,60,0.1); }
   .mod-chip.chip-rep   { color:#facc15; border-color:rgba(250,204,21,0.5); background:rgba(250,204,21,0.08); }
   .mod-chip.chip-F     { color:#a3e635; border-color:rgba(163,230,53,0.5); background:rgba(163,230,53,0.08); }
   .mod-chip.chip-M     { color:#34d399; border-color:rgba(52,211,153,0.5); background:rgba(52,211,153,0.08); }
+  .mod-chip.chip-diag  { color:#f87171; border-color:rgba(248,113,113,0.55); background:rgba(248,113,113,0.1); }
+  .diag-chip { width:50px; height:30px; justify-content:center; padding:0; border-radius:8px; }
+  .diag-icon {
+    width:30px; height:20px; border:1px solid currentColor; border-radius:3px;
+    background:linear-gradient(135deg, transparent 43%, red 44%, red 56%, transparent 57%);
+  }
 
   /* Action buttons */
   .picker-actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:7px; }
@@ -368,7 +399,7 @@
   .picker-btn-cancel { background:rgba(239,68,68,0.08); color:#f87171; border:1px solid rgba(239,68,68,0.25); }
   .picker-btn-cancel:hover { background:rgba(239,68,68,0.16); border-color:rgba(239,68,68,0.45); }
 
-  /* ── EDITOR BAR ── */
+  /* -- EDITOR BAR -- */
   .editor-bar { background:var(--card); border-bottom:1px solid var(--border); padding:8px 20px; display:flex; align-items:center; gap:10px; font-size:0.82rem; flex-shrink:0; }
   .editor-badge { background:rgba(245,158,11,.15); color:#F59E0B; border:1px solid rgba(245,158,11,.3); border-radius:6px; padding:3px 10px; font-size:0.75rem; font-weight:700; }
   .btn-editor { background:var(--card2); border:1px solid var(--border); color:var(--muted); border-radius:8px; padding:5px 14px; cursor:pointer; font-size:0.8rem; transition:all .15s; }
@@ -437,7 +468,7 @@
   .ferie-date-chip { display:inline-flex; align-items:center; padding:4px 8px; border-radius:999px; background:rgba(30,41,59,.9); border:1px solid rgba(100,116,139,.28); color:#dbeafe; font-size:0.72rem; font-weight:700; }
   .ferie-group-history { font-size:0.7rem; color:var(--muted); margin-top:10px; }
 
-  /* ── SETUP OPERATORI ── */
+  /* -- SETUP OPERATORI -- */
   .setup-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:400; align-items:center; justify-content:center; }
   .setup-overlay.open { display:flex; }
   .setup-modal { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:28px; width:500px; max-width:95vw; max-height:85vh; overflow-y:auto; }
@@ -447,7 +478,7 @@
   .op-row input:focus { border-color:var(--accent); }
   .op-pos { width:28px; text-align:center; font-size:0.78rem; color:var(--muted); font-weight:700; flex-shrink:0; }
 
-  /* ── TEMPLATE ── */
+  /* -- TEMPLATE -- */
   .template-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:400; align-items:center; justify-content:center; }
   .template-overlay.open { display:flex; }
   .template-modal { background:linear-gradient(145deg, #111827, #1f2937); border:1px solid rgba(148,163,184,.5); border-radius:18px; padding:20px; width:1100px; max-width:97vw; max-height:88vh; overflow-y:auto; box-shadow:0 18px 38px rgba(0,0,0,.6); }
@@ -482,10 +513,10 @@
   .template-actions .btn.primary { background:#0ea5e9; color:white; border-color:#0284c7; }
   .template-actions .btn.primary:hover { background:#0284c7; }
 
-  /* ── LOG PANEL ── */
+  /* -- LOG PANEL -- */
   #logPanel { display:none; position:fixed; right:0; top:56px; bottom:64px; width:380px; background:var(--card); border-left:1px solid var(--border); z-index:30; overflow-y:auto; padding:16px; box-shadow:-18px 0 40px rgba(0,0,0,.26); }
 
-  /* ── BOTTOM NAV ── */
+  /* -- BOTTOM NAV -- */
   .bottom-nav { display:none; position:fixed; bottom:0; left:0; right:0; z-index:50; background:var(--card); border-top:1px solid var(--border); padding:6px 0 env(safe-area-inset-bottom,8px); }
   .bottom-nav-inner { display:flex; justify-content:space-around; align-items:stretch; }
   .bottom-nav a { display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--muted); text-decoration:none; font-size:0.65rem; font-weight:600; padding:6px 4px; flex:1; text-align:center; min-width:0; margin:0 2px; border-radius:8px; transition:color .15s; }
@@ -526,7 +557,7 @@
   ::-webkit-scrollbar-thumb { background:rgba(71,85,105,.72); border-radius:999px; }
   ::-webkit-scrollbar-thumb:hover { background:#64748b; }
 
-  /* ── PRINT PREVIEW MODAL ── */
+  /* -- PRINT PREVIEW MODAL -- */
   .print-preview-overlay {
     display:none; position:fixed; inset:0; background:rgba(0,0,0,.72);
     z-index:600; align-items:center; justify-content:center;
@@ -554,7 +585,7 @@
   .print-preview-paper {
     background:white; box-shadow:0 8px 32px rgba(0,0,0,.5);
     position:relative; overflow:hidden;
-    /* A4 landscape ratio: 297x210 → 1.414 aspect */
+    /* A4 landscape ratio: 297x210 - 1.414 aspect */
     width:560px; min-height:396px;
     transform-origin:top center;
   }
@@ -611,12 +642,12 @@
 <body>
 
 <header>
-  <div class="page-title">👥 Turni <span>Team</span></div>
+  <div class="page-title">Turni <span>Team</span></div>
   <nav class="top-nav">
     <a href="/">📅 Calendario</a>
     <a href="/riepilogo.html">📊 Riepilogo</a>
     <a href="/bustapaga.html">💶 Busta Paga</a>
-    <a href="#" onclick="return false;" class="nav-active">👥 Team</a>
+    <a href="#" onclick="return false;" class="nav-active">👥 Quadro Turni</a>
     <a href="/admin.html" id="adminNavLink">🔧 Admin</a>
   </nav>
   <div class="header-controls">
@@ -630,7 +661,7 @@
         <span style="font-size:0.65rem;color:var(--muted)">▼</span>
       </button>
       <div class="user-dropdown" id="userDropdown">
-        <div class="ud-header"><strong id="udName">—</strong><span id="udUsername"></span></div>
+        <div class="ud-header"><strong id="udName">-</strong><span id="udUsername"></span></div>
         <div class="ud-item" onclick="window.location.href='/impostazioni.html'">👤 Impostazioni account</div>
         <div class="ud-sep"></div>
         <div class="ud-item danger" onclick="logout()">↩ Esci</div>
@@ -662,8 +693,8 @@
     <span class="ferie-inline-hint" id="ferieModeHint"></span>
     <span class="swap-inline-hint" id="swapModeHint"></span>
 
-    <button class="btn-ferie" id="ferieToggleBtn" style="display:none" onclick="toggleFerieMode()">📅 Ferie</button>
-    <button class="btn-swap" id="swapToggleBtn" style="display:none" onclick="toggleSwapMode()">🔄 Cambio turno</button>
+    <button class="btn-ferie" id="ferieToggleBtn" style="display:none" onclick="toggleFerieMode()">Ferie</button>
+    <button class="btn-swap" id="swapToggleBtn" style="display:none" onclick="toggleSwapMode()">Cambio turno</button>
     
     <div class="ferie-extra-fields" id="ferieExtraFields">
       <select id="ferieRequestType">
@@ -676,104 +707,107 @@
 
     <button class="btn-editor primary" id="ferieSubmitBtn" style="display:none" onclick="submitFerieRequest()">Invia</button>
     <button class="btn-editor primary" id="swapSubmitBtn" style="display:none" onclick="submitSwapRequest()" disabled>Invia</button>
-    <button class="btn-editor" id="ferieCancelBtn" style="display:none" onclick="cancelFerieMode()">✕ Annulla</button>
-    <button class="btn-editor" id="swapCancelBtn" style="display:none" onclick="cancelSwapMode()">✕ Annulla</button>
+    <button class="btn-editor" id="ferieCancelBtn" style="display:none" onclick="cancelFerieMode()">Annulla</button>
+    <button class="btn-editor" id="swapCancelBtn" style="display:none" onclick="cancelSwapMode()">Annulla</button>
   </div>
 </div>
 
 <div class="editor-bar" id="editorBar" style="display:none">
-  <span class="editor-badge">✏️ Modalità Editor</span>
-  <button class="btn-editor" onclick="openSetupOperatori()">👥 Imposta operatori</button>
-  <button class="btn-editor primary" onclick="openTemplate()">📋 Carica template settimana</button>
-  <button class="btn-editor pending" onclick="toggleLog()" id="logBtn">📋 Log modifiche <span id="ferieAlertBadge" class="nav-badge"></span></button>
+  <span class="editor-badge">Modalita Editor</span>
+  <button class="btn-editor" onclick="openSetupOperatori()">Imposta operatori</button>
+  <button class="btn-editor primary" onclick="openTemplate()">Carica template settimana</button>
+  <button class="btn-editor pending" onclick="toggleLog()" id="logBtn">Log modifiche <span id="ferieAlertBadge" class="nav-badge"></span></button>
   <span style="font-size:0.75rem;color:var(--muted)" id="lastSaveLabel"></span>
 </div>
 
 <div class="table-wrap" id="tableWrap">
-  <div style="text-align:center;padding:60px;color:var(--muted)">Caricamento…</div>
+  <div style="text-align:center;padding:60px;color:var(--muted)">Caricamento...</div>
 </div>
 
-<!-- ═══════════════════════════════════════════════════════════
-     TURNO PICKER — Redesign
-═══════════════════════════════════════════════════════════ -->
+<!-- �?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?�
+     TURNO PICKER - Redesign
+�?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?��?� -->
 <div id="turnoPicker" class="turno-picker" style="display:none" onclick="event.stopPropagation()">
 
   <!-- Preview -->
   <div class="picker-preview">
     <span class="picker-preview-label">Turno</span>
-    <div class="picker-preview-value" id="pickerPreview">—</div>
+    <div class="picker-preview-value" id="pickerPreview">-</div>
     <span class="picker-preview-col" id="pickerColLabel">BASE</span>
   </div>
 
-  <!-- Mattino -->
   <div>
-    <div class="picker-section">Mattino</div>
+    <div class="picker-section">Minimi di servizio</div>
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
-      <button class="sb sb-m" data-t="7-15"  onclick="pickerSetTurno('7-15',this)">7–15</button>
-      <button class="sb sb-m" data-t="8-16"  onclick="pickerSetTurno('8-16',this)">8–16</button>
-      <button class="sb sb-m" data-t="9-17"  onclick="pickerSetTurno('9-17',this)">9–17</button>
-      <button class="sb sb-m" data-t="11-19" onclick="pickerSetTurno('11-19',this)">11–19</button>
+      <button class="sb sb-min" data-t="7-15"  data-flag="M" onclick="pickerSetTurnoConFlag('7-15','M',this)">7-15m</button>
+      <button class="sb sb-min" data-t="8-16"  data-flag="M" onclick="pickerSetTurnoConFlag('8-16','M',this)">8-16m</button>
+      <button class="sb sb-min" data-t="9-17"  data-flag="M" onclick="pickerSetTurnoConFlag('9-17','M',this)">9-17m</button>
+      <button class="sb sb-min" data-t="11-19" data-flag="M" onclick="pickerSetTurnoConFlag('11-19','M',this)">11-19m</button>
+      <button class="sb sb-min" data-t="15-23" data-flag="M" onclick="pickerSetTurnoConFlag('15-23','M',this)">15-23m</button>
+      <button class="sb sb-min" data-t="23-7"  data-flag="M" onclick="pickerSetTurnoConFlag('23-7','M',this)">23-7m</button>
     </div>
   </div>
 
-  <!-- Pomeriggio + Notte -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-    <div>
-      <div class="picker-section">Pomeriggio</div>
-      <button class="sb sb-p" data-t="15-23" onclick="pickerSetTurno('15-23',this)" style="width:100%;padding:10px">15–23</button>
-    </div>
-    <div>
-      <div class="picker-section">Notte</div>
-      <button class="sb sb-n" data-t="23-7" onclick="pickerSetTurno('23-7',this)" style="width:100%;padding:10px">23–7</button>
+  <div>
+    <div class="picker-section">Facoltativi</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+      <button class="sb sb-fac" data-t="7-15"  data-flag="F" onclick="pickerSetTurnoConFlag('7-15','F',this)">7-15f</button>
+      <button class="sb sb-fac" data-t="8-16"  data-flag="F" onclick="pickerSetTurnoConFlag('8-16','F',this)">8-16f</button>
+      <button class="sb sb-fac" data-t="9-17"  data-flag="F" onclick="pickerSetTurnoConFlag('9-17','F',this)">9-17f</button>
+      <button class="sb sb-fac" data-t="11-19" data-flag="F" onclick="pickerSetTurnoConFlag('11-19','F',this)">11-19f</button>
+      <button class="sb sb-fac" data-t="15-23" data-flag="F" onclick="pickerSetTurnoConFlag('15-23','F',this)">15-23f</button>
+      <button class="sb sb-fac" data-t="23-7"  data-flag="F" onclick="pickerSetTurnoConFlag('23-7','F',this)">23-7f</button>
     </div>
   </div>
 
-  <!-- Speciali -->
   <div>
-    <div class="picker-section">Turni speciali</div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px">
+    <div class="picker-section">Richieste e Permessi</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
       <button class="sb sb-rc" data-t="RC"      onclick="pickerSetTurno('RC',this)">RC</button>
       <button class="sb sb-r"  data-t="R"       onclick="pickerSetTurno('R',this)">R</button>
       <button class="sb sb-sp" data-t="ROT"     onclick="pickerSetTurno('ROT',this)">ROT</button>
-      <button class="sb sb-r"  data-t="RF"      onclick="pickerSetTurno('RF',this)">RF</button>
       <button class="sb sb-sp" data-t="F"       onclick="pickerSetTurno('F',this)">F</button>
-      <button class="sb sb-sp" data-t="EX FEST" onclick="pickerSetTurno('EX FEST',this)">EX F.</button>
+      <button class="sb sb-sp" data-t="EX FEST" onclick="pickerSetTurno('EX FEST',this)">EX FEST.</button>
+      <span></span>
       <button class="sb sb-sp" data-t="MAL"     onclick="pickerSetTurno('MAL',this)">MAL</button>
       <button class="sb sb-sp" data-t="LUTTO"   onclick="pickerSetTurno('LUTTO',this)">LUTTO</button>
     </div>
   </div>
 
-  <!-- Modificatori -->
   <div>
-    <div class="picker-section">Modificatori</div>
+    <div class="picker-section">Rep e Smart</div>
     <div class="mod-chips">
-      <button class="mod-chip" id="modRep"   onclick="pickerToggleFlag('rep',event)"   title="Reperibilità">🟡 Rep ®</button>
-      <button class="mod-chip" id="modM"     onclick="pickerToggleFlag('M',event)"     title="Minimo Servizio">ᴹ Min.S.</button>
-      <button class="mod-chip" id="modF"     onclick="pickerToggleFlag('F',event)"     title="Facoltativo">ᶠ Facolt.</button>
-      <button class="mod-chip" id="modSmart" onclick="pickerToggleFlag('smart',event)" title="Smart Working → appare su VAR">🟠 Smart #</button>
+      <button class="mod-chip" id="modRep"   onclick="pickerToggleFlag('rep',event)"   title="Reperibilita"><span style="color:#facc15">🟡</span> Rep &reg;</button>
+      <button class="mod-chip" id="modSmart" onclick="pickerToggleFlag('smart',event)" title="Smart Working"><span style="color:#fb923c">🟠</span> Smart #</button>
+    </div>
+  </div>
+  <div>
+    <div class="picker-section">Simboli</div>
+    <div class="mod-chips">
+      <button class="mod-chip diag-chip" id="modDiag" onclick="pickerToggleFlag('diag',event)" title="Diagonale su VAR" aria-label="Diagonale su VAR"><span class="diag-icon"></span></button>
     </div>
   </div>
 
   <!-- Azioni -->
   <div class="picker-actions">
-    <button class="picker-btn picker-btn-confirm" onclick="pickerConferma()">✅ Conferma</button>
+    <button class="picker-btn picker-btn-confirm" onclick="pickerConferma()">Conferma</button>
     <button class="picker-btn picker-btn-secondary" onclick="pickerAnnulla()">Annulla</button>
-    <button class="picker-btn picker-btn-cancel"  onclick="pickerCancella()">✕ Cancella</button>
+    <button class="picker-btn picker-btn-cancel"  onclick="pickerCancella()">Cancella</button>
   </div>
 </div>
 
 <!-- SETUP OPERATORI -->
 <div class="setup-overlay" id="setupOverlay">
   <div class="setup-modal">
-    <h2>👥 Imposta operatori</h2>
+    <h2>Imposta operatori</h2>
     <p id="setupHelpText" style="font-size:0.82rem;color:var(--muted);margin-bottom:16px">Inserisci i nomi degli operatori nell'ordine delle colonne della tabella.</p>
     <div id="opRows"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap">
-      <button class="btn-editor" onclick="removeOperatoreRow()">➖ Rimuovi posizione</button>
-      <button class="btn-editor" onclick="addOperatoreRow()">➕ Aggiungi posizione</button>
+      <button class="btn-editor" onclick="removeOperatoreRow()">- Rimuovi posizione</button>
+      <button class="btn-editor" onclick="addOperatoreRow()">- Aggiungi posizione</button>
     </div>
     <div style="display:flex;gap:10px;margin-top:20px">
-      <button class="btn-editor primary" onclick="saveOperatori()">💾 Salva</button>
+      <button class="btn-editor primary" onclick="saveOperatori()">Salva</button>
       <button class="btn-editor" onclick="document.getElementById('setupOverlay').classList.remove('open')">Annulla</button>
     </div>
   </div>
@@ -790,8 +824,8 @@
 <div class="template-overlay" id="templateOverlay">
   <div class="template-modal">
     <div class="template-header">
-      <h2>📋 Carica template settimana ciclico</h2>
-      <button class="close-btn" onclick="document.getElementById('templateOverlay').classList.remove('open')">✕ Chiudi</button>
+      <h2>Carica template settimana ciclico</h2>
+      <button class="close-btn" onclick="document.getElementById('templateOverlay').classList.remove('open')">Chiudi</button>
     </div>
     <div class="template-meta">
       Inserisci i turni per ogni giorno della settimana e, se vuoi, anche le posizioni dei reperibili e delle festivita da ruotare automaticamente.<br>
@@ -802,13 +836,13 @@
       <input id="tpl_start_date" type="date" class="tpl-date-input"/>
       <label style="font-size:0.87rem;color:#cbd5e1;font-weight:700;white-space:nowrap">Fine ciclo:</label>
       <input id="tpl_end_date" type="date" class="tpl-date-input"/>
-      <span style="font-size:0.78rem;color:#a5b4fc;white-space:nowrap">Il ciclo sarà applicato solo in questo intervallo.</span>
+      <span style="font-size:0.78rem;color:#a5b4fc;white-space:nowrap">Il ciclo sara applicato solo in questo intervallo.</span>
     </div>
     <table class="template-table">
       <thead>
         <tr>
-          <th>Pos.</th><th>Lunedì</th><th>Martedì</th><th>Mercoledì</th>
-          <th>Giovedì</th><th>Venerdì</th><th>Sabato</th><th>Domenica</th>
+          <th>Pos.</th><th>Lunedi</th><th>Martedi</th><th>Mercoledi</th>
+          <th>Giovedi</th><th>Venerdi</th><th>Sabato</th><th>Domenica</th>
         </tr>
       </thead>
       <tbody id="templateTableBody"></tbody>
@@ -816,8 +850,8 @@
     <table class="template-rep-table">
       <thead>
         <tr>
-          <th>Col.</th><th>Lunedì</th><th>Martedì</th><th>Mercoledì</th>
-          <th>Giovedì</th><th>Venerdì</th><th>Sabato</th><th>Domenica</th>
+          <th>Col.</th><th>Lunedi</th><th>Martedi</th><th>Mercoledi</th>
+          <th>Giovedi</th><th>Venerdi</th><th>Sabato</th><th>Domenica</th>
         </tr>
       </thead>
       <tbody id="templateRepTableBody"></tbody>
@@ -826,16 +860,16 @@
     <table class="template-rep-table">
       <thead>
         <tr>
-          <th>Col.</th><th>Lunedì</th><th>Martedì</th><th>Mercoledì</th>
-          <th>Giovedì</th><th>Venerdì</th><th>Sabato</th><th>Domenica</th>
+          <th>Col.</th><th>Lunedi</th><th>Martedi</th><th>Mercoledi</th>
+          <th>Giovedi</th><th>Venerdi</th><th>Sabato</th><th>Domenica</th>
         </tr>
       </thead>
       <tbody id="templateFestTableBody"></tbody>
     </table>
     <div class="template-actions">
-      <button class="btn primary" onclick="saveTemplate()">💾 Salva template</button>
-      <button class="btn" onclick="document.getElementById('templateOverlay').classList.remove('open')">✕ Annulla</button>
-      <button class="btn" onclick="clearTemplateDateRange()" style="background:#334155;color:#e2e8f0;border-color:#1e293b">♻️ Reset date</button>
+      <button class="btn primary" onclick="saveTemplate()">Salva template</button>
+      <button class="btn" onclick="document.getElementById('templateOverlay').classList.remove('open')">Annulla</button>
+      <button class="btn" onclick="clearTemplateDateRange()" style="background:#334155;color:#e2e8f0;border-color:#1e293b">�?�️ Reset date</button>
     </div>
     <div id="templateResult" style="margin-top:12px;font-size:0.85rem;color:#d1d5db"></div>
   </div>
@@ -844,27 +878,27 @@
 <!-- LOG PANEL -->
 <div id="logPanel">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-    <h3 style="font-size:0.9rem;font-weight:700">📋 Log</h3>
-    <button onclick="toggleLog()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">✕</button>
+    <h3 style="font-size:0.9rem;font-weight:700">Log</h3>
+    <button onclick="toggleLog()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:1.1rem">x</button>
   </div>
   <!-- Tab switcher -->
   <div style="display:flex;gap:4px;margin-bottom:12px;border-bottom:1px solid var(--border);padding-bottom:8px">
     <button id="logTabTurni" onclick="switchLogTab('turni')"
       style="background:var(--accent);color:white;border:none;border-radius:6px;padding:5px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all .15s">
-      ✏️ Turni
+      Turni
     </button>
     <button id="logTabFerie" onclick="switchLogTab('ferie')"
       style="background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all .15s">
-      📅 Ferie <span id="ferieTabBadge" class="tab-badge"></span>
+      Ferie <span id="ferieTabBadge" class="tab-badge"></span>
     </button>
     <button id="logTabScambi" onclick="switchLogTab('scambi')"
       style="background:var(--card2);color:var(--muted);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:0.75rem;font-weight:700;cursor:pointer;transition:all .15s">
-      🔄 Scambi <span id="scambiTabBadge" class="tab-badge"></span>
+      Scambi <span id="scambiTabBadge" class="tab-badge"></span>
     </button>
   </div>
-  <div id="logContentTurni" style="font-size:0.78rem;color:var(--muted)">Caricamento…</div>
-  <div id="logContentFerie" style="font-size:0.78rem;color:var(--muted);display:none">Caricamento…</div>
-  <div id="logContentScambi" style="font-size:0.78rem;color:var(--muted);display:none">Caricamento…</div>
+  <div id="logContentTurni" style="font-size:0.78rem;color:var(--muted)">Caricamento�?�</div>
+  <div id="logContentFerie" style="font-size:0.78rem;color:var(--muted);display:none">Caricamento�?�</div>
+  <div id="logContentScambi" style="font-size:0.78rem;color:var(--muted);display:none">Caricamento�?�</div>
 </div>
 
 <nav class="bottom-nav">
@@ -872,7 +906,7 @@
     <a href="/"><span class="icon">🗓</span><span>Turni</span></a>
     <a href="/riepilogo.html"><span class="icon">📊</span><span>Riepilogo</span></a>
     <a href="/bustapaga.html"><span class="icon">💶</span><span>Busta</span></a>
-    <a href="/turni-team.html" class="active"><span class="icon">👥</span><span>Team</span></a>
+    <a href="/turni-team.html" class="active"><span class="icon">👥</span><span>Quadro Turni</span></a>
     <a href="/impostazioni.html"><span class="icon">👤</span><span>Account</span></a>
     <a href="/admin.html" id="adminMobileBtn" class="admin-link"><span class="icon">🔧</span><span>Admin</span></a>
   </div>
@@ -891,7 +925,7 @@ let setupOperatorCount = 0;
 
 // Stato picker
 let pickerTarget = null;   // { data, opId, col }
-let pickerFlags  = { smart:false, rep:false, F:false, M:false };
+let pickerFlags  = { smart:false, rep:false, F:false, M:false, diag:false };
 let pickerTurnoSelected = undefined;
 let pickerMode = 'table';          // 'table' | 'template'
 let pickerTemplateTarget = null;   // { dow, pos }
@@ -988,7 +1022,7 @@ function applyResponsiveTeamLayout() {
   wrap.classList.toggle('is-scroll-mode', !isFluidMode);
 }
 
-// ── AUTH ──────────────────────────────────────────────────────────────────────
+// -- AUTH --�
 function getToken() { return localStorage.getItem('token'); }
 function logout()   {
   localStorage.removeItem('token');
@@ -1016,7 +1050,7 @@ window.fetch = function(url, opts={}) {
   });
 };
 
-// ── USER MENU ─────────────────────────────────────────────────────────────────
+// -- USER MENU -----------------------------------------------------------------
 function toggleUserMenu(e) { e.stopPropagation(); document.getElementById('userDropdown').classList.toggle('open'); }
 document.addEventListener('click', () => document.getElementById('userDropdown')?.classList.remove('open'));
 document.addEventListener('click', e => {
@@ -1026,7 +1060,7 @@ document.addEventListener('click', e => {
   if (d && d.classList.contains('open') && !document.getElementById('notifBellBtn').contains(e.target) && !d.contains(e.target)) d.classList.remove('open');
 });
 
-// ── INIT ──────────────────────────────────────────────────────────────────────
+// -- INIT ----------------------------------------------------------------------
 (async function() {
   if (!getToken()) { window.location.href='/login.html'; return; }
   try {
@@ -1296,14 +1330,14 @@ async function loadOperatori() {
   operatori = await fetch('/api/team/operatori').then(r=>r.json()).catch(()=>[]);
 }
 
-// ── RENDER TABELLA ────────────────────────────────────────────────────────────
+// -- RENDER TABELLA ------------------------------------------------------------
 async function load() {
   const wrap = document.getElementById('tableWrap');
-  wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">Caricamento…</div>';
+  wrap.innerHTML = '<div style="text-align:center;padding:60px;color:var(--muted)">Caricamento�?�</div>';
 
   if (operatori.length === 0) {
     wrap.innerHTML = `<div style="text-align:center;padding:60px;color:var(--muted)">
-      <p style="font-size:1rem;margin-bottom:12px">👥 Nessun operatore configurato</p>
+      <p style="font-size:1rem;margin-bottom:12px">Nessun operatore configurato</p>
       ${isEditor ? '<button class="btn-editor primary" onclick="openSetupOperatori()" style="margin:0 auto">Imposta operatori</button>' : '<p>Contatta l\'editor per configurare la tabella.</p>'}
     </div>`;
     return;
@@ -1381,11 +1415,11 @@ async function load() {
     // rep2: secondo reperibile
     // rep3: terzo reperibile
     ['rep1','rep2','rep3'].forEach(k => {
-      html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'—'}</td>`;
+      html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'-'}</td>`;
     });
     html += '<td class="td-sep-destra"></td>';
     ['fest_m1','fest_m2','fest_p1','fest_p2'].forEach(k => {
-      html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'—'}</td>`;
+      html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'-'}</td>`;
     });
     html += '</tr>';
   });
@@ -1420,11 +1454,11 @@ function buildTeamRowHtml(g, idx, totalRows = (datiMese?.giorni?.length || 0)) {
   const cd = g.colonne_destra;
   html += '<td class="td-sep-destra td-sep-fest"></td>';
   ['rep1','rep2','rep3'].forEach(k => {
-    html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'â€”'}</td>`;
+    html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'-'}</td>`;
   });
   html += '<td class="td-sep-destra"></td>';
   ['fest_m1','fest_m2','fest_p1','fest_p2'].forEach(k => {
-    html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'â€”'}</td>`;
+    html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'-'}</td>`;
   });
   html += '</tr>';
   return html;
@@ -1443,7 +1477,7 @@ function refreshTeamRow(dataStr) {
   }
 }
 
-// ── RENDER CELLA ──────────────────────────────────────────────────────────────
+// -- RENDER CELLA --------------------------------------------------------------
 function renderCella(turno, flags, data, opId, col, turnoVar) {
   const isEmpty  = !turno;
   const edClass  = isEditor ? ' editable' : '';
@@ -1460,7 +1494,7 @@ function renderCella(turno, flags, data, opId, col, turnoVar) {
   // Ogni colonna mostra il proprio simbolo di reperibilità in base ai flag dedicati
   const showRep = isRep;
 
-  // Ordine: turno → m → f → ® → #
+  // Ordine: turno - m - f - ® - #
   const mfHtml   = (isM ? '<span class="mf-inline">m</span>' : '') +
                    (isF ? '<span class="mf-inline">f</span>' : '');
   const repIcon  = showRep ? '<span class="cella-rep-icon">®</span>' : '';
@@ -1470,7 +1504,7 @@ function renderCella(turno, flags, data, opId, col, turnoVar) {
 
   // BASE sbarrata quando c'è una variazione
   if (col === 'base' && turnoVar) {
-    if (isEmpty) return `<div class="cella-base-sbarrata${edClass}" ${clickEvt}>—${extras}</div>`;
+    if (isEmpty) return `<div class="cella-base-sbarrata${edClass}" ${clickEvt}>-${extras}</div>`;
     return `<div class="cella-base-sbarrata${edClass}" ${clickEvt}>${turno}${extras}</div>`;
   }
 
@@ -1479,7 +1513,7 @@ function renderCella(turno, flags, data, opId, col, turnoVar) {
     const smartClass = isSmart ? ' smart' : '';
     const specialClass = isFestTurno ? ' special-fest' : (isMalTurno ? ' special-mal' : '');
     const filledClass = hasExtras ? ' filled' : ' empty';
-    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${filledClass}" ${clickEvt}>—${extras}</div>`;
+    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${filledClass}" ${clickEvt}>-${extras}</div>`;
   }
 
   // Background giallo reperibilità solo se rep è attivo su questa colonna
@@ -1504,7 +1538,7 @@ function renderCella(turno, flags, data, opId, col, turnoVar) {
   const showRep = isRep;
   const mfHtml   = (isM ? '<span class="mf-inline">m</span>' : '') +
                    (isF ? '<span class="mf-inline">f</span>' : '');
-  const repIcon  = showRep ? '<span class="cella-rep-icon">Â®</span>' : '';
+  const repIcon  = showRep ? '<span class="cella-rep-icon">&reg;</span>' : '';
   const smartHtml = isSmart ? '<span class="smart-inline">#</span>' : '';
   const extras   = mfHtml + repIcon + smartHtml;
   const specialClass = isFestTurno ? ' special-fest' : (isMalTurno ? ' special-mal' : '');
@@ -1513,7 +1547,7 @@ function renderCella(turno, flags, data, opId, col, turnoVar) {
     const repClass = showRep ? ' rep' : '';
     const smartClass = isSmart ? ' smart' : '';
     const filledClass = isEmpty && !extras ? ' empty' : ' filled';
-    const value = isEmpty ? 'â€”' : turno;
+    const value = isEmpty ? '-' : turno;
     return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${filledClass}" ${clickEvt}>${value}${extras}</div>`;
   }
 
@@ -1521,7 +1555,7 @@ function renderCella(turno, flags, data, opId, col, turnoVar) {
     const repClass = showRep ? ' rep' : '';
     const smartClass = isSmart ? ' smart' : '';
     const filledClass = extras ? ' filled' : ' empty';
-    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${filledClass}" ${clickEvt}>â€”${extras}</div>`;
+    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${filledClass}" ${clickEvt}>-${extras}</div>`;
   }
 
   const repClass = showRep ? ' rep' : '';
@@ -1550,7 +1584,7 @@ function applySpecialTurnoStyles(root = document) {
   });
 }
 
-// ── PICKER ────────────────────────────────────────────────────────────────────
+// -- PICKER --------------------------------------------------------------------
 function openPicker(data, opId, col, evt) {
   closePicker();
   pickerMode = 'table';
@@ -1560,11 +1594,19 @@ function openPicker(data, opId, col, evt) {
   const giorno  = datiMese?.giorni.find(g => g.data === data);
   const turnoData = giorno?.turni.find(t => t.operatore_id === opId);
   const curFlags  = col === 'base' ? (turnoData?.flags_base || '') : (turnoData?.flags_var || '');
-  pickerFlags = { smart: curFlags.includes('smart'), rep: curFlags.includes('rep'), F: curFlags.includes('F'), M: curFlags.includes('M') };
+  const curTurno = col === 'base' ? (turnoData?.turno_base ?? '') : (turnoData?.turno_var ?? '');
+  const isLegacyDiag = col === 'var' && curTurno === '__SOLO_DIAGONALE__';
+  pickerFlags = {
+    smart: curFlags.includes('smart'),
+    rep: curFlags.includes('rep'),
+    F: curFlags.includes('F'),
+    M: curFlags.includes('M'),
+    diag: col === 'var' && (curFlags.includes('diag') || isLegacyDiag),
+  };
 
   // Pre-carica il turno attuale della cella (così non serve riselezionarlo)
-  const curTurno = col === 'base' ? (turnoData?.turno_base ?? '') : (turnoData?.turno_var ?? '');
-  pickerTurnoSelected = curTurno !== '' ? curTurno : undefined;
+  const pickerTurno = isLegacyDiag ? '' : curTurno;
+  pickerTurnoSelected = pickerTurno !== '' ? pickerTurno : undefined;
 
   // Aggiorna label colonna
   const colLabel = document.getElementById('pickerColLabel');
@@ -1576,30 +1618,33 @@ function openPicker(data, opId, col, evt) {
   // Reset e aggiorna preview con turno attuale
   const preview = document.getElementById('pickerPreview');
   if (preview) {
-    if (curTurno) {
-      preview.textContent = curTurno;
+    if (pickerTurno) {
+      preview.textContent = pickerFlags.M ? `${pickerTurno}m` : (pickerFlags.F ? `${pickerTurno}f` : pickerTurno);
       preview.style.color = '#60a5fa';
     } else {
-      preview.textContent = '—';
+      preview.textContent = '-';
       preview.style.color = '#475569';
     }
   }
 
-  // Marca il bottone attivo se il turno corrisponde
-  document.querySelectorAll('.turno-picker .sb').forEach(b => {
-    b.classList.toggle('active', b.dataset.t === curTurno);
-  });
-
   updatePickerFlagBtns();
+  updatePickerTurnoButtons();
+  const diagBtn = document.getElementById('modDiag');
+  if (diagBtn) diagBtn.disabled = col !== 'var';
 
   const picker = document.getElementById('turnoPicker');
   picker.style.display = 'flex';
 
   const rect = evt.currentTarget.getBoundingClientRect();
-  let top = rect.bottom + 6, left = rect.left;
-  if (left + 310 > window.innerWidth) left = window.innerWidth - 314;
-  if (top + 440 > window.innerHeight) top = Math.max(10, rect.top - 446);
-  picker.style.top  = top  + window.scrollY + 'px';
+  const margin = 10;
+  const pickerRect = picker.getBoundingClientRect();
+  let top = rect.bottom + 6;
+  let left = rect.left;
+  if (left + pickerRect.width > window.innerWidth - margin) left = window.innerWidth - pickerRect.width - margin;
+  if (top + pickerRect.height > window.innerHeight - margin) top = rect.top - pickerRect.height - 6;
+  top = Math.max(margin, Math.min(top, window.innerHeight - pickerRect.height - margin));
+  left = Math.max(margin, left);
+  picker.style.top  = top + 'px';
   picker.style.left = left + 'px';
 
   evt.stopPropagation();
@@ -1614,8 +1659,8 @@ function closePicker() {
 }
 
 function updatePickerFlagBtns() {
-  const map = { smart:'modSmart', rep:'modRep', F:'modF', M:'modM' };
-  const cls = { smart:'chip-smart', rep:'chip-rep', F:'chip-F', M:'chip-M' };
+  const map = { smart:'modSmart', rep:'modRep', F:'modF', M:'modM', diag:'modDiag' };
+  const cls = { smart:'chip-smart', rep:'chip-rep', F:'chip-F', M:'chip-M', diag:'chip-diag' };
   Object.entries(map).forEach(([flag, id]) => {
     const btn = document.getElementById(id);
     if (!btn) return;
@@ -1624,20 +1669,49 @@ function updatePickerFlagBtns() {
   });
 }
 
+function updatePickerTurnoButtons() {
+  document.querySelectorAll('.turno-picker .sb').forEach(b => {
+    const btnFlag = b.dataset.flag || '';
+    const flagOk = btnFlag ? !!pickerFlags[btnFlag] : !pickerFlags.M && !pickerFlags.F;
+    b.classList.toggle('active', b.dataset.t === pickerTurnoSelected && flagOk);
+  });
+}
+
 function pickerToggleFlag(flag, event) {
+  if (flag === 'diag' && (pickerMode !== 'table' || pickerTarget?.col !== 'var')) {
+    if (event) event.stopPropagation();
+    return;
+  }
   pickerFlags[flag] = !pickerFlags[flag];
   updatePickerFlagBtns();
+  updatePickerTurnoButtons();
   if (event) event.stopPropagation();
 }
 
 function pickerSetTurno(turno, btn) {
   pickerTurnoSelected = turno;
-  document.querySelectorAll('.turno-picker .sb').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
+  pickerFlags.M = false;
+  pickerFlags.F = false;
+  updatePickerFlagBtns();
+  updatePickerTurnoButtons();
   const preview = document.getElementById('pickerPreview');
   if (preview) {
-    preview.textContent = turno !== '' ? (turno || '—') : '(vuoto)';
+    preview.textContent = turno !== '' ? (turno || '-') : '(vuoto)';
     preview.style.color = turno ? '#ffffff' : '#64748b';
+  }
+  if (event) event.stopPropagation();
+}
+
+function pickerSetTurnoConFlag(turno, flag, btn) {
+  pickerTurnoSelected = turno;
+  pickerFlags.M = flag === 'M';
+  pickerFlags.F = flag === 'F';
+  updatePickerFlagBtns();
+  updatePickerTurnoButtons();
+  const preview = document.getElementById('pickerPreview');
+  if (preview) {
+    preview.textContent = `${turno}${flag.toLowerCase()}`;
+    preview.style.color = '#ffffff';
   }
   if (event) event.stopPropagation();
 }
@@ -1648,9 +1722,24 @@ function pickerAnnulla() {
 
 function pickerCancella() {
   // Cancella: svuota la cella corrente (base o var)
-  pickerFlags = { smart:false, rep:false, F:false, M:false };
+  pickerFlags = { smart:false, rep:false, F:false, M:false, diag:false };
   updatePickerFlagBtns();
   pickerTurnoSelected = '';
+
+  // Aggiorna subito datiMese e il DOM, indipendentemente dal path di pickerConferma.
+  // Questo è necessario in particolare per celle VAR con sola diagonale (nessun turno):
+  // senza questo update diretto, il flag 'diag' rimarrebbe nel DOM anche dopo il salvataggio.
+  if (pickerTarget) {
+    const { data, opId, col } = pickerTarget;
+    const giorno = datiMese?.giorni?.find(g => g.data === data);
+    const turnoData = giorno?.turni?.find(t => Number(t.operatore_id) === Number(opId));
+    if (turnoData) {
+      if (col === 'base') { turnoData.turno_base = ''; turnoData.flags_base = ''; }
+      else                { turnoData.turno_var  = ''; turnoData.flags_var  = ''; }
+      refreshTeamRow(data);
+    }
+  }
+
   pickerConferma();
 }
 
@@ -1677,10 +1766,11 @@ async function pickerConferma() {
   const flags = Object.entries(pickerFlags).filter(([,v])=>v).map(([k])=>k).join(',');
 
   // Recupera turno esistente per preservare l'altro campo
+  // Usa Number() per evitare mismatch stringa/numero tra API e onclick attribute
   const giorno    = datiMese?.giorni.find(g => g.data === data);
-  const turnoData = giorno?.turni.find(t => t.operatore_id === opId);
+  const turnoData = giorno?.turni.find(t => Number(t.operatore_id) === Number(opId));
 
-  // ── FIX CRITICO: preserva la colonna non modificata ──
+  // -- FIX CRITICO: preserva la colonna non modificata --
   const payload = {
     data,
     operatore_id: opId,
@@ -1722,27 +1812,27 @@ async function pickerConferma() {
       turnoData.flags_var = prevState.flags_var;
       refreshTeamRow(data);
     }
-    if (lbl) lbl.textContent = '⚠️ Errore salvataggio ' + ts;
+    if (lbl) lbl.textContent = '�?�️ Errore salvataggio ' + ts;
     return;
   }
-  if (lbl) lbl.textContent = '💾 Salvato ' + ts;
+  if (lbl) lbl.textContent = 'Salvato ' + ts;
 
 }
 
-// ── COLONNE DESTRA ────────────────────────────────────────────────────────────
+// -- COLONNE DESTRA ------------------------------------------------------------
 async function editColonnaDestra(data, campo, td) {
   const giorno = datiMese?.giorni?.find(g => g.data === data);
-  const current = td.textContent.trim() === '—' ? '' : td.textContent.trim();
+  const current = td.textContent.trim() === '-' ? '' : td.textContent.trim();
   const val = prompt(`Valore per ${campo} del ${data}:`, current);
   if (val === null) return;
-  td.textContent = val || '—';
+  td.textContent = val || '-';
 
   const row = td.closest('tr');
   const tds = row.querySelectorAll('.td-destra');
   const keys = ['rep1','rep2','rep3','fest_m1','fest_m2','fest_p1','fest_p2'];
   const payload = { data };
   tds.forEach((cell, i) => {
-    if (keys[i]) payload[keys[i]] = cell.textContent.trim() === '—' ? '' : cell.textContent.trim();
+    if (keys[i]) payload[keys[i]] = cell.textContent.trim() === '-' ? '' : cell.textContent.trim();
   });
   payload[campo] = val || '';
 
@@ -1753,7 +1843,7 @@ async function editColonnaDestra(data, campo, td) {
   });
 }
 
-// ── SETUP OPERATORI ───────────────────────────────────────────────────────────
+// -- SETUP OPERATORI -----------------------------------------------------------
 function renderSetupOperatorRows(values = []) {
   const rows = document.getElementById('opRows');
   rows.innerHTML = '';
@@ -1806,7 +1896,7 @@ async function saveOperatori() {
   load();
 }
 
-// ── TEMPLATE SETTIMANA ────────────────────────────────────────────────────────
+// -- TEMPLATE SETTIMANA --------------------------------------------------------
 
 function renderTplCella(dow, pos) {
   const d = (tplData[dow] && tplData[dow][pos]) || { turno_base: '', flags: '' };
@@ -1822,7 +1912,7 @@ function renderTplCella(dow, pos) {
   const repClass  = isRep ? ' rep' : '';
   const smartClass = isSmart ? ' smart' : '';
   const stateClass = turno ? ' filled' : ' empty';
-  return `<div class="cella tpl-cella${repClass}${smartClass}${stateClass}" onclick="openPickerForTemplate(${dow},${pos},event)">${turno||'—'}${mfHtml}${repIcon}${smartHtml}</div>`;
+  return `<div class="cella tpl-cella${repClass}${smartClass}${stateClass}" onclick="openPickerForTemplate(${dow},${pos},event)">${turno||'-'}${mfHtml}${repIcon}${smartHtml}</div>`;
 }
 
 function openPickerForTemplate(dow, pos, evt) {
@@ -1832,7 +1922,7 @@ function openPickerForTemplate(dow, pos, evt) {
 
   const d = (tplData[dow] && tplData[dow][pos]) || { turno_base: '', flags: '' };
   const flags = d.flags || '';
-  pickerFlags = { smart: flags.includes('smart'), rep: flags.includes('rep'), F: flags.includes('F'), M: flags.includes('M') };
+  pickerFlags = { smart: flags.includes('smart'), rep: flags.includes('rep'), F: flags.includes('F'), M: flags.includes('M'), diag:false };
   const curTurno = d.turno_base || '';
   pickerTurnoSelected = curTurno !== '' ? curTurno : undefined;
 
@@ -1841,22 +1931,29 @@ function openPickerForTemplate(dow, pos, evt) {
 
   const preview = document.getElementById('pickerPreview');
   if (preview) {
-    preview.textContent = curTurno || '—';
+    preview.textContent = curTurno ? (pickerFlags.M ? `${curTurno}m` : (pickerFlags.F ? `${curTurno}f` : curTurno)) : '-';
     preview.style.color = curTurno ? '#ffffff' : '#475569';
   }
 
-  document.querySelectorAll('.turno-picker .sb').forEach(b => b.classList.toggle('active', b.dataset.t === curTurno));
   updatePickerFlagBtns();
+  updatePickerTurnoButtons();
+  const diagBtn = document.getElementById('modDiag');
+  if (diagBtn) diagBtn.disabled = true;
 
   const picker = document.getElementById('turnoPicker');
   picker.style.display = 'flex';
   picker.style.zIndex  = '600';
 
   const rect = evt.currentTarget.getBoundingClientRect();
-  let top = rect.bottom + 6, left = rect.left;
-  if (left + 310 > window.innerWidth) left = window.innerWidth - 314;
-  if (top + 440 > window.innerHeight) top = Math.max(10, rect.top - 446);
-  picker.style.top  = top  + window.scrollY + 'px';
+  const margin = 10;
+  const pickerRect = picker.getBoundingClientRect();
+  let top = rect.bottom + 6;
+  let left = rect.left;
+  if (left + pickerRect.width > window.innerWidth - margin) left = window.innerWidth - pickerRect.width - margin;
+  if (top + pickerRect.height > window.innerHeight - margin) top = rect.top - pickerRect.height - 6;
+  top = Math.max(margin, Math.min(top, window.innerHeight - pickerRect.height - margin));
+  left = Math.max(margin, left);
+  picker.style.top  = top + 'px';
   picker.style.left = left + 'px';
   evt.stopPropagation();
 }
@@ -1889,7 +1986,7 @@ async function openTemplate() {
   }
 
   // Renderizza la tabella
-  const GIORNI = ['Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato','Domenica'];
+  const GIORNI = ['Lunedi','Martedi','Mercoledi','Giovedi','Venerdi','Sabato','Domenica'];
   const tbody = document.getElementById('templateTableBody');
   tbody.innerHTML = '';
   for (let pos=1; pos<=slotCount; pos++) {
@@ -1979,7 +2076,7 @@ async function saveTemplate() {
 
   const newStart = document.getElementById('tpl_start_date').value;
   const newEnd   = document.getElementById('tpl_end_date').value;
-  if (newStart && newEnd && newStart > newEnd) { alert('La data inizio non può essere successiva alla data fine.'); return; }
+  if (newStart && newEnd && newStart > newEnd) { alert('La data inizio non puo essere successiva alla data fine.'); return; }
 
   const res = await fetch('/api/team/template-week', {
     method:'POST', headers:{'Content-Type':'application/json'},
@@ -1987,21 +2084,21 @@ async function saveTemplate() {
   }).then(r=>r.json());
 
   if (res.ok) {
-    document.getElementById('templateResult').textContent = '✅ Template salvato!';
+    document.getElementById('templateResult').textContent = 'Template salvato!';
     document.getElementById('templateOverlay').classList.remove('open');
     await load();
   } else {
-    document.getElementById('templateResult').textContent = '❌ Errore nel salvataggio.';
+    document.getElementById('templateResult').textContent = '�? Errore nel salvataggio.';
   }
 }
 
 function clearTemplateDateRange() {
   document.getElementById('tpl_start_date').value = '';
   document.getElementById('tpl_end_date').value   = '';
-  document.getElementById('templateResult').textContent = '🧹 Intervallo date resettato.';
+  document.getElementById('templateResult').textContent = 'Intervallo date resettato.';
 }
 
-// ── LOG ───────────────────────────────────────────────────────────────────────
+// -- LOG -----------------------------------------------------------------------
 let logOpen = false;
 async function toggleLog() {
   logOpen = !logOpen;
@@ -2022,9 +2119,9 @@ async function loadLog() {
         <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
       </div>
       <div style="font-size:0.72rem">
-        📅 ${formatTeamFerieDate(l.data_turno)||''} &nbsp;·&nbsp; ${l.campo||''}
-        &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span>
-        → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
+        ${formatTeamFerieDate(l.data_turno)||''} &nbsp;-&nbsp; ${l.campo||''}
+        &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'-'}</span>
+        - <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
       </div>
       <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente||'?'}</div>
     </div>`;
@@ -2130,7 +2227,7 @@ function updateFerieUi() {
   } else {
     toggleBtn.style.display = 'inline-flex';
     toggleBtn.disabled = !canRequest;
-    toggleBtn.textContent = '📅 Ferie';
+    toggleBtn.textContent = 'Ferie';
     submitBtn.style.display = 'none';
     cancelBtn.style.display = 'none';
     extraFields.classList.remove('show');
@@ -2285,11 +2382,11 @@ buildTeamRowHtml = function(g, idx, totalRows = (datiMese?.giorni?.length || 0))
   const cd = g.colonne_destra;
   html += '<td class="td-sep-destra td-sep-fest"></td>';
   ['rep1','rep2','rep3'].forEach(k => {
-    html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'—'}</td>`;
+    html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'-'}</td>`;
   });
   html += '<td class="td-sep-destra"></td>';
   ['fest_m1','fest_m2','fest_p1','fest_p2'].forEach(k => {
-    html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'—'}</td>`;
+    html += `<td class="td-destra${isEditor?' editable':''}" onclick="${isEditor?`editColonnaDestra('${g.data}','${k}',this)`:''}">${cd[k]||'-'}</td>`;
   });
   html += '</tr>';
   return html;
@@ -2400,7 +2497,7 @@ function getTeamFerieActionLabel(action, statusTo) {
 function getTeamFerieHistoryLine(row) {
   const fromMeta = getTeamFerieStatusMeta(row.status_from);
   const toMeta = getTeamFerieStatusMeta(row.status_to);
-  return `${row.username || '-'} · ${fromMeta.label} → ${toMeta.label} · da ${row.actor_username || '?'}`;
+  return `${row.username || '-'} - ${fromMeta.label} -> ${toMeta.label} - da ${row.actor_username || '?'}`;
 }
 
 function renderTeamFerieDateChips(dates) {
@@ -2412,17 +2509,17 @@ function renderTeamFerieDateChips(dates) {
 
 function groupTeamFerieLogs(rows) {
   // The backend writes one DB row per day per action.
-  // Example: operator requests 5 days → 5 rows (action='requested', status_to='pending').
-  //          editor approves     → 5 rows (action='reviewed', status_to='approved').
+  // Example: operator requests 5 days - 5 rows (action='requested', status_to='pending').
+  //          editor approves     - 5 rows (action='reviewed', status_to='approved').
   // We want ONE card per holiday request, showing the latest status.
   //
-  // PASS 1 — cluster individual day-rows into "batches":
-  //   same operatore_id + same action + same status_to + same actor + same minute → same batch.
-  // PASS 2 — for each operator, find batches that share the same set of dates
+  // PASS 1 - cluster individual day-rows into "batches":
+  //   same operatore_id + same action + same status_to + same actor + same minute - same batch.
+  // PASS 2 - for each operator, find batches that share the same set of dates
   //   (the reviewed batch has the same dates as the requested batch) and collapse them
   //   into a single card keeping only the latest status.
 
-  const batchMap = new Map(); // batchKey → batch
+  const batchMap = new Map(); // batchKey - batch
   (rows || []).forEach(row => {
     const minute = String(row.created_at || '').slice(0, 16); // "2024-06-01T14:32"
     const batchKey = [
@@ -2453,14 +2550,14 @@ function groupTeamFerieLogs(rows) {
   // Normalise date lists in every batch
   batchMap.forEach(b => {
     b.dates = Array.from(new Set(b.dates)).sort();
-    b.dateKey = b.dates.join(','); // fingerprint for matching request↔review
+    b.dateKey = b.dates.join(','); // fingerprint for matching request-review
   });
 
-  // PASS 2 — group batches by operator; merge request+review pairs that share dates.
-  // Key: operatore_id + dateKey → card (we keep the latest-status batch's meta).
+  // PASS 2 - group batches by operator; merge request+review pairs that share dates.
+  // Key: operatore_id + dateKey - card (we keep the latest-status batch's meta).
   const cardMap = new Map();
   const batches = Array.from(batchMap.values())
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt)); // asc → last write wins
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt)); // asc - last write wins
 
   batches.forEach(batch => {
     const cardKey = `${batch.operatoreId}|${batch.dateKey}`;
@@ -2549,13 +2646,13 @@ function renderTeamFerieLogContent() {
         ${pending.map(p => `
           <div class="ferie-pending-card">
             <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
-            <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} Â· ${p.giorni || 0} giorni</div>
+            <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} - ${p.giorni || 0} giorni</div>
             <div style="font-size:0.72rem;color:#bfdbfe;margin-top:6px">
-              ${formatTeamFerieDate(p.first_day)}${p.last_day && p.last_day !== p.first_day ? ` â†’ ${formatTeamFerieDate(p.last_day)}` : ''}
+              ${formatTeamFerieDate(p.first_day)}${p.last_day && p.last_day !== p.first_day ? ` -> ${formatTeamFerieDate(p.last_day)}` : ''}
             </div>
             <div class="ferie-pending-actions">
-              <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>âœ… Approva</button>
-              <button class="btn-editor" style="color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>âœ• Rifiuta</button>
+              <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>Approva</button>
+              <button class="btn-editor" style="color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>Rifiuta</button>
             </div>
           </div>`).join('')}
       </div>`);
@@ -2574,7 +2671,7 @@ function renderTeamFerieLogContent() {
               <span class="ferie-log-type">${l.action || 'ferie'}</span> ${formatTeamFerieDate(l.data_turno)}
             </div>
             <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">
-              ${l.username || '-'} Â· ${l.status_from || 'vuoto'} â†’ ${l.status_to || 'vuoto'} Â· da ${l.actor_username || '?'}
+              ${l.username || '-'} - ${l.status_from || 'vuoto'} -> ${l.status_to || 'vuoto'} - da ${l.actor_username || '?'}
             </div>
           </div>`).join('')}
       </div>`);
@@ -2618,9 +2715,9 @@ renderTeamFerieLogContent = function() {
         ${pending.map(p => `
           <div class="ferie-pending-card" style="border-color:rgba(250,204,21,.28)">
             <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
-            <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} · ${p.giorni || 0} giorni</div>
+            <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} - ${p.giorni || 0} giorni</div>
             <div style="font-size:0.72rem;color:#bfdbfe;margin-top:6px">
-              ${formatTeamFerieDate(p.first_day)}${p.last_day && p.last_day !== p.first_day ? ` → ${formatTeamFerieDate(p.last_day)}` : ''}
+              ${formatTeamFerieDate(p.first_day)}${p.last_day && p.last_day !== p.first_day ? ` - ${formatTeamFerieDate(p.last_day)}` : ''}
             </div>
             <div class="ferie-pending-actions">
               <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>Approva</button>
@@ -2642,7 +2739,7 @@ renderTeamFerieLogContent = function() {
               <span style="color:var(--muted);font-size:0.7rem">${(l.created_at || '').slice(0,16).replace('T',' ')}</span>
             </div>
             <div style="margin-top:4px;font-size:0.72rem;color:#dbeafe;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
-              <span>${getTeamFerieActionLabel(l.action, l.status_to)} · ${formatTeamFerieDate(l.data_turno)}</span>
+              <span>${getTeamFerieActionLabel(l.action, l.status_to)} - ${formatTeamFerieDate(l.data_turno)}</span>
               <span class="ferie-log-type ${statusMeta.key}">${statusMeta.label}</span>
             </div>
             <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">
@@ -2765,7 +2862,7 @@ loadLog = async function() {
   const pending   = ferieDash.pending     || [];
   const ferieLogs = ferieDash.recent_log  || [];
 
-  // ── TAB TURNI ────────────────────────────────────────────
+  // -- TAB TURNI --------------------------------------------
   const elTurni = document.getElementById('logContentTurni');
   if (elTurni) {
     if (!logs.length) {
@@ -2779,9 +2876,9 @@ loadLog = async function() {
             <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
           </div>
           <div style="font-size:0.72rem">
-            📅 ${formatTeamFerieDate(l.data_turno)||''} &nbsp;·&nbsp; ${l.campo||''}
-            &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span>
-            → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
+            ${formatTeamFerieDate(l.data_turno)||''} &nbsp;-&nbsp; ${l.campo||''}
+            &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'-'}</span>
+            - <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
           </div>
           <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente||'?'}</div>
         </div>`;
@@ -2789,7 +2886,7 @@ loadLog = async function() {
     }
   }
 
-  // ── TAB FERIE ────────────────────────────────────────────
+  // -- TAB FERIE --------------------------------------------
   const elFerie = document.getElementById('logContentFerie');
   if (elFerie) {
     const sections = [];
@@ -2800,13 +2897,13 @@ loadLog = async function() {
           ${pending.map(p => `
             <div class="ferie-pending-card">
               <div style="font-weight:800;color:var(--text)">${p.operatore_nome || '-'}</div>
-              <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} · ${p.giorni || 0} giorni</div>
+              <div style="font-size:0.74rem;color:var(--muted)">${p.username || '-'} - ${p.giorni || 0} giorni</div>
               <div style="font-size:0.72rem;color:#bfdbfe;margin-top:6px">
-                ${formatTeamFerieDate(p.first_day)}${p.last_day && p.last_day !== p.first_day ? ` → ${formatTeamFerieDate(p.last_day)}` : ''}
+                ${formatTeamFerieDate(p.first_day)}${p.last_day && p.last_day !== p.first_day ? ` - ${formatTeamFerieDate(p.last_day)}` : ''}
               </div>
               <div class="ferie-pending-actions">
-                <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>✅ Approva</button>
-                <button class="btn-editor" style="color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>✕ Rifiuta</button>
+                <button class="btn-editor primary" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "approved")'>Approva</button>
+                <button class="btn-editor" style="color:#fca5a5;border-color:rgba(239,68,68,.3)" onclick='reviewPendingFerie(${p.operatore_id}, ${JSON.stringify(p.dates || []).replace(/'/g, "\\'")}, "rejected")'>Rifiuta</button>
               </div>
             </div>`).join('')}
         </div>`);
@@ -2825,7 +2922,7 @@ loadLog = async function() {
                 <span class="ferie-log-type">${l.action || 'ferie'}</span> ${formatTeamFerieDate(l.data_turno)}
               </div>
               <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">
-                ${l.username || '-'} · ${l.status_from || 'vuoto'} → ${l.status_to || 'vuoto'} · da ${l.actor_username || '?'}
+                ${l.username || '-'} - ${l.status_from || 'vuoto'} -> ${l.status_to || 'vuoto'} - da ${l.actor_username || '?'}
               </div>
             </div>`).join('')}
         </div>`);
@@ -2860,9 +2957,9 @@ loadLog = async function() {
             <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
           </div>
           <div style="font-size:0.72rem">
-            📅 ${formatTeamFerieDate(l.data_turno)||''} &nbsp;·&nbsp; ${l.campo||''}
-            &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span>
-            → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
+            ${formatTeamFerieDate(l.data_turno)||''} &nbsp;-&nbsp; ${l.campo||''}
+            &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'-'}</span>
+            - <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
           </div>
           <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente||'?'}</div>
         </div>`;
@@ -2908,11 +3005,11 @@ function renderScambiContent(swaps) {
     return `
       <div class="ferie-pending-card" style="margin-bottom:8px; border-color:var(--border)">
         <div style="display:flex; justify-content:space-between; align-items:start">
-          <div style="font-weight:800; font-size:0.8rem">${s.richiedente_nome} ⇄ ${s.collega_nome}</div>
+          <div style="font-weight:800; font-size:0.8rem">${s.richiedente_nome} - ${s.collega_nome}</div>
           <span class="ferie-log-type ${statusClass}" style="font-size:0.6rem">${statusLabel}</span>
         </div>
         <div style="font-size:0.72rem; color:var(--muted); margin-top:4px">
-          📅 ${swapDate} <br>
+          ${swapDate} <br>
           Turno ${s.richiedente_nome} (${s.from_col === 'var' ? 'VAR' : 'TAB'}): <strong>${s.from_turno || '---'}</strong> <br>
           Turno ${s.collega_nome} (${s.to_col === 'var' ? 'VAR' : 'TAB'}): <strong>${s.to_turno || '---'}</strong>
         </div>
@@ -3018,7 +3115,7 @@ function switchLogTab(tab) {
   });
 }
 
-// ── LOGICA SWAP (CAMBIO TURNO) ────────────────────────────────────────────────
+// -- LOGICA SWAP (CAMBIO TURNO) ------------------------------------------------
 function toggleSwapMode() {
   if (!teamContext?.can_request_ferie) return;
   if (ferieMode) toggleFerieMode();
@@ -3203,7 +3300,7 @@ async function submitSwapRequest() {
   }
 }
 
-// ── NOTIFICHE ────────────────────────────────────────────────────────────────
+// -- NOTIFICHE ----------------------------------------------------------------
 function toggleNotifDropdown(e) {
   if (e) e.stopPropagation();
   const d = document.getElementById('notifDropdown');
@@ -3276,7 +3373,7 @@ async function markAllNotifAsRead() {
   await loadNotifications();
 }
 
-/* ── PRINT PREVIEW MODAL ── */
+/* -- PRINT PREVIEW MODAL -- */
 function openPrintPreviewModal() {
   const overlay = document.getElementById('printPreviewOverlay');
   if (!overlay) return;
@@ -3412,7 +3509,7 @@ async function executePrint() {
     .map(s => s.textContent || '')
     .join('\n');
 
-  // Calcola scala: margini 5mm sx, 2.5mm dx → area utile 289.5×200mm
+  // Calcola scala: margini 5mm sx, 2.5mm dx - area utile 289.5�?200mm
   const MM_TO_PX = 96 / 25.4;
   const pageWidthMm = 297;
   const pageHeightMm = 210;
@@ -3462,7 +3559,7 @@ ${appStyle}
   box-sizing: border-box;
 }
 
-/* PAGINA: A4 landscape, margini 5mm → area utile 287×200mm */
+/* PAGINA: A4 landscape, margini 5mm - area utile 287�?200mm */
 @page {
   size: A4 landscape;
   margin: ${marginTopMm}mm ${marginRightMm}mm ${marginBottomMm}mm ${marginLeftMm}mm;
@@ -3760,6 +3857,24 @@ header,
   opacity: .95 !important;
 }
 
+.cella.var-diag {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.cella.var-diag::after {
+  content: '' !important;
+  position: absolute !important;
+  left: -12% !important;
+  top: 50% !important;
+  width: 124% !important;
+  border-top: 2px dashed #ff0000 !important;
+  transform: rotate(-19deg) !important;
+  transform-origin: center center !important;
+  pointer-events: none !important;
+  opacity: .95 !important;
+}
+
 .mf-inline,
 .cella-rep-icon,
 .smart-inline {
@@ -3873,7 +3988,10 @@ function refreshSwapCellClasses() {
 }
 
 renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
-  const isEmpty = !turno;
+  const isLegacyDiag = col === 'var' && turno === '__SOLO_DIAGONALE__';
+  const turnoVisibile = isLegacyDiag ? '' : turno;
+  const turnoVarReale = turnoVar === '__SOLO_DIAGONALE__' ? '' : turnoVar;
+  const isEmpty = !turnoVisibile;
   const edClass = isEditor ? ' editable' : '';
   const colClass = col === 'var' ? ' var-cell' : '';
   
@@ -3889,8 +4007,8 @@ renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   
   // Classi per Swap
   let swapClass = '';
+  const isOwn = Number(opId) == Number(teamContext?.linked_operatore_id);
   if (swapMode) {
-    const isOwn = Number(opId) == Number(teamContext?.linked_operatore_id);
     const isSource = swapSource && swapSource.data === data && Number(swapSource.opId) == Number(opId) && swapSource.col === col;
     const isTarget = swapTarget && swapTarget.data === data && Number(swapTarget.opId) == Number(opId) && swapTarget.col === col;
 
@@ -3900,16 +4018,18 @@ renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
     else if (swapPhase === 2 && swapSource && swapSource.data === data && Number(opId) != Number(swapSource.opId)) swapClass = ' swap-target-valid';
   }
 
-  const turnoNorm = (turno || '').trim().toUpperCase();
+  const turnoNorm = (turnoVisibile || '').trim().toUpperCase();
   const isRep = flags && flags.includes('rep');
   const isSmart = flags && flags.includes('smart');
   const isF = flags && flags.includes('F');
   const isM = flags && flags.includes('M');
+  const isDiag = col === 'var' && ((flags && flags.includes('diag')) || isLegacyDiag);
   const isFestTurno = ['F', 'RF', 'EX FEST', 'EX F.', 'LUTTO'].includes(turnoNorm);
   const isMalTurno = turnoNorm === 'MAL';
 
   const repClass = isRep ? ' rep' : '';
   const smartClass = isSmart ? ' smart' : '';
+  const diagClass = isDiag ? ' var-diag' : '';
   const specialClass = isFestTurno ? ' special-fest' : (isMalTurno ? ' special-mal' : '');
   const rfRepClass = turnoNorm === 'RF' && isRep ? ' rf-rep' : '';
   const mfHtml = (isM ? '<span class="mf-inline">m</span>' : '') +
@@ -3918,7 +4038,7 @@ renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
   const smartHtml = isSmart ? '<span class="smart-inline">#</span>' : '';
   const extras = mfHtml + repIcon + smartHtml;
   const marker = col === 'base' ? renderFerieMarker(ferieRequest, data, opId) : '';
-  const value = isEmpty ? '' : turno;
+  const value = isEmpty ? '' : turnoVisibile;
 
   // Blocco selezione se operatore non ha account (per scambi in Fase 2)
   if (swapPhase === 2 && swapMode && !isOwn && col === 'base') {
@@ -3930,17 +4050,17 @@ renderCella = function(turno, flags, data, opId, col, turnoVar, ferieRequest) {
 
   const dataAttrs = `data-date="${data}" data-opid="${opId}" data-col="${col}" data-origclick="${customClick ? customClick.replace('onclick="', '').slice(0, -1) : ''}"`;
 
-  if (col === 'base' && turnoVar) {
+  if (col === 'base' && turnoVarReale) {
     const filledClass = isEmpty && !extras ? ' empty' : ' filled';
     return `<div class="cella cella-base-sbarrata${edClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieStatusClass}${swapClass}${filledClass}" ${dataAttrs} ${customClick || clickEvt} ${contextEvt}>${value}${extras}${marker}</div>`;
   }
 
   if (isEmpty) {
-    const filledClass = (extras || ferieStatusClass || marker) ? ' filled' : ' empty';
-    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieStatusClass}${swapClass}${filledClass}" ${dataAttrs} ${customClick || clickEvt} ${contextEvt}>${value}${extras}${marker}</div>`;
+    const filledClass = (extras || isDiag || ferieStatusClass || marker) ? ' filled' : ' empty';
+    return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${diagClass}${specialClass}${rfRepClass}${ferieStatusClass}${swapClass}${filledClass}" ${dataAttrs} ${customClick || clickEvt} ${contextEvt}>${value}${extras}${marker}</div>`;
   }
 
-  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${specialClass}${rfRepClass}${ferieStatusClass}${swapClass} filled" ${dataAttrs} ${customClick || clickEvt} ${contextEvt}>${turno}${extras}${marker}</div>`;
+  return `<div class="cella${edClass}${colClass}${repClass}${smartClass}${diagClass}${specialClass}${rfRepClass}${ferieStatusClass}${swapClass} filled" ${dataAttrs} ${customClick || clickEvt} ${contextEvt}>${turnoVisibile}${extras}${marker}</div>`;
 };
 
 renderTplCella = function(dow, pos) {
@@ -3987,9 +4107,9 @@ loadLog = async function() {
             <span style="color:var(--muted);font-size:0.7rem">${(l.data_modifica||'').slice(0,10)}</span>
           </div>
           <div style="font-size:0.72rem">
-            📅 ${formatTeamFerieDate(l.data_turno)||''} &nbsp;·&nbsp; ${l.campo||''}
-            &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'—'}</span>
-            → <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
+            ${formatTeamFerieDate(l.data_turno)||''} &nbsp;-&nbsp; ${l.campo||''}
+            &nbsp;<span style="text-decoration:line-through;color:#EF4444">${l.vecchio_valore||'-'}</span>
+            - <span style="color:${color};font-weight:700">${l.nuovo_valore||'(vuoto)'}</span>
           </div>
           <div style="font-size:0.68rem;color:var(--muted);margin-top:2px">da: ${l.utente||'?'}</div>
         </div>`;
