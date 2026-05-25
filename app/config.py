@@ -77,5 +77,5 @@ IMPOSTAZIONI_DEFAULTS = {
     "trattenuta_sindacato": "18.86", "trattenuta_regionale": "50.00",
     "trattenuta_comunale": "0.00", "trattenuta_pegaso": "33.90",
     "aliquota_inps": "9.19", "detrazioni_annue": "1955.00",
-    "tariffa_fest_riposo": "98.97654",
+    "tariffa_fest_riposo": "98.97654", "valore_ticket": "8.00",
 }

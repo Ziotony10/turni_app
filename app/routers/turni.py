@@ -149,7 +149,34 @@ def _vuoto_totali_busta():
     return {"ore_diurne":0.0,"ore_notturne":0.0,"strao_diurno":0.0,"strao_notturno":0.0,
             "strao_fest_diurno":0.0,"strao_fest_notturno":0.0,
             "rep_feriale":0,"rep_semifestiva":0,"rep_festiva":0,
-            "domeniche":0,"giorni_lavoro":0,"notte_assenza":0.0,"fest_riposo":0}
+            "domeniche":0,"giorni_lavoro":0,"notte_assenza":0.0,"fest_riposo":0,
+            "buoni_pasto":0}
+
+def _ticket_giornalieri(r):
+    turno = r.get("turno") or ""
+    lavorativo = bool(TURNI_CONFIG.get(turno, {}).get("lavorativo"))
+    std = TURNO_ORARI.get(turno)
+    ore_standard = 0.0
+    if std:
+        si, sf = std
+        ore_standard = ((sf - si) if sf > si else (sf + 1440 - si)) / 60
+    ore_ordinarie = (r.get("ore_diurne") or 0) + (r.get("ore_notturne") or 0)
+    ore_strao = ((r.get("strao_diurno") or 0) + (r.get("strao_notturno") or 0) +
+                 (r.get("strao_fest_diurno") or 0) + (r.get("strao_fest_notturno") or 0))
+    totale_ore = ore_ordinarie + ore_strao
+
+    if lavorativo and totale_ore == 0:
+        totale_ore = ore_standard
+
+    ticket = 0
+    if lavorativo and totale_ore > 4:
+        ticket += 1
+        ore_extra_ticket = max(0.0, totale_ore - ore_standard) if ore_standard else ore_strao
+        if ore_extra_ticket >= 4:
+            ticket += 1
+    elif ore_strao >= 4:
+        ticket += int(ore_strao // 4)
+    return ticket
 
 def _somma_turni_busta(rows):
     tot = _vuoto_totali_busta()
@@ -167,6 +194,7 @@ def _somma_turni_busta(rows):
         elif rep == "festiva": tot["rep_festiva"] += 1
         if t in NOTTE_ASSENZA: tot["notte_assenza"] += NOTTE_ASSENZA[t]
         if t in ("R", "RC") and d_str in FESTIVITA: tot["fest_riposo"] += 1
+        tot["buoni_pasto"] += _ticket_giornalieri(r)
     return tot
 
 def _voci_competenze_busta(cfg, tot, ref_corrente, ref_variabili):
@@ -176,6 +204,7 @@ def _voci_competenze_busta(cfg, tot, ref_corrente, ref_variabili):
         {"voce":"Ore notturne in turno 50%",     "ref":ref_variabili,"qty":tot["ore_notturne"],       "tariffa":cfg["tariffa_nott_50"],        "importo":round(tot["ore_notturne"]*cfg["tariffa_nott_50"],2)},
         {"voce":"Indennita lavoro domenicale",   "ref":ref_variabili,"qty":tot["domeniche"]*8,        "tariffa":cfg["tariffa_dom"],            "importo":round(tot["domeniche"]*8*cfg["tariffa_dom"],2)},
         {"voce":"Lavoro ordinario notte",        "ref":ref_variabili,"qty":tot["notte_assenza"],      "tariffa":cfg["tariffa_nott_ord"],       "importo":round(tot["notte_assenza"]*cfg["tariffa_nott_ord"],2)},
+        {"voce":"Festivita in giorno di riposo", "ref":ref_variabili,"qty":tot["fest_riposo"],        "tariffa":cfg["tariffa_fest_riposo"],   "importo":round(tot["fest_riposo"]*cfg["tariffa_fest_riposo"]*2,2)},
         {"voce":"Str. Feriale Diurno 150%",      "ref":ref_variabili,"qty":tot["strao_diurno"],       "tariffa":cfg["tariffa_strao_fer_d"],   "importo":round(tot["strao_diurno"]*cfg["tariffa_strao_fer_d"],2)},
         {"voce":"Str. Feriale Notturno 160%",    "ref":ref_variabili,"qty":tot["strao_notturno"],     "tariffa":cfg["tariffa_strao_fer_n"],   "importo":round(tot["strao_notturno"]*cfg["tariffa_strao_fer_n"],2)},
         {"voce":"Str. Festivo Diurno 160%",      "ref":ref_variabili,"qty":tot["strao_fest_diurno"],  "tariffa":cfg["tariffa_strao_fest_d"],  "importo":round(tot["strao_fest_diurno"]*cfg["tariffa_strao_fest_d"],2)},
@@ -183,7 +212,7 @@ def _voci_competenze_busta(cfg, tot, ref_corrente, ref_variabili):
         {"voce":"Ind. Reperibilita Feriale",     "ref":ref_variabili,"qty":tot["rep_feriale"],        "tariffa":cfg["tariffa_rep_feriale"],   "importo":round(tot["rep_feriale"]*cfg["tariffa_rep_feriale"],2)},
         {"voce":"Ind. Reperibilita Semifestiva", "ref":ref_variabili,"qty":tot["rep_semifestiva"],    "tariffa":cfg["tariffa_rep_semifestiva"],"importo":round(tot["rep_semifestiva"]*cfg["tariffa_rep_semifestiva"],2)},
         {"voce":"Ind. Reperibilita Festiva",     "ref":ref_variabili,"qty":tot["rep_festiva"],        "tariffa":cfg["tariffa_rep_festiva"],   "importo":round(tot["rep_festiva"]*cfg["tariffa_rep_festiva"],2)},
-        {"voce":"Festivita in giorno di riposo", "ref":ref_variabili,"qty":tot["fest_riposo"],        "tariffa":cfg["tariffa_fest_riposo"],   "importo":round(tot["fest_riposo"]*cfg["tariffa_fest_riposo"]*2,2)},
+        {"voce":"Valore facciale ticket",        "ref":ref_variabili,"qty":tot["buoni_pasto"],        "tariffa":cfg.get("valore_ticket", 0.0), "importo":round(tot["buoni_pasto"]*cfg.get("valore_ticket", 0.0),2), "non_imponibile": True},
     ]
 
 def _irpef_lorda(r, anno):
@@ -245,7 +274,7 @@ def _stima_imponibile_annuo(anno, mese, cfg, rows_by_month, imponibile_mese_corr
             continue
         tot = _somma_turni_busta(rows)
         voci = _voci_competenze_busta(cfg, tot, "", "")
-        competenze = round(sum(v["importo"] for v in voci), 2)
+        competenze = round(sum(v["importo"] for v in voci if not v.get("non_imponibile")), 2)
         inps = round(competenze * cfg.get("aliquota_inps", 9.19) / 100, 2)
         imponibili_presenti.append(round(competenze - inps, 2))
 
@@ -306,7 +335,8 @@ def get_busta_paga(anno: int, mese: int, user=Depends(get_current_user)):
         {"voce":"Ind. Reperibilità Festiva",     "ref":rp,"qty":tot["rep_festiva"],        "tariffa":cfg["tariffa_rep_festiva"],   "importo":round(tot["rep_festiva"]*cfg["tariffa_rep_festiva"],2)},
         {"voce":"Festività in giorno di riposo", "ref":rp,"qty":tot["fest_riposo"],        "tariffa":cfg["tariffa_fest_riposo"],   "importo":round(tot["fest_riposo"]*cfg["tariffa_fest_riposo"]*2,2)},
     ]
-    tc = round(sum(v["importo"] for v in vc), 2)
+    vc = _voci_competenze_busta(cfg, tot, rc, rp)
+    tc = round(sum(v["importo"] for v in vc if not v.get("non_imponibile")), 2)
     inps = round(tc * cfg.get("aliquota_inps", 9.19) / 100, 2)
     imponibile_mese = round(tc - inps, 2)
     imp_ann, mesi_stima, media_imp = _stima_imponibile_annuo(anno, mese, cfg, rows_by_month, imponibile_mese)

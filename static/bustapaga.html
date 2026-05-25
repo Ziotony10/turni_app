@@ -262,6 +262,7 @@
       <div class="par-field"><label>Rep. Semifestiva (€)</label><div class="par-row"><input type="number" id="tariffa_rep_semifestiva" step="0.01"><span>€</span></div></div>
       <div class="par-field"><label>Rep. Festiva (€)</label><div class="par-row"><input type="number" id="tariffa_rep_festiva" step="0.01"><span>€</span></div></div>
       <div class="par-field"><label>Festività in giorno riposo (€)</label><div class="par-row"><input type="number" id="tariffa_fest_riposo" step="0.00001"><span>€</span></div></div>
+      <div class="par-field"><label>Valore facciale ticket (€)</label><div class="par-row"><input type="number" id="valore_ticket" step="0.01"><span>€</span></div></div>
     </div>
   </div>
   <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-top:16px">
@@ -334,7 +335,7 @@ function fmtH(h) {
 const PAR_CAMPI = ['retribuzione_totale','tariffa_nott_50','tariffa_dom','tariffa_nott_ord',
   'tariffa_strao_fer_d','tariffa_strao_fer_n','tariffa_strao_fest_d','tariffa_strao_fest_n',
   'tariffa_rep_feriale','tariffa_rep_semifestiva','tariffa_rep_festiva','tariffa_fest_riposo',
-  'indennita_turno','trattenuta_sindacato','trattenuta_regionale','trattenuta_comunale','trattenuta_pegaso',
+  'valore_ticket','indennita_turno','trattenuta_sindacato','trattenuta_regionale','trattenuta_comunale','trattenuta_pegaso',
   'aliquota_inps','detrazioni_annue'];
 
 let parametriVisible = false;
@@ -413,6 +414,7 @@ function render(d) {
       <div class="ore-item"><div class="v" style="color:#EC4899">${fmtH(ot.strao_fest_notturno)}</div><div class="l">Strao Fest. N</div></div>
       <div class="ore-item"><div class="v" style="color:#10B981">${ot.rep_feriale}</div><div class="l">Rep. Feriale</div></div>
       <div class="ore-item"><div class="v" style="color:#10B981">${ot.rep_festiva}</div><div class="l">Rep. Festiva</div></div>
+      <div class="ore-item"><div class="v" style="color:#34D399">${ot.buoni_pasto || 0}</div><div class="l">Ticket</div></div>
     </div>
   </div>
 
@@ -428,8 +430,9 @@ function render(d) {
 
   for (const v of d.voci_competenze) {
     const zero = v.importo === 0;
+    const info = v.non_imponibile ? '<span style="font-size:0.7rem;background:#064E3B;color:#6EE7B7;padding:2px 6px;border-radius:4px;margin-left:6px;">non imponibile</span>' : '';
     html += `<tr>
-      <td class="${zero?'zero':''}">${v.voce}</td>
+      <td class="${zero?'zero':''}">${v.voce}${info}</td>
       <td style="font-size:0.78rem;color:var(--muted)">${v.ref}</td>
       <td class="num ${zero?'zero':''}">${v.qty !== null ? (Number.isInteger(v.qty) ? v.qty : fmtH(v.qty)) : '—'}</td>
       <td class="num ${zero?'zero':''}">${v.tariffa !== null ? v.tariffa.toFixed(5) : '—'}</td>
@@ -439,6 +442,7 @@ function render(d) {
 
   html += `<tr class="total-row">
     <td colspan="3">Totale competenze</td>
+    <td></td>
     <td class="num green">${fmt(d.tot_competenze)}</td>
   </tr></tbody></table></div>
 
