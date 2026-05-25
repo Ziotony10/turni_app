@@ -204,7 +204,7 @@ def _voci_competenze_busta(cfg, tot, ref_corrente, ref_variabili):
         {"voce":"Ore notturne in turno 50%",     "ref":ref_variabili,"qty":tot["ore_notturne"],       "tariffa":cfg["tariffa_nott_50"],        "importo":round(tot["ore_notturne"]*cfg["tariffa_nott_50"],2)},
         {"voce":"Indennita lavoro domenicale",   "ref":ref_variabili,"qty":tot["domeniche"]*8,        "tariffa":cfg["tariffa_dom"],            "importo":round(tot["domeniche"]*8*cfg["tariffa_dom"],2)},
         {"voce":"Lavoro ordinario notte",        "ref":ref_variabili,"qty":tot["notte_assenza"],      "tariffa":cfg["tariffa_nott_ord"],       "importo":round(tot["notte_assenza"]*cfg["tariffa_nott_ord"],2)},
-        {"voce":"Festivita in giorno di riposo", "ref":ref_variabili,"qty":tot["fest_riposo"],        "tariffa":cfg["tariffa_fest_riposo"],   "importo":round(tot["fest_riposo"]*cfg["tariffa_fest_riposo"]*2,2)},
+        {"voce":"Festivita in giorno di riposo", "ref":ref_variabili,"qty":tot["fest_riposo"],        "tariffa":cfg["tariffa_fest_riposo"],   "importo":round(tot["fest_riposo"]*cfg["tariffa_fest_riposo"],2)},
         {"voce":"Str. Feriale Diurno 150%",      "ref":ref_variabili,"qty":tot["strao_diurno"],       "tariffa":cfg["tariffa_strao_fer_d"],   "importo":round(tot["strao_diurno"]*cfg["tariffa_strao_fer_d"],2)},
         {"voce":"Str. Feriale Notturno 160%",    "ref":ref_variabili,"qty":tot["strao_notturno"],     "tariffa":cfg["tariffa_strao_fer_n"],   "importo":round(tot["strao_notturno"]*cfg["tariffa_strao_fer_n"],2)},
         {"voce":"Str. Festivo Diurno 160%",      "ref":ref_variabili,"qty":tot["strao_fest_diurno"],  "tariffa":cfg["tariffa_strao_fest_d"],  "importo":round(tot["strao_fest_diurno"]*cfg["tariffa_strao_fest_d"],2)},
@@ -333,7 +333,7 @@ def get_busta_paga(anno: int, mese: int, user=Depends(get_current_user)):
         {"voce":"Ind. Reperibilità Feriale",     "ref":rp,"qty":tot["rep_feriale"],        "tariffa":cfg["tariffa_rep_feriale"],   "importo":round(tot["rep_feriale"]*cfg["tariffa_rep_feriale"],2)},
         {"voce":"Ind. Reperibilità Semifestiva", "ref":rp,"qty":tot["rep_semifestiva"],    "tariffa":cfg["tariffa_rep_semifestiva"],"importo":round(tot["rep_semifestiva"]*cfg["tariffa_rep_semifestiva"],2)},
         {"voce":"Ind. Reperibilità Festiva",     "ref":rp,"qty":tot["rep_festiva"],        "tariffa":cfg["tariffa_rep_festiva"],   "importo":round(tot["rep_festiva"]*cfg["tariffa_rep_festiva"],2)},
-        {"voce":"Festività in giorno di riposo", "ref":rp,"qty":tot["fest_riposo"],        "tariffa":cfg["tariffa_fest_riposo"],   "importo":round(tot["fest_riposo"]*cfg["tariffa_fest_riposo"]*2,2)},
+        {"voce":"Festività in giorno di riposo", "ref":rp,"qty":tot["fest_riposo"],        "tariffa":cfg["tariffa_fest_riposo"],   "importo":round(tot["fest_riposo"]*cfg["tariffa_fest_riposo"],2)},
     ]
     vc = _voci_competenze_busta(cfg, tot, rc, rp)
     tc = round(sum(v["importo"] for v in vc if not v.get("non_imponibile")), 2)
