@@ -175,7 +175,7 @@ def _ticket_giornalieri(r):
         if ore_extra_ticket >= 4:
             ticket += 1
     elif ore_strao >= 4:
-        ticket += int(ore_strao // 4)
+        ticket += 1
     return ticket
 
 def _somma_turni_busta(rows):
